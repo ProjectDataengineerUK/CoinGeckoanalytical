@@ -68,6 +68,47 @@ class SentinelaTests(unittest.TestCase):
         self.assertIn("token_spike", kinds)
         self.assertEqual(result["summary"]["errors"], 1)
 
+    def test_analyze_usage_events_aggregates_routing_mix(self) -> None:
+        result = sentinela.analyze_usage_events(
+            [
+                {
+                    "event_time": "2026-04-30T00:00:00Z",
+                    "request_id": "req-3",
+                    "tenant_id": "tenant-1",
+                    "user_id": "user-1",
+                    "route_selected": "genie",
+                    "model_or_engine": "genie",
+                    "prompt_tokens": 18,
+                    "completion_tokens": 22,
+                    "total_tokens": 40,
+                    "latency_ms": 180,
+                    "cost_estimate": 0.01,
+                    "freshness_watermark": "2026-04-30T00:00:00Z",
+                    "response_status": "success",
+                },
+                {
+                    "event_time": "2026-04-30T00:00:00Z",
+                    "request_id": "req-4",
+                    "tenant_id": "tenant-1",
+                    "user_id": "user-1",
+                    "route_selected": "copilot",
+                    "model_or_engine": "mosaic-ai-agent-framework",
+                    "prompt_tokens": 60,
+                    "completion_tokens": 80,
+                    "total_tokens": 140,
+                    "latency_ms": 220,
+                    "cost_estimate": 0.02,
+                    "freshness_watermark": "pending",
+                    "response_status": "partial",
+                },
+            ]
+        )
+
+        self.assertEqual(result["summary"]["events"], 2)
+        self.assertEqual(result["summary"]["partials"], 1)
+        self.assertEqual(result["summary"]["errors"], 0)
+        self.assertEqual(result["summary"]["alerts"], 1)
+
 
 if __name__ == "__main__":
     unittest.main()

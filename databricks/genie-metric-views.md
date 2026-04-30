@@ -2,36 +2,47 @@
 
 ## Purpose
 
-Define the first metric-view layer that makes structured analytical NLQ easier for `AI/BI Genie`.
+Define the metric-view layer that makes structured analytical NLQ easier for `AI/BI Genie`.
 
-## Initial Metric Views
+## Implementation Asset
+
+- executable metric-view DDL: `genie_metric_views.sql`
+
+## Published Metric Views
 
 ### `mv_market_rankings`
 
-Measures:
+Backs:
 
 - market cap
 - price
 - volume 24h
 - market cap rank
 
-Filters:
+Source:
+
+- `gold_market_rankings`
+
+Useful filters:
 
 - category
 - symbol
-- rank range
 - observation date
 
 ### `mv_top_movers`
 
-Measures:
+Backs:
 
 - change 1h
 - change 24h
 - change 7d
 - volume 24h
 
-Filters:
+Source:
+
+- `gold_top_movers`
+
+Useful filters:
 
 - positive or negative move
 - time window
@@ -40,19 +51,23 @@ Filters:
 
 ### `mv_market_dominance`
 
-Measures:
+Backs:
 
 - dominance percentage
 - market cap by dominance group
 
-Filters:
+Source:
+
+- `gold_market_dominance`
+
+Useful filters:
 
 - date
 - dominance group
 
 ### `mv_cross_asset_compare`
 
-Measures:
+Backs:
 
 - price
 - market cap
@@ -60,7 +75,11 @@ Measures:
 - 24h change
 - 7d change
 
-Filters:
+Source:
+
+- `gold_cross_asset_comparison`
+
+Useful filters:
 
 - selected asset set
 - date
@@ -69,3 +88,17 @@ Filters:
 ## Naming Rule
 
 Metric-view names should remain explicit and business-readable to improve NLQ grounding and admin discoverability.
+
+## Publication Rule
+
+Use the YAML DDL form supported by Databricks metric views:
+
+```sql
+CREATE OR REPLACE VIEW <name> WITH METRICS LANGUAGE YAML AS
+$$
+  version: 1.1
+  comment: "..."
+  source: <gold_view>
+  ...
+$$;
+```

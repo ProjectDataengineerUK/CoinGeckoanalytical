@@ -1,8 +1,15 @@
 from __future__ import annotations
 
 import datetime as dt
-from dataclasses import dataclass
+from dataclasses import asdict, dataclass, field
 from typing import Any
+
+
+@dataclass(frozen=True)
+class RouteDecision:
+    surface: str
+    reason: str
+    signals: tuple[str, ...] = ()
 
 
 @dataclass(frozen=True)
@@ -20,73 +27,187 @@ class CopilotRequest:
     locale: str
 
 
+@dataclass(frozen=True)
+class ResponseEnvelope:
+    request_id: str
+    surface_type: str
+    title: str
+    body: str
+    citations: list[str] = field(default_factory=list)
+    freshness: dict[str, str | None] = field(default_factory=dict)
+    confidence: dict[str, Any] = field(default_factory=dict)
+    actions: list[str] = field(default_factory=list)
+    warnings: list[str] = field(default_factory=list)
+    routing: dict[str, Any] = field(default_factory=dict)
+    schema_version: str = "copilot.response.v1"
+
+
+@dataclass(frozen=True)
+class TelemetryEnvelope:
+    event_time: str
+    request_id: str
+    tenant_id: str
+    user_id: str | None
+    route_selected: str
+    model_or_engine: str
+    prompt_tokens: int | None
+    completion_tokens: int | None
+    total_tokens: int | None
+    latency_ms: int
+    cost_estimate: float | None
+    freshness_watermark: str | None
+    response_status: str
+    response_surface_type: str
+    response_title: str
+    schema_version: str = "copilot.telemetry.v1"
+
+
+STRUCTURED_ROUTE_SIGNALS = (
+    "rank",
+    "ranking",
+    "top",
+    "compare",
+    "comparison",
+    "versus",
+    "vs",
+    "dominan",
+    "market cap",
+    "highest",
+    "lowest",
+    "volume",
+    "price change",
+    "table",
+    "across",
+    "by asset",
+)
+
+NARRATIVE_ROUTE_SIGNALS = (
+    "explain",
+    "summarize",
+    "summary",
+    "what is happening",
+    "context",
+    "insight",
+    "trend",
+    "story",
+)
+
+
+def classify_route(request: CopilotRequest | str) -> RouteDecision:
+    message_text = request.message_text if isinstance(request, CopilotRequest) else request
+    lowered = message_text.lower().strip()
+    structured_signals = tuple(
+        signal for signal in STRUCTURED_ROUTE_SIGNALS if signal in lowered
+    )
+    narrative_signals = tuple(signal for signal in NARRATIVE_ROUTE_SIGNALS if signal in lowered)
+
+    if structured_signals:
+        return RouteDecision(
+            surface="genie",
+            reason="structured_analytics_request",
+            signals=structured_signals,
+        )
+    if narrative_signals:
+        return RouteDecision(
+            surface="copilot",
+            reason="narrative_market_request",
+            signals=narrative_signals,
+        )
+    return RouteDecision(
+        surface="copilot",
+        reason="default_copilot_path",
+        signals=(),
+    )
+
+
 def route_request(message_text: str) -> str:
-    lowered = message_text.lower()
-    if any(
-        token in lowered
-        for token in [
-            "rank",
-            "ranking",
-            "top",
-            "compare",
-            "comparison",
-            "dominan",
-            "market cap",
-            "highest",
-            "lowest",
-            "volume",
-            "price change",
-        ]
-    ):
-        return "genie"
-    return "copilot"
+    return classify_route(message_text).surface
+
+
+def serialize_response_envelope(response: ResponseEnvelope | dict[str, Any]) -> dict[str, Any]:
+    payload = asdict(response) if isinstance(response, ResponseEnvelope) else dict(response)
+    payload["citations"] = list(payload.get("citations") or [])
+    payload["actions"] = list(payload.get("actions") or [])
+    payload["warnings"] = list(payload.get("warnings") or [])
+    payload["freshness"] = dict(payload.get("freshness") or {})
+    payload["confidence"] = dict(payload.get("confidence") or {})
+    payload["routing"] = dict(payload.get("routing") or {})
+    payload.setdefault("schema_version", "copilot.response.v1")
+    return payload
+
+
+def serialize_telemetry_envelope(
+    telemetry: TelemetryEnvelope | dict[str, Any],
+) -> dict[str, Any]:
+    payload = asdict(telemetry) if isinstance(telemetry, TelemetryEnvelope) else dict(telemetry)
+    payload.setdefault("schema_version", "copilot.telemetry.v1")
+    return payload
 
 
 def build_copilot_response(request: CopilotRequest) -> dict[str, Any]:
-    route_selected = route_request(request.message_text)
-    if route_selected == "genie":
-        return {
-            "request_id": request.request_id,
-            "surface_type": "analytics_answer",
-            "title": "Consulta analitica governada",
-            "body": "A pergunta deve seguir para Genie por ser uma consulta estruturada.",
-            "citations": [],
-            "freshness": {"watermark": None, "status": "pending"},
-            "confidence": {"label": "medium", "score": 0.72},
-            "actions": ["route_to_genie"],
-            "warnings": [],
-        }
+    decision = classify_route(request)
+    if decision.surface == "genie":
+        return serialize_response_envelope(
+            ResponseEnvelope(
+                request_id=request.request_id,
+                surface_type="analytics_answer",
+                title="Consulta analitica governada",
+                body=(
+                    "Esta pergunta segue para Genie porque foi identificada como "
+                    "consulta estruturada e comparativa."
+                ),
+                freshness={"watermark": None, "status": "pending"},
+                confidence={"label": "medium", "score": 0.72},
+                actions=["route_to_genie", "return_structured_result"],
+                warnings=[],
+                routing={
+                    "surface": decision.surface,
+                    "reason": decision.reason,
+                    "signals": list(decision.signals),
+                },
+            )
+        )
 
     response_text = (
-        "Resposta de copilot MVP: use o agente para analise narrativa, "
-        "com provenance, frescor e policy context."
+        "Resposta de copilot MVP: use o agente para analise narrativa, com "
+        "provenance, frescor e policy context."
     )
-    return {
-        "request_id": request.request_id,
-        "surface_type": "copilot_answer",
-        "title": "Copilot de mercado",
-        "body": response_text,
-        "citations": ["unity_catalog.gold_market_views", "mosaic_ai_vector_search"],
-        "freshness": {"watermark": "pending", "status": "unknown"},
-        "confidence": {"label": "provisional", "score": 0.64},
-        "actions": ["follow_up_question", "open_analytics_view"],
-        "warnings": ["mvp_stub_response"],
-    }
+    return serialize_response_envelope(
+        ResponseEnvelope(
+            request_id=request.request_id,
+            surface_type="copilot_answer",
+            title="Copilot de mercado",
+            body=response_text,
+            citations=["unity_catalog.gold_market_views", "mosaic_ai_vector_search"],
+            freshness={"watermark": "pending", "status": "unknown"},
+            confidence={"label": "provisional", "score": 0.64},
+            actions=["follow_up_question", "open_analytics_view"],
+            warnings=["mvp_stub_response"],
+            routing={
+                "surface": decision.surface,
+                "reason": decision.reason,
+                "signals": list(decision.signals),
+            },
+        )
+    )
 
 
 def build_usage_event(request: CopilotRequest, response: dict[str, Any], latency_ms: int = 120) -> dict[str, Any]:
-    return {
-        "event_time": dt.datetime.now(dt.UTC).isoformat(),
-        "request_id": request.request_id,
-        "tenant_id": request.tenant_id,
-        "user_id": request.user_id,
-        "route_selected": "copilot" if response["surface_type"] == "copilot_answer" else "genie",
-        "model_or_engine": "mosaic-ai-agent-framework",
-        "prompt_tokens": None,
-        "completion_tokens": None,
-        "total_tokens": None,
-        "latency_ms": latency_ms,
-        "cost_estimate": None,
-        "freshness_watermark": response["freshness"]["watermark"],
-        "response_status": "success",
-    }
+    telemetry = TelemetryEnvelope(
+        event_time=dt.datetime.now(dt.UTC).isoformat(),
+        request_id=request.request_id,
+        tenant_id=request.tenant_id,
+        user_id=request.user_id,
+        route_selected=route_request(request.message_text),
+        model_or_engine="mosaic-ai-agent-framework",
+        prompt_tokens=None,
+        completion_tokens=None,
+        total_tokens=None,
+        latency_ms=latency_ms,
+        cost_estimate=None,
+        freshness_watermark=response["freshness"]["watermark"],
+        response_status="success",
+        response_surface_type=response["surface_type"],
+        response_title=response["title"],
+    )
+    return serialize_telemetry_envelope(telemetry)

@@ -2,99 +2,102 @@
 
 ## Purpose
 
-Define the first governed Gold analytical assets for dashboard serving and `AI/BI Genie`.
+Define the governed Gold analytical assets for dashboard serving and `AI/BI Genie`.
 
-## Initial Gold Views
+## Source Contract
 
-### 1. `gold_market_rankings`
+- executable implementation: `gold_market_views.sql`
+- freshness and quality posture: `freshness_quality_baseline.sql`
+- metric-view layer: `genie_metric_views.sql`
 
-Purpose:
+## Gold Assets
 
-- top assets by market cap
-- rank-based exploration
-- market-cap and liquidity-oriented comparisons
+### `gold_market_rankings`
 
-Core dimensions:
+Grain:
 
-- `asset_id`
-- `symbol`
-- `name`
-- `category`
-- `observed_at`
+- one row per `asset_id` and `observed_at`
 
-Core metrics:
+Source:
 
-- `market_cap_usd`
-- `price_usd`
-- `volume_24h_usd`
-- `circulating_supply`
-- `market_cap_rank`
+- `bronze_market_snapshots`
 
-### 2. `gold_top_movers`
+Serving intent:
 
-Purpose:
+- rank exploration
+- market-cap and liquidity comparisons
+
+Governed semantics:
+
+- deduplicated with `ROW_NUMBER()`
+- freshness tier `tier_a`
+- quality status derived from basic numeric sanity checks
+
+### `gold_top_movers`
+
+Grain:
+
+- one row per `asset_id`, `window_id`, and `observed_at`
+
+Source:
+
+- `silver_market_changes`
+
+Serving intent:
 
 - strongest positive and negative asset moves
-- short-horizon market motion analysis
+- short-horizon motion analysis
 
-Core dimensions:
+Governed semantics:
 
-- `asset_id`
-- `symbol`
-- `name`
-- `observed_at`
-- `window_id`
+- move direction and band are normalized in the view
+- freshness tier `tier_a`
+- quality checks guard against extreme percentage corruption
 
-Core metrics:
+### `gold_market_dominance`
 
-- `price_change_pct_1h`
-- `price_change_pct_24h`
-- `price_change_pct_7d`
-- `volume_24h_usd`
-- `market_cap_usd`
+Grain:
 
-### 3. `gold_market_dominance`
+- one row per `dominance_group` and `observed_at`
 
-Purpose:
+Source:
 
-- dominance trends for BTC, ETH, stablecoins, and other major groupings
-- macro market structure analysis
+- `silver_market_dominance`
 
-Core dimensions:
+Serving intent:
 
-- `observed_at`
-- `dominance_group`
+- BTC, ETH, stablecoin, and long-tail structure analysis
 
-Core metrics:
+Governed semantics:
 
-- `market_cap_usd`
-- `dominance_pct`
+- dominance band is derived for more readable NLQ and dashboard grouping
+- freshness tier `tier_a`
+- dominance percentage must stay within 0 to 100
 
-### 4. `gold_cross_asset_comparison`
+### `gold_cross_asset_comparison`
 
-Purpose:
+Grain:
+
+- one row per `asset_id`, `observed_at`, and `correlation_bucket`
+
+Source:
+
+- `silver_cross_asset_comparison`
+
+Serving intent:
 
 - side-by-side comparison for selected assets
 - dashboard and copilot evidence support
 
-Core dimensions:
+Governed semantics:
 
-- `asset_id`
-- `symbol`
-- `observed_at`
-
-Core metrics:
-
-- `price_usd`
-- `market_cap_usd`
-- `volume_24h_usd`
-- `price_change_pct_24h`
-- `price_change_pct_7d`
-- `correlation_bucket`
+- comparison bucket is normalized to `general` when missing
+- price-change direction is derived in-view
+- freshness tier `tier_b`
 
 ## Genie Suitability
 
-The first Gold baseline should support these query classes well:
+The baseline supports:
 
 - rankings
 - movers
@@ -102,4 +105,4 @@ The first Gold baseline should support these query classes well:
 - market summaries
 - repeatable metric-style questions
 
-The first Gold baseline should not be stretched to replace narrative reasoning that belongs in the coded copilot.
+The baseline should not be stretched to replace narrative reasoning that belongs in the coded copilot.
