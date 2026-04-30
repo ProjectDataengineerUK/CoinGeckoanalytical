@@ -166,6 +166,9 @@ jobs:
         with:
           python-version: "3.12"
 
+      - name: Install deploy dependencies
+        run: python3 -m pip install --upgrade pip pyyaml
+
       - name: Install Databricks CLI
         run: python3 -m pip install --upgrade databricks-cli
 

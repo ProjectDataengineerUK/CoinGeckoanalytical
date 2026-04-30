@@ -24,6 +24,9 @@ class CIWorkflowTests(unittest.TestCase):
 
         deploy_steps = jobs["deploy"]["steps"]
         deploy_step_names = [step.get("name", "") for step in deploy_steps]
+        deploy_run_commands = "\n".join(
+            step.get("run", "") for step in deploy_steps if isinstance(step.get("run"), str)
+        )
 
         self.assertIn("Compile repository Python", [step.get("name", "") for step in jobs["lint"]["steps"]])
         self.assertIn("Run backend tests", contract_step_names)
@@ -38,6 +41,8 @@ class CIWorkflowTests(unittest.TestCase):
         self.assertIn("Terraform validate", terraform_step_names)
         self.assertIn("Terraform plan dev", terraform_step_names)
         self.assertIn("Upload Terraform dev plan artifact", terraform_step_names)
+        self.assertIn("Install deploy dependencies", deploy_step_names)
+        self.assertIn("python3 -m pip install --upgrade pip pyyaml", deploy_run_commands)
         self.assertIn("Install Databricks CLI", deploy_step_names)
         self.assertIn("Check deploy prerequisites", deploy_step_names)
         self.assertIn("Validate bundle", deploy_step_names)
