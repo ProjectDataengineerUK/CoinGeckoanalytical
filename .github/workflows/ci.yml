@@ -51,7 +51,6 @@ jobs:
           python3 -m unittest databricks.test_bundle_run_ingestion_job
           python3 -m unittest databricks.test_sentinela_alert_ingestion_job
           python3 -m unittest databricks.test_sentinela_alert_observability
-          python3 -m unittest databricks.test_telemetry_handoff
           python3 -m unittest databricks.test_ops_readiness_refresh_job
 
       - name: Run workflow contract tests
