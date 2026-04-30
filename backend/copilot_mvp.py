@@ -211,3 +211,30 @@ def build_usage_event(request: CopilotRequest, response: dict[str, Any], latency
         response_title=response["title"],
     )
     return serialize_telemetry_envelope(telemetry)
+
+
+def build_databricks_usage_row(
+    request: CopilotRequest,
+    response: dict[str, Any],
+    latency_ms: int = 120,
+    prompt_tokens: int | None = None,
+    completion_tokens: int | None = None,
+    total_tokens: int | None = None,
+    cost_estimate: float | None = None,
+) -> dict[str, Any]:
+    telemetry = build_usage_event(request, response, latency_ms=latency_ms)
+    return {
+        "event_time": telemetry["event_time"],
+        "request_id": telemetry["request_id"],
+        "tenant_id": telemetry["tenant_id"],
+        "user_id": telemetry["user_id"],
+        "route_selected": telemetry["route_selected"],
+        "model_or_engine": telemetry["model_or_engine"],
+        "prompt_tokens": prompt_tokens,
+        "completion_tokens": completion_tokens,
+        "total_tokens": total_tokens,
+        "latency_ms": telemetry["latency_ms"],
+        "cost_estimate": cost_estimate,
+        "freshness_watermark": telemetry["freshness_watermark"],
+        "response_status": telemetry["response_status"],
+    }

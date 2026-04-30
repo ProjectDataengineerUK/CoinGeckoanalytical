@@ -8,6 +8,7 @@ This slice provides the first grounded market-answer workflow.
 - keep narrative requests in the copilot path
 - preserve provenance and freshness metadata
 - emit usage telemetry compatible with the project schema
+- build Databricks landing rows for the telemetry observability table
 
 ## Current Limitations
 

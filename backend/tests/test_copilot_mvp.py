@@ -80,6 +80,54 @@ class CopilotMvpTests(unittest.TestCase):
         self.assertIn("estruturada", response["body"].lower())
         self.assertEqual(telemetry["route_selected"], "genie")
 
+    def test_builds_databricks_usage_row_for_landing_table(self) -> None:
+        request = copilot_mvp.CopilotRequest(
+            request_id="req-3",
+            tenant_id="tenant-1",
+            user_id=None,
+            conversation_id="conv-1",
+            message_text="What is the trend in market cap?",
+            conversation_summary=None,
+            retrieval_scope="gold_market_views",
+            selected_assets=["btc"],
+            time_range=None,
+            policy_context={"locale": "pt-BR"},
+            locale="pt-BR",
+        )
+        response = copilot_mvp.build_copilot_response(request)
+        row = copilot_mvp.build_databricks_usage_row(
+            request,
+            response,
+            latency_ms=155,
+            prompt_tokens=21,
+            completion_tokens=34,
+            total_tokens=55,
+            cost_estimate=0.012,
+        )
+
+        self.assertEqual(
+            set(row.keys()),
+            {
+                "event_time",
+                "request_id",
+                "tenant_id",
+                "user_id",
+                "route_selected",
+                "model_or_engine",
+                "prompt_tokens",
+                "completion_tokens",
+                "total_tokens",
+                "latency_ms",
+                "cost_estimate",
+                "freshness_watermark",
+                "response_status",
+            },
+        )
+        self.assertEqual(row["request_id"], "req-3")
+        self.assertEqual(row["route_selected"], "genie")
+        self.assertEqual(row["prompt_tokens"], 21)
+        self.assertEqual(row["response_status"], "success")
+
 
 if __name__ == "__main__":
     unittest.main()
