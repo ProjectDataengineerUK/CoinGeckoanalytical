@@ -37,6 +37,7 @@ Use this area for governed data assets, analytical serving contracts, deployment
 - `sentinela_alert_ingestion_job.md`
 - `ops_readiness_refresh_job.md`
 - `bundle-manifest.md`
+- `deployment_runbook.md`
 - `test_validate_bundle.py`
 - `bundle_run_observability.md`
 - `test_bundle_run_ingestion_job.py`

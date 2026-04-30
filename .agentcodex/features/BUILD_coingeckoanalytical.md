@@ -179,3 +179,4 @@ The next operational hardening step is to feed real Databricks job run results i
 Track that via the Databricks bundle run observability surface and the bundle run readiness view.
 Bundle run ingestion now has its own Databricks job and backend handoff file; the remaining work is live execution against a workspace target.
 Sentinela alerting now also has its own handoff file, ingestion job, and observability surface for runtime alerts and release blockers.
+The deployment runbook now documents the exact validation, deploy, and rollback sequence for when the Databricks CLI and workspace target are available.

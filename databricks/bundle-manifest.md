@@ -49,6 +49,11 @@ Package the Databricks-side jobs as a deployable bundle with scheduled ingestion
 - deploy to a dev workspace target
 - connect alerts to failed schedule runs and stale readiness views
 
+## Deployment Runbook
+
+- use `deployment_runbook.md` for the ordered dev deployment flow
+- it documents the preflight, deploy, verification, and rollback sequence
+
 ## Failure Signals
 
 - ingestion or refresh failures are treated as release blockers
