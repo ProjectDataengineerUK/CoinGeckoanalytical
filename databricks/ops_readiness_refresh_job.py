@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import inspect
 from pathlib import Path
 from typing import Any
 
@@ -16,8 +17,23 @@ def load_sql_statements(path: str | Path) -> list[str]:
     return [statement for statement in statements if statement]
 
 
+def resolve_base_dir(base_dir: str | Path | None = None) -> Path:
+    if base_dir is not None:
+        return Path(base_dir)
+
+    module_file = globals().get("__file__")
+    if module_file:
+        return Path(module_file).resolve().parent
+
+    source_file = inspect.getsourcefile(resolve_base_dir)
+    if source_file:
+        return Path(source_file).resolve().parent
+
+    return Path.cwd()
+
+
 def refresh_views(spark: Any, sql_files: tuple[str, ...] = DEFAULT_SQL_FILES, base_dir: str | Path | None = None) -> dict[str, Any]:
-    root = Path(base_dir) if base_dir is not None else Path(__file__).resolve().parent
+    root = resolve_base_dir(base_dir)
     executed_statements: list[str] = []
     executed_files: list[str] = []
 
