@@ -27,6 +27,20 @@ resources:
             environment_version: "2"
             dependencies: []
 
+    ops_bundle_run_ingestion_job:
+      name: ops_bundle_run_ingestion_job
+      description: Append normalized Databricks bundle/job run results into ops_bundle_runs.
+      tasks:
+        - task_key: ingest_bundle_runs
+          spark_python_task:
+            python_file: ./bundle_run_ingestion_job.py
+          environment_key: default
+      environments:
+        - environment_key: default
+          spec:
+            environment_version: "2"
+            dependencies: []
+
     ops_readiness_refresh_job:
       name: ops_readiness_refresh_job
       description: Refresh telemetry observability and readiness views.

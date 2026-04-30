@@ -22,11 +22,19 @@ Package the Databricks-side jobs as a deployable bundle with scheduled ingestion
 - task: `ops_readiness_refresh_job.py`
 - purpose: refresh telemetry observability and readiness views
 
+### `ops_bundle_run_ingestion_job`
+
+- trigger: event-driven or on-demand handoff
+- task: `bundle_run_ingestion_job.py`
+- purpose: ingest normalized Databricks bundle/job run results into `ops_bundle_runs`
+- failure handling: failed and cancelled runs are surfaced to Sentinela as release blockers
+
 ## Deployment Notes
 
 - bundle is serverless-friendly and avoids cluster lifecycle management
 - deployment should run against a dev target first
 - ingestion should remain ahead of refresh in the operational cadence
+- bundle run ingest should feed Sentinela before dashboard refresh and release checks
 
 ## Next Step
 

@@ -21,6 +21,7 @@ Use this area for governed data assets, analytical serving contracts, deployment
 - `telemetry-observability.sql`
 - `ops_readiness_dashboard.sql`
 - `ops_usage_ingestion_job.py`
+- `bundle_run_ingestion_job.py`
 - `ops_readiness_refresh_job.py`
 - `databricks.yml`
 - `validate_bundle.py`
@@ -31,10 +32,13 @@ Use this area for governed data assets, analytical serving contracts, deployment
 - `telemetry-observability.md`
 - `ops_readiness_dashboard.md`
 - `ops_usage_ingestion_job.md`
+- `bundle_run_ingestion_job.md`
 - `ops_readiness_refresh_job.md`
 - `bundle-manifest.md`
 - `test_validate_bundle.py`
 - `bundle_run_observability.md`
+- `test_bundle_run_ingestion_job.py`
+- `test_bundle_run_observability.py`
 - `model-version-governance.md`
 
 ## Operational Contracts

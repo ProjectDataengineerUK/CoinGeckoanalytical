@@ -33,6 +33,14 @@ class ValidateBundleTests(unittest.TestCase):
 
         self.assertTrue(any("ops_usage_ingestion_job must be unpaused" in error for error in errors))
 
+    def test_validate_bundle_accepts_event_driven_bundle_run_job(self) -> None:
+        bundle = validate_bundle.load_bundle(Path(__file__).resolve().parent / "databricks.yml")
+        job = bundle["resources"]["jobs"]["ops_bundle_run_ingestion_job"]
+
+        self.assertNotIn("schedule", job)
+        errors = validate_bundle.validate_bundle(bundle, root_dir=Path(__file__).resolve().parent)
+        self.assertEqual(errors, [])
+
 
 if __name__ == "__main__":
     unittest.main()

@@ -6,7 +6,7 @@ from typing import Any
 import yaml
 
 
-REQUIRED_JOB_KEYS = {"ops_usage_ingestion_job", "ops_readiness_refresh_job"}
+REQUIRED_JOB_KEYS = {"ops_usage_ingestion_job", "ops_readiness_refresh_job", "ops_bundle_run_ingestion_job"}
 
 
 def load_bundle(path: str | Path = "databricks.yml") -> dict[str, Any]:
@@ -28,13 +28,14 @@ def validate_bundle(bundle: dict[str, Any], root_dir: str | Path | None = None) 
     if missing_jobs:
         errors.append(f"missing jobs: {', '.join(sorted(missing_jobs))}")
 
-    for job_name in REQUIRED_JOB_KEYS & set(jobs.keys()):
-        job = jobs[job_name]
-        schedule = job.get("schedule", {})
-        if schedule.get("pause_status") != "UNPAUSED":
-            errors.append(f"{job_name} must be unpaused")
-        if "quartz_cron_expression" not in schedule:
-            errors.append(f"{job_name} must define a quartz_cron_expression")
+    for job_name, job in jobs.items():
+        schedule = job.get("schedule")
+        if job_name != "ops_bundle_run_ingestion_job":
+            schedule = schedule or {}
+            if schedule.get("pause_status") != "UNPAUSED":
+                errors.append(f"{job_name} must be unpaused")
+            if "quartz_cron_expression" not in schedule:
+                errors.append(f"{job_name} must define a quartz_cron_expression")
 
         tasks = job.get("tasks", [])
         if not tasks:
