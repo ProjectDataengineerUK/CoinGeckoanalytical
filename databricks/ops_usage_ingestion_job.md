@@ -14,6 +14,12 @@ Append normalized usage telemetry into the governed Databricks landing table `op
 - `payload_path`: path to a JSON file containing telemetry rows
 - `target_table`: target Delta table, defaulting to `ops_usage_events`
 
+## Backend Handoff
+
+- `backend/telemetry_handoff.py` writes a Databricks-ready JSON array
+- the handoff file is intended to be passed as `payload_path`
+- this keeps the backend free of Databricks client dependencies in the first release
+
 ## Behavior
 
 - parses one row or many rows

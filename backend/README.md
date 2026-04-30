@@ -11,3 +11,14 @@ This layer should route requests to structured analytics via `Genie` and to the 
 - route narrative or grounded research requests to the copilot
 - attach tenant, locale, policy, and audit context
 - never expose raw workspace credentials to the public frontend
+- build Databricks-ready telemetry rows for the ops landing table
+- write telemetry handoff files for the Databricks ingestion job
+
+## Concrete Assets
+
+- `copilot_mvp.py`
+- `sentinela.py`
+- `telemetry_handoff.py`
+- `tests/test_copilot_mvp.py`
+- `tests/test_sentinela.py`
+- `tests/test_telemetry_handoff.py`
