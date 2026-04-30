@@ -30,6 +30,25 @@ Package the Databricks-side jobs as a deployable bundle with scheduled ingestion
 
 ## Next Step
 
-- validate the bundle with the Databricks CLI
+- validate the bundle with `python3 validate_bundle.py` in this repo, then with the Databricks CLI when available
 - deploy to a dev workspace target
 - connect alerts to failed schedule runs and stale readiness views
+
+## Local Validation
+
+When the Databricks CLI is not available, use:
+
+```bash
+cd /home/user/Projetos/CoinGeckoanalytical/databricks
+python3 validate_bundle.py
+```
+
+When the Databricks CLI is available, use:
+
+```bash
+cd /home/user/Projetos/CoinGeckoanalytical/databricks
+databricks bundle validate
+databricks bundle deploy -t dev
+databricks bundle run ops_usage_ingestion_job -t dev
+databricks bundle run ops_readiness_refresh_job -t dev
+```
