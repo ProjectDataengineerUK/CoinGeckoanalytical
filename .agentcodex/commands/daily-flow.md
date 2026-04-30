@@ -43,6 +43,15 @@ Use the dedicated workflow that matches the change being made:
 3. Capture blockers, open risks, and next action.
 4. Do not end the day with architecture drift only in chat.
 
+## Delivery Flow
+
+When a change is validated and the user has not asked to hold back publication:
+
+1. Commit the change set with a clear message.
+2. Push to `origin/main` when the change is meant to update the shared repo state.
+3. Use the resulting push to trigger the relevant GitHub Actions workflow.
+4. Record the commit or push in the active report when it matters for later handoff.
+
 ## Required Daily Questions
 
 - what changed in the architecture or scope?

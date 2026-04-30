@@ -16,6 +16,7 @@
 - the native next infrastructure step is `terraform plan` for `dev`, but this local environment currently lacks the Terraform CLI and real `dev` credentials
 - a real Terraform execution attempt was started, `init` succeeded, and the current blocker is now the Databricks provider schema handshake in this environment before `plan`
 - the repository now routes Terraform through a dedicated `terraform` workflow so the native infrastructure sequence stays separated from the release/deploy path
+- the default publication flow now includes commit and push after validation when the user is ready to publish the change set
 
 ## Verified Locally
 
@@ -40,6 +41,7 @@
 - the Terraform path is sequenced ahead of live environment claims, but workspace execution evidence is still blocked by missing local CLI plus missing real `dev` inputs
 - the Terraform path is now also blocked by provider runtime behavior in this environment, so the next valid infrastructure move is to re-run `validate/plan` where the Databricks provider handshake succeeds
 - the current repo answer to that environment limit is a dedicated GitHub Actions `terraform` workflow with plan/artifact output and a controlled manual apply path, while `ci.yml` keeps release/deploy concerns separate
+- commit and push are now the normal publication path after validation, unless the user explicitly asks to hold back publication
 - the frontend remains a placeholder and no real user-facing V1 slice is closed yet
 
 ## Next Steps
