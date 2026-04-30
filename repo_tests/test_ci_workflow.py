@@ -44,6 +44,8 @@ class CIWorkflowTests(unittest.TestCase):
         self.assertIn("Install deploy dependencies", deploy_step_names)
         self.assertIn("python3 -m pip install --upgrade pip pyyaml", deploy_run_commands)
         self.assertIn("Install Databricks CLI", deploy_step_names)
+        self.assertIn("curl -fsSL https://raw.githubusercontent.com/databricks/setup-cli/main/install.sh | sh", deploy_run_commands)
+        self.assertIn("databricks version", deploy_run_commands)
         self.assertIn("Check deploy prerequisites", deploy_step_names)
         self.assertIn("Validate bundle", deploy_step_names)
         self.assertIn("Deploy bundle", deploy_step_names)

@@ -170,7 +170,9 @@ jobs:
         run: python3 -m pip install --upgrade pip pyyaml
 
       - name: Install Databricks CLI
-        run: python3 -m pip install --upgrade databricks-cli
+        run: |
+          curl -fsSL https://raw.githubusercontent.com/databricks/setup-cli/main/install.sh | sh
+          databricks version
 
       - name: Check deploy prerequisites
         id: prereq
