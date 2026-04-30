@@ -6,6 +6,8 @@ from typing import Any
 
 
 DEFAULT_SQL_FILES = (
+    "bronze_silver_market_foundation.sql",
+    "gold_market_views.sql",
     "freshness_quality_baseline.sql",
     "telemetry-observability.sql",
     "bundle_run_observability.sql",

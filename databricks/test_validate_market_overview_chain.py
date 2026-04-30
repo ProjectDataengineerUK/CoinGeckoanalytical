@@ -39,7 +39,9 @@ class ValidateMarketOverviewChainTests(unittest.TestCase):
             gold_path = root / "gold_market_views.sql"
             gold_path.write_text(
                 gold_path.read_text(encoding="utf-8").replace(
-                    "FROM silver_market_changes", "FROM missing_silver_market_changes", 1
+                    "FROM cgadev.market_silver.silver_market_changes",
+                    "FROM missing_silver_market_changes",
+                    1,
                 ),
                 encoding="utf-8",
             )
@@ -47,7 +49,11 @@ class ValidateMarketOverviewChainTests(unittest.TestCase):
             errors = validate_market_overview_chain.validate_market_overview_chain(root)
 
             self.assertTrue(
-                any("missing dependency FROM silver_market_changes for gold_top_movers" in error for error in errors)
+                any(
+                    "missing dependency FROM cgadev.market_silver.silver_market_changes for gold_top_movers"
+                    in error
+                    for error in errors
+                )
             )
 
 

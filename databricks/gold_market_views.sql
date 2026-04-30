@@ -2,7 +2,7 @@
 -- Purpose: concrete starter for the Gold layer used by dashboards, AI/BI Genie,
 -- and governed analytical serving.
 
-CREATE OR REPLACE VIEW gold_market_rankings AS
+CREATE OR REPLACE VIEW cgadev.market_gold.gold_market_rankings AS
 WITH ranked_source AS (
   SELECT
     asset_id,
@@ -19,7 +19,7 @@ WITH ranked_source AS (
       PARTITION BY asset_id, CAST(observed_at AS TIMESTAMP)
       ORDER BY market_cap_rank ASC, volume_24h_usd DESC, symbol ASC
     ) AS source_row_number
-  FROM bronze_market_snapshots
+  FROM cgadev.market_bronze.bronze_market_snapshots
   WHERE asset_id IS NOT NULL
     AND observed_at IS NOT NULL
     AND market_cap_rank IS NOT NULL
@@ -49,7 +49,7 @@ SELECT
 FROM ranked_source
 WHERE source_row_number = 1;
 
-CREATE OR REPLACE VIEW gold_top_movers AS
+CREATE OR REPLACE VIEW cgadev.market_gold.gold_top_movers AS
 WITH ranked_source AS (
   SELECT
     asset_id,
@@ -76,7 +76,7 @@ WITH ranked_source AS (
       PARTITION BY asset_id, window_id, CAST(observed_at AS TIMESTAMP)
       ORDER BY ABS(price_change_pct_24h) DESC, volume_24h_usd DESC, symbol ASC
     ) AS source_row_number
-  FROM silver_market_changes
+  FROM cgadev.market_silver.silver_market_changes
   WHERE asset_id IS NOT NULL
     AND window_id IS NOT NULL
     AND observed_at IS NOT NULL
@@ -107,7 +107,7 @@ SELECT
 FROM ranked_source
 WHERE source_row_number = 1;
 
-CREATE OR REPLACE VIEW gold_market_dominance AS
+CREATE OR REPLACE VIEW cgadev.market_gold.gold_market_dominance AS
 WITH ranked_source AS (
   SELECT
     CAST(observed_at AS TIMESTAMP) AS observed_at,
@@ -123,7 +123,7 @@ WITH ranked_source AS (
       PARTITION BY CAST(observed_at AS TIMESTAMP), dominance_group
       ORDER BY dominance_pct DESC, market_cap_usd DESC
     ) AS source_row_number
-  FROM silver_market_dominance
+  FROM cgadev.market_silver.silver_market_dominance
   WHERE observed_at IS NOT NULL
     AND dominance_group IS NOT NULL
 )
@@ -143,7 +143,7 @@ SELECT
 FROM ranked_source
 WHERE source_row_number = 1;
 
-CREATE OR REPLACE VIEW gold_cross_asset_comparison AS
+CREATE OR REPLACE VIEW cgadev.market_gold.gold_cross_asset_comparison AS
 WITH ranked_source AS (
   SELECT
     asset_id,
@@ -159,7 +159,7 @@ WITH ranked_source AS (
       PARTITION BY asset_id, CAST(observed_at AS TIMESTAMP), COALESCE(correlation_bucket, 'general')
       ORDER BY volume_24h_usd DESC, price_usd DESC, symbol ASC
     ) AS source_row_number
-  FROM silver_cross_asset_comparison
+  FROM cgadev.market_silver.silver_cross_asset_comparison
   WHERE asset_id IS NOT NULL
     AND observed_at IS NOT NULL
 )

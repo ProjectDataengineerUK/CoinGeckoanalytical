@@ -2,7 +2,7 @@
 -- Purpose: materialize the first executable Bronze and Silver contract
 -- baseline required by WS1 / Slice 1 and consumed by the Gold market views.
 
-CREATE OR REPLACE TABLE bronze_market_snapshots (
+CREATE OR REPLACE TABLE cgadev.market_bronze.bronze_market_snapshots (
   source_system STRING,
   source_record_id STRING,
   asset_id STRING,
@@ -19,7 +19,7 @@ CREATE OR REPLACE TABLE bronze_market_snapshots (
   payload_version STRING
 );
 
-CREATE OR REPLACE VIEW silver_market_snapshots AS
+CREATE OR REPLACE VIEW cgadev.market_silver.silver_market_snapshots AS
 WITH latest_bronze AS (
   SELECT
     source_system,
@@ -40,7 +40,7 @@ WITH latest_bronze AS (
       PARTITION BY asset_id, CAST(observed_at AS TIMESTAMP)
       ORDER BY CAST(ingested_at AS TIMESTAMP) DESC, source_record_id DESC
     ) AS source_row_number
-  FROM bronze_market_snapshots
+  FROM cgadev.market_bronze.bronze_market_snapshots
   WHERE asset_id IS NOT NULL
     AND observed_at IS NOT NULL
 )
@@ -62,7 +62,7 @@ SELECT
 FROM latest_bronze
 WHERE source_row_number = 1;
 
-CREATE OR REPLACE VIEW silver_market_changes AS
+CREATE OR REPLACE VIEW cgadev.market_silver.silver_market_changes AS
 WITH current_snapshots AS (
   SELECT
     asset_id,
@@ -84,7 +84,7 @@ WITH current_snapshots AS (
       PARTITION BY asset_id
       ORDER BY observed_at
     ) AS prev_price_7d_proxy
-  FROM silver_market_snapshots
+  FROM cgadev.market_silver.silver_market_snapshots
 )
 SELECT
   asset_id,
@@ -108,7 +108,7 @@ SELECT
   market_cap_usd
 FROM current_snapshots;
 
-CREATE OR REPLACE VIEW silver_market_dominance AS
+CREATE OR REPLACE VIEW cgadev.market_silver.silver_market_dominance AS
 WITH dominance_base AS (
   SELECT
     observed_at,
@@ -116,7 +116,7 @@ WITH dominance_base AS (
     symbol,
     market_cap_usd,
     SUM(market_cap_usd) OVER (PARTITION BY observed_at) AS total_market_cap_usd
-  FROM silver_market_snapshots
+  FROM cgadev.market_silver.silver_market_snapshots
   WHERE observed_at IS NOT NULL
     AND market_cap_usd IS NOT NULL
     AND market_cap_usd >= 0
@@ -144,7 +144,7 @@ GROUP BY
     ELSE 'long_tail'
   END;
 
-CREATE OR REPLACE VIEW silver_cross_asset_comparison AS
+CREATE OR REPLACE VIEW cgadev.market_silver.silver_cross_asset_comparison AS
 SELECT
   asset_id,
   symbol,
@@ -175,6 +175,6 @@ SELECT
       / LAG(price_usd, 24 * 7) OVER (PARTITION BY asset_id ORDER BY observed_at)
     ) * 100
   END AS price_change_pct_7d
-FROM silver_market_snapshots
+FROM cgadev.market_silver.silver_market_snapshots
 WHERE asset_id IS NOT NULL
   AND observed_at IS NOT NULL;

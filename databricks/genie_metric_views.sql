@@ -7,7 +7,7 @@ WITH METRICS LANGUAGE YAML AS
 $$
   version: 1.1
   comment: "Market cap, price, and liquidity metrics for market ranking analysis."
-  source: gold_market_rankings
+  source: cgadev.market_gold.gold_market_rankings
   filter: observed_at IS NOT NULL
 
   dimensions:
@@ -44,7 +44,7 @@ WITH METRICS LANGUAGE YAML AS
 $$
   version: 1.1
   comment: "Short-horizon move metrics for positive and negative market motion."
-  source: gold_top_movers
+  source: cgadev.market_gold.gold_top_movers
   filter: observed_at IS NOT NULL
 
   dimensions:
@@ -87,7 +87,7 @@ WITH METRICS LANGUAGE YAML AS
 $$
   version: 1.1
   comment: "Dominance metrics for BTC, ETH, stablecoins, and other market groups."
-  source: gold_market_dominance
+  source: cgadev.market_gold.gold_market_dominance
   filter: observed_at IS NOT NULL
 
   dimensions:
@@ -115,7 +115,7 @@ WITH METRICS LANGUAGE YAML AS
 $$
   version: 1.1
   comment: "Side-by-side comparison metrics for selected assets."
-  source: gold_cross_asset_comparison
+  source: cgadev.market_gold.gold_cross_asset_comparison
   filter: observed_at IS NOT NULL
 
   dimensions:

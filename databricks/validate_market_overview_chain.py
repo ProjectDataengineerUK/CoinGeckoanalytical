@@ -4,28 +4,28 @@ from pathlib import Path
 
 
 EXPECTED_BRONZE_OBJECTS = {
-    "bronze_market_snapshots": "CREATE OR REPLACE TABLE bronze_market_snapshots",
+    "bronze_market_snapshots": "CREATE OR REPLACE TABLE cgadev.market_bronze.bronze_market_snapshots",
 }
 
 EXPECTED_SILVER_OBJECTS = {
-    "silver_market_snapshots": "CREATE OR REPLACE VIEW silver_market_snapshots AS",
-    "silver_market_changes": "CREATE OR REPLACE VIEW silver_market_changes AS",
-    "silver_market_dominance": "CREATE OR REPLACE VIEW silver_market_dominance AS",
-    "silver_cross_asset_comparison": "CREATE OR REPLACE VIEW silver_cross_asset_comparison AS",
+    "silver_market_snapshots": "CREATE OR REPLACE VIEW cgadev.market_silver.silver_market_snapshots AS",
+    "silver_market_changes": "CREATE OR REPLACE VIEW cgadev.market_silver.silver_market_changes AS",
+    "silver_market_dominance": "CREATE OR REPLACE VIEW cgadev.market_silver.silver_market_dominance AS",
+    "silver_cross_asset_comparison": "CREATE OR REPLACE VIEW cgadev.market_silver.silver_cross_asset_comparison AS",
 }
 
 EXPECTED_GOLD_OBJECTS = {
-    "gold_market_rankings": "CREATE OR REPLACE VIEW gold_market_rankings AS",
-    "gold_top_movers": "CREATE OR REPLACE VIEW gold_top_movers AS",
-    "gold_market_dominance": "CREATE OR REPLACE VIEW gold_market_dominance AS",
-    "gold_cross_asset_comparison": "CREATE OR REPLACE VIEW gold_cross_asset_comparison AS",
+    "gold_market_rankings": "CREATE OR REPLACE VIEW cgadev.market_gold.gold_market_rankings AS",
+    "gold_top_movers": "CREATE OR REPLACE VIEW cgadev.market_gold.gold_top_movers AS",
+    "gold_market_dominance": "CREATE OR REPLACE VIEW cgadev.market_gold.gold_market_dominance AS",
+    "gold_cross_asset_comparison": "CREATE OR REPLACE VIEW cgadev.market_gold.gold_cross_asset_comparison AS",
 }
 
 EXPECTED_METRIC_VIEWS = {
-    "mv_market_rankings": "source: gold_market_rankings",
-    "mv_top_movers": "source: gold_top_movers",
-    "mv_market_dominance": "source: gold_market_dominance",
-    "mv_cross_asset_compare": "source: gold_cross_asset_comparison",
+    "mv_market_rankings": "source: cgadev.market_gold.gold_market_rankings",
+    "mv_top_movers": "source: cgadev.market_gold.gold_top_movers",
+    "mv_market_dominance": "source: cgadev.market_gold.gold_market_dominance",
+    "mv_cross_asset_compare": "source: cgadev.market_gold.gold_cross_asset_comparison",
 }
 
 
@@ -58,14 +58,14 @@ def validate_market_overview_chain(root_dir: str | Path | None = None) -> list[s
             errors.append(f"metric view source mismatch for: {metric_name}")
 
     dependency_checks = (
-        ("silver_market_snapshots", "FROM bronze_market_snapshots", bronze_silver_sql),
-        ("silver_market_changes", "FROM silver_market_snapshots", bronze_silver_sql),
-        ("silver_market_dominance", "FROM silver_market_snapshots", bronze_silver_sql),
-        ("silver_cross_asset_comparison", "FROM silver_market_snapshots", bronze_silver_sql),
-        ("gold_market_rankings", "FROM bronze_market_snapshots", gold_sql),
-        ("gold_top_movers", "FROM silver_market_changes", gold_sql),
-        ("gold_market_dominance", "FROM silver_market_dominance", gold_sql),
-        ("gold_cross_asset_comparison", "FROM silver_cross_asset_comparison", gold_sql),
+        ("silver_market_snapshots", "FROM cgadev.market_bronze.bronze_market_snapshots", bronze_silver_sql),
+        ("silver_market_changes", "FROM cgadev.market_silver.silver_market_snapshots", bronze_silver_sql),
+        ("silver_market_dominance", "FROM cgadev.market_silver.silver_market_snapshots", bronze_silver_sql),
+        ("silver_cross_asset_comparison", "FROM cgadev.market_silver.silver_market_snapshots", bronze_silver_sql),
+        ("gold_market_rankings", "FROM cgadev.market_bronze.bronze_market_snapshots", gold_sql),
+        ("gold_top_movers", "FROM cgadev.market_silver.silver_market_changes", gold_sql),
+        ("gold_market_dominance", "FROM cgadev.market_silver.silver_market_dominance", gold_sql),
+        ("gold_cross_asset_comparison", "FROM cgadev.market_silver.silver_cross_asset_comparison", gold_sql),
     )
     for object_name, dependency, source_text in dependency_checks:
         if dependency not in source_text:
