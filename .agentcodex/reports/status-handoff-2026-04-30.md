@@ -28,6 +28,7 @@
 - `terraform validate` is currently blocked by Databricks provider schema loading in this environment
 - `python3 -m unittest repo_tests.test_ci_workflow`
 - `python3 -m unittest repo_tests.test_terraform_workflow`
+- the workflow model now separates `terraform.yml` from `ci.yml`
 
 ## Current Practical Position
 
@@ -38,7 +39,7 @@
 - the deploy workflow can now persist `databricks/live_sql_validation_results.json` as a CI artifact when the warehouse secret is configured
 - the Terraform path is sequenced ahead of live environment claims, but workspace execution evidence is still blocked by missing local CLI plus missing real `dev` inputs
 - the Terraform path is now also blocked by provider runtime behavior in this environment, so the next valid infrastructure move is to re-run `validate/plan` where the Databricks provider handshake succeeds
-- the current repo answer to that environment limit is a dedicated GitHub Actions `terraform` workflow with plan/artifact output and a controlled manual apply path
+- the current repo answer to that environment limit is a dedicated GitHub Actions `terraform` workflow with plan/artifact output and a controlled manual apply path, while `ci.yml` keeps release/deploy concerns separate
 - the frontend remains a placeholder and no real user-facing V1 slice is closed yet
 
 ## Next Steps

@@ -27,6 +27,15 @@ Define the repo-local daily operating ritual for building CoinGeckoAnalytical wi
 5. Do not count placeholders, design boundaries, or local-only deploy helpers as delivered product behavior.
 6. Do not resume `deploy` or `ship` work before one real user-facing slice is closed end to end.
 
+## Workflow Selection
+
+Use the dedicated workflow that matches the change being made:
+
+1. `terraform.yml` for infrastructure and governance changes.
+2. `ci.yml` for code validation, bundle validation, deploy, and live SQL evidence.
+3. `workflow_dispatch` on `terraform.yml` with `confirm_apply=true` for controlled `dev` apply after plan review.
+4. `deploy` in `ci.yml` only for Databricks bundle delivery and post-deploy evidence, not for Terraform.
+
 ## End Of Day
 
 1. Update `.agentcodex/history/CONTEXT-HISTORY.md`.

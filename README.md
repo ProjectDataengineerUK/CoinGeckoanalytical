@@ -26,6 +26,11 @@ Plataforma de crypto market intelligence com frontend externo, Databricks como p
 - design: `.agentcodex/features/DESIGN_coingeckoanalytical.md`
 - build: `.agentcodex/features/BUILD_coingeckoanalytical.md`
 
+## Workflows
+
+- `terraform.yml`: infra and governance plan/apply
+- `ci.yml`: validation, bundle deploy, smoke ingestion, live SQL evidence
+
 ## Direcao Atual
 
 - fonte principal inicial: `CoinGecko API`
