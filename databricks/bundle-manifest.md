@@ -29,6 +29,13 @@ Package the Databricks-side jobs as a deployable bundle with scheduled ingestion
 - purpose: ingest normalized Databricks bundle/job run results into `ops_bundle_runs`
 - failure handling: failed and cancelled runs are surfaced to Sentinela as release blockers
 
+### `ops_sentinela_alert_ingestion_job`
+
+- trigger: event-driven or on-demand handoff
+- task: `sentinela_alert_ingestion_job.py`
+- purpose: ingest normalized Sentinela alert events into `ops_sentinela_alerts`
+- failure handling: alert delivery failures should be surfaced to ops readiness
+
 ## Deployment Notes
 
 - bundle is serverless-friendly and avoids cluster lifecycle management

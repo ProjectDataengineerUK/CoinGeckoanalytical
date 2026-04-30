@@ -22,6 +22,7 @@ Use this area for governed data assets, analytical serving contracts, deployment
 - `ops_readiness_dashboard.sql`
 - `ops_usage_ingestion_job.py`
 - `bundle_run_ingestion_job.py`
+- `sentinela_alert_ingestion_job.py`
 - `ops_readiness_refresh_job.py`
 - `databricks.yml`
 - `validate_bundle.py`
@@ -33,17 +34,20 @@ Use this area for governed data assets, analytical serving contracts, deployment
 - `ops_readiness_dashboard.md`
 - `ops_usage_ingestion_job.md`
 - `bundle_run_ingestion_job.md`
+- `sentinela_alert_ingestion_job.md`
 - `ops_readiness_refresh_job.md`
 - `bundle-manifest.md`
 - `test_validate_bundle.py`
 - `bundle_run_observability.md`
 - `test_bundle_run_ingestion_job.py`
 - `test_bundle_run_observability.py`
+- `test_sentinela_alert_ingestion_job.py`
 - `model-version-governance.md`
 
 ## Operational Contracts
 
 - `../contracts/bundle_run_event.schema.json`
+- `../contracts/sentinela_alert_event.schema.json`
 
 ## Observability Scope
 

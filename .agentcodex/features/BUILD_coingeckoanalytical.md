@@ -178,3 +178,4 @@ Expand the implemented slices into executable Databricks assets and telemetry wi
 The next operational hardening step is to feed real Databricks job run results into the Sentinela bundle-run contract and surface them on the ops readiness dashboard.
 Track that via the Databricks bundle run observability surface and the bundle run readiness view.
 Bundle run ingestion now has its own Databricks job and backend handoff file; the remaining work is live execution against a workspace target.
+Sentinela alerting now also has its own handoff file, ingestion job, and observability surface for runtime alerts and release blockers.

@@ -34,12 +34,20 @@ Document the scheduled Databricks jobs that keep telemetry and readiness current
 - input: backend or workspace handoff file containing bundle run records
 - output: append to `ops_bundle_runs`
 
+### `ops_sentinela_alert_ingestion_job`
+
+- trigger: event-driven or on-demand
+- task: `sentinela_alert_ingestion_job.py`
+- input: backend or workspace handoff file containing Sentinela alerts
+- output: append to `ops_sentinela_alerts`
+
 ## Ordering
 
 - ingestion must complete before refresh
 - dashboard queries read only from the refreshed views
 - bundle run observability feeds the Sentinela release-blocker layer
 - bundle run ingestion can trigger independently of the scheduled telemetry path
+- Sentinela alerts should be ingested independently of bundle run results when they are emitted directly
 
 ## Failure Policy
 

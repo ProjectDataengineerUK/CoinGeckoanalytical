@@ -101,8 +101,17 @@ SELECT
   serving_status
 FROM ops_bundle_run_readiness;
 
+CREATE OR REPLACE VIEW ops_sentinela_alert_status AS
+SELECT
+  sentinela_alert_status,
+  total_alerts,
+  bundle_alerts,
+  runtime_alerts
+FROM ops_sentinela_alert_readiness;
+
 SELECT * FROM ops_ready_overview;
 SELECT * FROM ops_route_readiness_latest;
 SELECT * FROM ops_alert_backlog;
 SELECT * FROM ops_cost_latency_trend;
 SELECT * FROM ops_bundle_run_status;
+SELECT * FROM ops_sentinela_alert_status;

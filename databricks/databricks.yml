@@ -41,6 +41,20 @@ resources:
             environment_version: "2"
             dependencies: []
 
+    ops_sentinela_alert_ingestion_job:
+      name: ops_sentinela_alert_ingestion_job
+      description: Append normalized Sentinela alerts into ops_sentinela_alerts.
+      tasks:
+        - task_key: ingest_sentinela_alerts
+          spark_python_task:
+            python_file: ./sentinela_alert_ingestion_job.py
+          environment_key: default
+      environments:
+        - environment_key: default
+          spec:
+            environment_version: "2"
+            dependencies: []
+
     ops_readiness_refresh_job:
       name: ops_readiness_refresh_job
       description: Refresh telemetry observability and readiness views.

@@ -41,6 +41,14 @@ class ValidateBundleTests(unittest.TestCase):
         errors = validate_bundle.validate_bundle(bundle, root_dir=Path(__file__).resolve().parent)
         self.assertEqual(errors, [])
 
+    def test_validate_bundle_accepts_event_driven_sentinela_alert_job(self) -> None:
+        bundle = validate_bundle.load_bundle(Path(__file__).resolve().parent / "databricks.yml")
+        job = bundle["resources"]["jobs"]["ops_sentinela_alert_ingestion_job"]
+
+        self.assertNotIn("schedule", job)
+        errors = validate_bundle.validate_bundle(bundle, root_dir=Path(__file__).resolve().parent)
+        self.assertEqual(errors, [])
+
 
 if __name__ == "__main__":
     unittest.main()

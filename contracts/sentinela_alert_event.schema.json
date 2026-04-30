@@ -1,0 +1,26 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "coingeckoanalytical/contracts/sentinela_alert_event.schema.json",
+  "title": "SentinelaAlertEvent",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "kind",
+    "message"
+  ],
+  "properties": {
+    "kind": {
+      "type": "string",
+      "enum": ["error_spike", "latency_breach", "cost_anomaly", "freshness_gap", "token_spike", "bundle_failure", "bundle_cancelled"]
+    },
+    "message": { "type": "string" },
+    "request_id": { "type": ["string", "null"] },
+    "tenant_id": { "type": ["string", "null"] },
+    "route_selected": { "type": ["string", "null"] },
+    "job_name": { "type": ["string", "null"] },
+    "run_id": { "type": ["string", "null"] },
+    "escalation": { "type": ["string", "null"] },
+    "source": { "type": ["string", "null"] },
+    "created_at": { "type": ["string", "null"] }
+  }
+}
