@@ -154,6 +154,7 @@ Why second:
 
 - implement one grounded market-answer workflow
 - include provenance, freshness, and token-cost telemetry
+- keep the routing decision explicit between Genie and copilot
 
 ### Slice 5
 
@@ -172,4 +173,4 @@ Why second:
 
 ## Immediate Next Action
 
-Continue with `Slice 4: copilot MVP slice`, then close `Slice 5: sentinela and operations spine`.
+Expand the implemented slices into executable Databricks assets, frontend scaffolding, and concrete tests, starting from `Slice 5: sentinela and operations spine` for operational hardening.

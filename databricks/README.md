@@ -10,3 +10,4 @@ Use this area for governed data assets, analytical serving contracts, deployment
 - request serving contracts for analytics and copilot
 - Unity Catalog governance for data, models, volumes, and lineage
 - Databricks Apps only for admin and internal operations
+- executable Gold baseline SQL: `gold_market_views.sql`
