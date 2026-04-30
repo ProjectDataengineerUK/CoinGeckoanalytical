@@ -19,8 +19,10 @@ Use this area for governed data assets, analytical serving contracts, deployment
 - `genie_metric_views.sql`
 - `freshness_quality_baseline.sql`
 - `telemetry-observability.sql`
+- `ops_readiness_dashboard.sql`
 - `gold-market-views.md`
 - `genie-metric-views.md`
 - `freshness-and-quality-baseline.md`
 - `telemetry-observability.md`
+- `ops_readiness_dashboard.md`
 - `model-version-governance.md`
