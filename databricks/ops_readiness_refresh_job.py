@@ -6,6 +6,7 @@ from typing import Any
 
 
 DEFAULT_SQL_FILES = (
+    "unity_catalog_foundation.sql",
     "bronze_silver_market_foundation.sql",
     "gold_market_views.sql",
     "freshness_quality_baseline.sql",
