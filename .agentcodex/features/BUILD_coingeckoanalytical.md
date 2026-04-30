@@ -183,3 +183,4 @@ The deployment runbook now documents the exact validation, deploy, and rollback 
 The repo now also has a GitHub Actions workflow that validates the bundle helper and the Python test surfaces on every push and pull request.
 That workflow is split into lint, contract, and optional deploy jobs; deploy only runs on `main` pushes when Databricks credentials and CLI are available.
 Notifications now also have a unified backend handoff contract and policy doc so bundle failures and runtime alerts can be routed consistently.
+Databricks deploy preflight now checks CLI and credentials before attempting a live workspace deploy.

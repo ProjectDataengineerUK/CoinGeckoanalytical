@@ -26,6 +26,7 @@ Use this area for governed data assets, analytical serving contracts, deployment
 - `ops_readiness_refresh_job.py`
 - `databricks.yml`
 - `validate_bundle.py`
+- `preflight_databricks_deploy.py`
 - `bundle_run_observability.sql`
 - `gold-market-views.md`
 - `genie-metric-views.md`
@@ -40,6 +41,7 @@ Use this area for governed data assets, analytical serving contracts, deployment
 - `deployment_runbook.md`
 - `notification_policy.md`
 - `test_validate_bundle.py`
+- `test_preflight_databricks_deploy.py`
 - `bundle_run_observability.md`
 - `test_bundle_run_ingestion_job.py`
 - `test_bundle_run_observability.py`

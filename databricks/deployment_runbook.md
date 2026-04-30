@@ -17,6 +17,7 @@ Run from the bundle root:
 ```bash
 cd /home/user/Projetos/CoinGeckoanalytical/databricks
 python3 validate_bundle.py
+python3 preflight_databricks_deploy.py
 ```
 
 If the Databricks CLI is available, run:

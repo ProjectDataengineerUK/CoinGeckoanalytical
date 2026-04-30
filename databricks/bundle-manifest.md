@@ -69,6 +69,19 @@ cd /home/user/Projetos/CoinGeckoanalytical/databricks
 python3 validate_bundle.py
 ```
 
+Before attempting a live deploy, use:
+
+```bash
+cd /home/user/Projetos/CoinGeckoanalytical/databricks
+python3 preflight_databricks_deploy.py
+```
+
+That preflight checks:
+
+- `databricks` CLI availability
+- `DATABRICKS_HOST`
+- `DATABRICKS_TOKEN`
+
 When the Databricks CLI is available, use:
 
 ```bash
