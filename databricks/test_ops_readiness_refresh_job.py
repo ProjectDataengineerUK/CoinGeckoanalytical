@@ -53,7 +53,7 @@ class OpsReadinessRefreshJobTests(unittest.TestCase):
     def test_default_sql_file_order_includes_unity_catalog_first(self) -> None:
         self.assertEqual(
             ops_readiness_refresh_job.DEFAULT_SQL_FILES[0],
-            "unity_catalog_foundation.sql",
+            "unity_catalog_runtime_foundation.sql",
         )
 
     def test_refresh_views_works_without_module___file__(self) -> None:
