@@ -7,8 +7,23 @@ on:
   pull_request:
 
 jobs:
-  backend-tests:
+  lint:
     runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Compile repository Python
+        run: python3 -m compileall backend databricks repo_tests
+
+  contract:
+    runs-on: ubuntu-latest
+    needs: lint
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -42,3 +57,49 @@ jobs:
 
       - name: Run workflow contract tests
         run: python3 -m unittest discover -s repo_tests -p 'test_*.py'
+
+  deploy:
+    runs-on: ubuntu-latest
+    needs: contract
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    env:
+      DATABRICKS_HOST: ${{ secrets.DATABRICKS_HOST }}
+      DATABRICKS_TOKEN: ${{ secrets.DATABRICKS_TOKEN }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Check deploy prerequisites
+        id: prereq
+        run: |
+          ready=true
+          if [ -z "$DATABRICKS_HOST" ] || [ -z "$DATABRICKS_TOKEN" ]; then
+            echo "Missing Databricks credentials; skipping deploy."
+            ready=false
+          elif ! command -v databricks >/dev/null 2>&1; then
+            echo "Databricks CLI not installed; skipping deploy."
+            ready=false
+          fi
+          echo "deploy_ready=$ready" >> "$GITHUB_OUTPUT"
+
+      - name: Validate bundle
+        if: steps.prereq.outputs.deploy_ready == 'true'
+        run: |
+          cd databricks
+          python3 validate_bundle.py
+          databricks bundle validate
+
+      - name: Deploy bundle
+        if: steps.prereq.outputs.deploy_ready == 'true'
+        run: |
+          cd databricks
+          databricks bundle deploy -t dev
+          databricks bundle run ops_usage_ingestion_job -t dev
+          databricks bundle run ops_bundle_run_ingestion_job -t dev
+          databricks bundle run ops_sentinela_alert_ingestion_job -t dev
+          databricks bundle run ops_readiness_refresh_job -t dev
