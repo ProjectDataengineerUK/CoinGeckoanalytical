@@ -38,6 +38,7 @@ Use this area for governed data assets, analytical serving contracts, deployment
 - `ops_readiness_refresh_job.md`
 - `bundle-manifest.md`
 - `deployment_runbook.md`
+- `notification_policy.md`
 - `test_validate_bundle.py`
 - `bundle_run_observability.md`
 - `test_bundle_run_ingestion_job.py`

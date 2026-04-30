@@ -19,6 +19,8 @@ This layer should route requests to structured analytics via `Genie` and to the 
 - `copilot_mvp.py`
 - `sentinela.py`
 - `telemetry_handoff.py`
+- `notification_handoff.py`
 - `tests/test_copilot_mvp.py`
 - `tests/test_sentinela.py`
 - `tests/test_telemetry_handoff.py`
+- `tests/test_notification_handoff.py`
