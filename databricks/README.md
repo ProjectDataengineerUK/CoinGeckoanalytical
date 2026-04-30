@@ -22,6 +22,7 @@ Use this area for governed data assets, analytical serving contracts, deployment
 - `ops_readiness_dashboard.sql`
 - `ops_usage_ingestion_job.py`
 - `ops_readiness_refresh_job.py`
+- `databricks.yml`
 - `gold-market-views.md`
 - `genie-metric-views.md`
 - `freshness-and-quality-baseline.md`
@@ -29,4 +30,5 @@ Use this area for governed data assets, analytical serving contracts, deployment
 - `ops_readiness_dashboard.md`
 - `ops_usage_ingestion_job.md`
 - `ops_readiness_refresh_job.md`
+- `bundle-manifest.md`
 - `model-version-governance.md`

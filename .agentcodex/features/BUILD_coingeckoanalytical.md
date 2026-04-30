@@ -174,4 +174,4 @@ Why second:
 
 ## Immediate Next Action
 
-Expand the implemented slices into executable Databricks assets and telemetry wiring, then wire the backend telemetry handoff file into the Databricks ingestion job schedule and refresh the ops readiness dashboard or notebook output on a schedule.
+Expand the implemented slices into executable Databricks assets and telemetry wiring, then validate and deploy the Databricks bundle that schedules ingestion and refresh jobs from the backend telemetry handoff file.
