@@ -8,6 +8,8 @@ from typing import Any
 DEFAULT_SQL_FILES = (
     "freshness_quality_baseline.sql",
     "telemetry-observability.sql",
+    "bundle_run_observability.sql",
+    "sentinela_alert_observability.sql",
     "ops_readiness_dashboard.sql",
 )
 
