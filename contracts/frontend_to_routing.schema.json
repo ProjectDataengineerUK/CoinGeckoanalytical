@@ -1,0 +1,46 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "coingeckoanalytical/contracts/frontend_to_routing.schema.json",
+  "title": "FrontendToRoutingRequest",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "tenant_id",
+    "session_id",
+    "request_id",
+    "locale",
+    "channel",
+    "request_type_hint",
+    "message_text"
+  ],
+  "properties": {
+    "tenant_id": { "type": "string", "minLength": 1 },
+    "user_id": { "type": ["string", "null"] },
+    "session_id": { "type": "string", "minLength": 1 },
+    "request_id": { "type": "string", "minLength": 1 },
+    "locale": { "type": "string", "minLength": 2 },
+    "channel": { "type": "string", "enum": ["web_dashboard", "web_chat", "api"] },
+    "request_type_hint": {
+      "type": "string",
+      "enum": ["analytics_nlq", "copilot", "dashboard_query", "auto"]
+    },
+    "message_text": { "type": "string", "minLength": 1 },
+    "selected_assets": {
+      "type": "array",
+      "items": { "type": "string" },
+      "default": []
+    },
+    "time_range": {
+      "type": ["object", "null"],
+      "additionalProperties": false,
+      "properties": {
+        "from": { "type": "string" },
+        "to": { "type": "string" }
+      }
+    },
+    "ui_context": {
+      "type": ["object", "null"],
+      "additionalProperties": true
+    }
+  }
+}

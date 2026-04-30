@@ -1,0 +1,53 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "coingeckoanalytical/contracts/response_envelope.schema.json",
+  "title": "UnifiedResponseEnvelope",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "request_id",
+    "surface_type",
+    "title",
+    "body"
+  ],
+  "properties": {
+    "request_id": { "type": "string" },
+    "surface_type": {
+      "type": "string",
+      "enum": ["analytics_answer", "copilot_answer", "dashboard_payload", "error"]
+    },
+    "title": { "type": "string" },
+    "body": { "type": "string" },
+    "citations": {
+      "type": "array",
+      "items": { "type": "string" },
+      "default": []
+    },
+    "freshness": {
+      "type": ["object", "null"],
+      "additionalProperties": false,
+      "properties": {
+        "watermark": { "type": ["string", "null"] },
+        "status": { "type": ["string", "null"] }
+      }
+    },
+    "confidence": {
+      "type": ["object", "null"],
+      "additionalProperties": false,
+      "properties": {
+        "label": { "type": ["string", "null"] },
+        "score": { "type": ["number", "null"] }
+      }
+    },
+    "actions": {
+      "type": "array",
+      "items": { "type": "string" },
+      "default": []
+    },
+    "warnings": {
+      "type": "array",
+      "items": { "type": "string" },
+      "default": []
+    }
+  }
+}

@@ -1,0 +1,41 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "coingeckoanalytical/contracts/routing_to_genie.schema.json",
+  "title": "RoutingToGenieRequest",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "request_id",
+    "tenant_id",
+    "user_id",
+    "workspace_context",
+    "semantic_scope",
+    "question_text",
+    "response_format"
+  ],
+  "properties": {
+    "request_id": { "type": "string" },
+    "tenant_id": { "type": "string" },
+    "user_id": { "type": ["string", "null"] },
+    "workspace_context": { "type": "string" },
+    "semantic_scope": { "type": "string" },
+    "question_text": { "type": "string", "minLength": 1 },
+    "filters": {
+      "type": "object",
+      "additionalProperties": true,
+      "default": {}
+    },
+    "time_range": {
+      "type": ["object", "null"],
+      "additionalProperties": false,
+      "properties": {
+        "from": { "type": "string" },
+        "to": { "type": "string" }
+      }
+    },
+    "response_format": {
+      "type": "string",
+      "enum": ["text", "structured_text", "table_summary"]
+    }
+  }
+}
