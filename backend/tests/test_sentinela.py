@@ -184,6 +184,31 @@ class SentinelaTests(unittest.TestCase):
         self.assertIn("latency_breach", blocker_kinds)
         self.assertEqual(result["blockers"][0]["escalation"], "investigate_performance")
 
+    def test_evaluate_release_readiness_supports_dashboard_api_default_thresholds(self) -> None:
+        result = sentinela.evaluate_release_readiness(
+            [
+                {
+                    "event_time": "2026-04-30T00:00:00Z",
+                    "request_id": "req-8",
+                    "tenant_id": "tenant-1",
+                    "user_id": "user-1",
+                    "route_selected": "dashboard_api",
+                    "model_or_engine": "dashboard-shell",
+                    "prompt_tokens": 5,
+                    "completion_tokens": 5,
+                    "total_tokens": 10,
+                    "latency_ms": 180,
+                    "cost_estimate": 0.001,
+                    "freshness_watermark": "2026-04-30T00:00:00Z",
+                    "response_status": "success",
+                }
+            ]
+        )
+
+        self.assertTrue(result["ready"])
+        self.assertEqual(result["blockers"], [])
+        self.assertEqual(result["checks"][1]["name"], "error_free")
+
 
 if __name__ == "__main__":
     unittest.main()

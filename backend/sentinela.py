@@ -15,6 +15,16 @@ DEFAULT_ROUTE_THRESHOLDS: dict[str, dict[str, int | float]] = {
         "max_cost_estimate": 0.05,
         "max_total_tokens": 4000,
     },
+    "dashboard_api": {
+        "max_latency_ms": 250,
+        "max_cost_estimate": 0.005,
+        "max_total_tokens": 800,
+    },
+    "internal_app": {
+        "max_latency_ms": 800,
+        "max_cost_estimate": 0.03,
+        "max_total_tokens": 2500,
+    },
 }
 
 
