@@ -174,4 +174,4 @@ Why second:
 
 ## Immediate Next Action
 
-Expand the implemented slices into executable Databricks assets and telemetry wiring, then connect the copilot telemetry row builder to Databricks ingestion and render the ops readiness dashboard or notebook output.
+Expand the implemented slices into executable Databricks assets and telemetry wiring, then connect the copilot telemetry row builder to the Databricks ingestion job and render the ops readiness dashboard or notebook output.
