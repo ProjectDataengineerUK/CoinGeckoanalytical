@@ -44,7 +44,7 @@ Preserve resumable project context in repo files instead of relying on chat memo
 - latest workflow state: `deployment docs, checklist, and handoff now explicitly state that deploy uses DATABRICKS_HOST plus DATABRICKS_TOKEN, while full live SQL validation and artifact upload additionally depend on DATABRICKS_SQL_WAREHOUSE_ID`
 - latest workflow state: `the native next infrastructure step is Terraform plan for dev, but the current local environment does not have the Terraform CLI installed and no real Databricks dev inputs are loaded`
 - latest workflow state: `a native Terraform execution attempt now exists; init succeeded after local CLI bootstrap, but validate is blocked by the Databricks provider schema handshake in this environment before plan can run`
-- latest workflow state: `the repository now compensates for that local Terraform limitation with a GitHub Actions terraform-dev-plan job that can run init, validate, and plan in a compatible runner`
+- latest workflow state: `the repository now compensates for that local Terraform limitation with a dedicated GitHub Actions terraform workflow that keeps plan/apply separate from ci deploy execution`
 
 ## Important Decisions
 
@@ -70,6 +70,7 @@ Preserve resumable project context in repo files instead of relying on chat memo
 - the project now treats Terraform IaC as a required part of Phase 1 rather than a later hardening concern
 - the Terraform baseline now includes operational job, policy, and promotion scaffolding instead of catalog-only scope
 - the repository now has a single Project Standard status manifest and explicit Phase 1 policies for cost control, secrets/access, and retention/audit
+- Terraform has been split into a separate workflow so plan/apply are not mixed into the deploy job
 - the deploy evidence path now explicitly distinguishes base deploy credentials from the additional warehouse secret needed for automated live SQL row-count validation
 - the next native execution step before claiming live environment progress is `terraform init` plus `terraform plan` for `dev`, not another repo-only documentation pass
 - the selected direction remains a broad complete-V1 product, not a narrow MVP

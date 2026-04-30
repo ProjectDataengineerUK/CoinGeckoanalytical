@@ -8,13 +8,17 @@
 ## Delivered
 
 - updated `.github/workflows/ci.yml`
+- created `.github/workflows/terraform.yml`
 - updated `repo_tests/test_ci_workflow.py`
+- created `repo_tests/test_terraform_workflow.py`
 
 ## What This Closes
 
 - the native Terraform sequence now has a compatible execution path outside the current local environment
-- GitHub Actions can run `terraform init`, `terraform validate`, and `terraform plan` for `dev`
-- the workflow can upload a `terraform-dev-plan` artifact when the required Terraform secrets are configured
+- GitHub Actions can run `terraform init`, `terraform validate`, and `terraform plan` for `dev` in the dedicated `terraform` workflow
+- the `ci` workflow no longer mixes Terraform planning into the release/deploy path
+- the dedicated workflow can upload a `terraform-dev-plan` artifact when the required Terraform secrets are configured
+- manual `workflow_dispatch` support exists for an explicit `terraform apply` step after plan review
 
 ## Required Secrets
 
@@ -38,10 +42,11 @@
 ## Verification
 
 - `python3 -m unittest repo_tests.test_ci_workflow`
+- `python3 -m unittest repo_tests.test_terraform_workflow`
 - `python3 -m unittest discover -s repo_tests -p 'test_*.py'`
 
 ## Remaining Work
 
 - configure the Terraform secrets in GitHub Actions
 - run the workflow and capture the first `terraform-dev-plan` artifact
-- after the plan artifact is reviewed, decide whether to add a controlled apply path for `dev`
+- after the plan artifact is reviewed, decide whether to trigger the controlled `dev` apply from `workflow_dispatch`
