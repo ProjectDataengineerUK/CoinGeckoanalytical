@@ -21,10 +21,12 @@ Use this area for governed data assets, analytical serving contracts, deployment
 - `telemetry-observability.sql`
 - `ops_readiness_dashboard.sql`
 - `ops_usage_ingestion_job.py`
+- `ops_readiness_refresh_job.py`
 - `gold-market-views.md`
 - `genie-metric-views.md`
 - `freshness-and-quality-baseline.md`
 - `telemetry-observability.md`
 - `ops_readiness_dashboard.md`
 - `ops_usage_ingestion_job.md`
+- `ops_readiness_refresh_job.md`
 - `model-version-governance.md`
