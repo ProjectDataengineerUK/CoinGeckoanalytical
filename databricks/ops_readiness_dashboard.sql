@@ -82,7 +82,27 @@ FROM ops_release_readiness
 GROUP BY route_selected, hour_bucket
 ORDER BY hour_bucket DESC, route_selected;
 
+CREATE OR REPLACE VIEW ops_bundle_run_status AS
+SELECT
+  job_name,
+  bundle_readiness_status,
+  run_count,
+  success_count,
+  failed_count,
+  cancelled_count,
+  running_count,
+  latest_update_time,
+  max_duration_ms,
+  avg_duration_ms,
+  latest_run_id,
+  latest_status,
+  latest_result_state,
+  latest_run_state,
+  serving_status
+FROM ops_bundle_run_readiness;
+
 SELECT * FROM ops_ready_overview;
 SELECT * FROM ops_route_readiness_latest;
 SELECT * FROM ops_alert_backlog;
 SELECT * FROM ops_cost_latency_trend;
+SELECT * FROM ops_bundle_run_status;

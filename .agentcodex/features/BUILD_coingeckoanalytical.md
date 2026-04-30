@@ -176,3 +176,4 @@ Why second:
 
 Expand the implemented slices into executable Databricks assets and telemetry wiring, then validate and deploy the Databricks bundle that schedules ingestion and refresh jobs from the backend telemetry handoff file. Use `databricks/validate_bundle.py` locally when the Databricks CLI is not available.
 The next operational hardening step is to feed real Databricks job run results into the Sentinela bundle-run contract and surface them on the ops readiness dashboard.
+Track that via the Databricks bundle run observability surface and the bundle run readiness view.

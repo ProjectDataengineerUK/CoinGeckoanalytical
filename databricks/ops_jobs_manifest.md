@@ -20,10 +20,18 @@ Document the scheduled Databricks jobs that keep telemetry and readiness current
 - input: `telemetry-observability.sql` and `ops_readiness_dashboard.sql`
 - output: refreshed views for dashboard consumption
 
+### `ops_bundle_run_observability`
+
+- frequency: on every bundle or job run result ingest
+- task: `bundle_run_observability.sql`
+- input: normalized bundle run result records
+- output: `ops_bundle_runs` and readiness views
+
 ## Ordering
 
 - ingestion must complete before refresh
 - dashboard queries read only from the refreshed views
+- bundle run observability feeds the Sentinela release-blocker layer
 
 ## Failure Policy
 
