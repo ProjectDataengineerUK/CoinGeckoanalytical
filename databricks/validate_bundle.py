@@ -7,6 +7,7 @@ import yaml
 
 
 REQUIRED_JOB_KEYS = {
+    "market_source_ingestion_job",
     "ops_usage_ingestion_job",
     "ops_readiness_refresh_job",
     "ops_bundle_run_ingestion_job",

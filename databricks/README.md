@@ -4,9 +4,14 @@ Databricks-side assets for the CoinGecko analytical slice.
 
 Use this area for governed data assets, analytical serving contracts, deployment notes, and environment-aware configuration.
 
+GitHub Actions deploys use `DATABRICKS_HOST` and `DATABRICKS_TOKEN`. If `DATABRICKS_SQL_WAREHOUSE_ID` is also configured as a secret, the workflow additionally runs live SQL validation and uploads the `databricks-live-sql-validation` artifact.
+
 ## Build Slice 3 Scope
 
 - Gold market views for dashboard and Genie
+- Bronze and Silver market foundation for the first governed slice
+- Unity Catalog foundation for governed namespaces and boundaries
+- Terraform baseline for environment and governance IaC
 - governed metric views for AI/BI NLQ
 - freshness and quality baseline checks
 - telemetry observability and release-readiness views
@@ -16,10 +21,16 @@ Use this area for governed data assets, analytical serving contracts, deployment
 ## Concrete Assets
 
 - `gold_market_views.sql`
+- `bronze_silver_market_foundation.sql`
+- `unity_catalog_foundation.sql`
+- `terraform/providers.tf`
+- `terraform/variables.tf`
+- `terraform/main.tf`
 - `genie_metric_views.sql`
 - `freshness_quality_baseline.sql`
 - `telemetry-observability.sql`
 - `ops_readiness_dashboard.sql`
+- `market_source_ingestion_job.py`
 - `ops_usage_ingestion_job.py`
 - `bundle_run_ingestion_job.py`
 - `sentinela_alert_ingestion_job.py`
@@ -29,10 +40,15 @@ Use this area for governed data assets, analytical serving contracts, deployment
 - `preflight_databricks_deploy.py`
 - `bundle_run_observability.sql`
 - `gold-market-views.md`
+- `bronze-silver-market-foundation.md`
+- `unity-catalog-foundation.md`
+- `unity-catalog-lineage-map.md`
+- `terraform-phase1-baseline.md`
 - `genie-metric-views.md`
 - `freshness-and-quality-baseline.md`
 - `telemetry-observability.md`
 - `ops_readiness_dashboard.md`
+- `market_source_ingestion_job.md`
 - `ops_usage_ingestion_job.md`
 - `bundle_run_ingestion_job.md`
 - `sentinela_alert_ingestion_job.md`
@@ -43,6 +59,7 @@ Use this area for governed data assets, analytical serving contracts, deployment
 - `test_validate_bundle.py`
 - `test_preflight_databricks_deploy.py`
 - `bundle_run_observability.md`
+- `test_market_source_ingestion_job.py`
 - `test_bundle_run_ingestion_job.py`
 - `test_bundle_run_observability.py`
 - `test_sentinela_alert_ingestion_job.py`

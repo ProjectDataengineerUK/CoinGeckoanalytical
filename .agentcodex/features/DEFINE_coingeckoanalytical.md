@@ -1,38 +1,38 @@
 # DEFINE: CoinGeckoAnalytical
 
-> Validated requirements for `coingeckoanalytical`.
+> Validated requirements for `coingeckoanalytical`, rewritten from the refreshed brainstorm.
 
 ## Metadata
 
 | Attribute | Value |
 |-----------|-------|
 | **Feature** | `coingeckoanalytical` |
-| **Date** | `2026-04-29` |
+| **Date** | `2026-04-30` |
 | **Owner** | `operator` |
 | **Authoring Role** | `workflow-definer` |
-| **Status** | Design completed, ready for Build Planning |
-| **Clarity Score** | `13/15` |
+| **Status** | Ready for Design |
+| **Clarity Score** | `14/15` |
 
 ## Input Classification
 
 | Attribute | Value |
 |-----------|-------|
 | **Input Type** | `mixed_sources` |
-| **Source Artifact(s)** | `Requisitos.pdf`, `context.md`, operator brainstorm answers |
+| **Source Artifact(s)** | `Requisitos.pdf`, `context.md`, refreshed brainstorm answers |
 | **Brainstorm Source** | `.agentcodex/features/BRAINSTORM_coingeckoanalytical.md` |
-| **Preserved Decision** | rebuild as a production-ready product from scratch, using the PDF as inspiration only |
+| **Preserved Decision** | recreate the prior product almost entirely, but with a new and more mature Databricks-first architecture |
 
 ## Problem Statement
 
-Public users, analysts, and institutional teams lack a trusted crypto intelligence product that combines governed market data, analytical exploration, and AI-assisted research in one production-grade platform. The project must rebuild the prior CoinGecko-inspired concept as a cloud-first SaaS product on Databricks, with stronger trust, scalability, governance, and Portuguese-first AI-assisted decision support.
+The project must recreate the previously envisioned CoinGecko Analytical product as a production-grade, cloud-first, multi-tenant crypto intelligence SaaS. The new version must preserve the ambition of the earlier product almost in full, but replace the prior local open-source stack with a more mature Databricks-first platform that supports broader data sources, stronger governance, stronger operational controls, and a more trustworthy AI-assisted research experience.
 
 ## Target Users
 
 | User | Role | Pain Point |
 |------|------|------------|
-| Self-serve market user | Independent trader, researcher, or crypto enthusiast | Can access fragmented dashboards, but struggles to get trusted, explainable, cross-asset insights quickly. |
-| Professional analyst | Market analyst or research lead | Needs deeper, fresher, and more reliable analytics than generic dashboards provide, with provenance and repeatability. |
-| Institutional team | Fund, desk, or enterprise intelligence consumer | Requires governed data, auditability, access control, and dependable AI-assisted answers before using the product operationally. |
+| Public self-serve user | Independent researcher, trader, or market enthusiast | Wants fast access to trustworthy crypto insights, rankings, comparisons, and AI-assisted explanations without assembling fragmented tools. |
+| Professional analyst | Research analyst, intelligence lead, or strategy user | Needs broad market coverage, governed datasets, repeatable analytical views, and AI assistance with provenance and freshness signals. |
+| Institutional team | Fund, desk, enterprise data consumer, or governance-sensitive team | Requires access control, lineage, auditability, operational trust, and dependable AI outputs before using the platform in serious workflows. |
 
 ## Goals
 
@@ -40,105 +40,116 @@ What success looks like, prioritized:
 
 | Priority | Goal |
 |----------|------|
-| **MUST** | Deliver a cloud-first multi-tenant crypto intelligence platform on Databricks with governed lakehouse-backed analytics, interactive dashboard surfaces, and AI chat in one product. |
-| **MUST** | Provide trustworthy AI answers with provenance, freshness metadata, and query traceability tied to governed market data. |
-| **MUST** | Support broad crypto intelligence coverage, including cross-asset analytics, rankings, movers, correlations, and market context. |
-| **SHOULD** | Provide near-real-time to real-time analytical experiences where technically and economically feasible. |
-| **SHOULD** | Deliver a Portuguese-first user experience in V1, with architecture prepared for future multilingual expansion. |
-| **COULD** | Include differentiated institution-facing workflows and premium analytical depth that expand after the initial flagship release. |
+| **MUST** | Deliver a complete V1 product with dashboard, pipelines, governed analytics, and AI chat as one integrated experience. |
+| **MUST** | Recreate the earlier product ambition on a stronger Databricks-first architecture rather than narrowing the product into a lightweight proof of concept. |
+| **MUST** | Support self-serve, analyst, and institutional use from the start with multi-tenant boundaries and enterprise-grade controls. |
+| **MUST** | Include provenance, freshness, traceability, governance, compliance posture, and access control as first-class V1 requirements. |
+| **SHOULD** | Support multiple market-data sources from the beginning, with CoinGecko as one important input but not the only one. |
+| **SHOULD** | Deliver Portuguese-first UI and AI responses in V1. |
+| **SHOULD** | Provide near-real-time or real-time analytical behavior where technically and economically viable. |
+| **COULD** | Add future premium workflows and differentiated institutional experiences without forcing a second core architecture later. |
 
 ## Success Criteria
 
-- [ ] The V1 product supports authenticated multi-tenant access for self-serve users and team accounts.
-- [ ] Core dashboard and AI copilot flows are available in Portuguese for the first release, with localization boundaries defined for future expansion.
-- [ ] AI answers include source references, query trace, freshness metadata, and confidence or explanation context for every grounded response.
-- [ ] The data platform refreshes core market intelligence datasets on a real-time or near-real-time basis for supported feeds, with documented SLA targets by layer.
-- [ ] The product exposes a stable set of production-ready crypto intelligence views covering market rankings, movers, dominance, correlations, and related cross-asset analysis.
-- [ ] Governance controls exist for tenant separation, access control, auditability, and lineage on critical datasets.
-- [ ] The platform can be demonstrated end-to-end in a cloud deployment with production-oriented observability, secrets handling, and operational runbooks.
+- [ ] The V1 product supports authenticated multi-tenant access for public, analyst, and institutional usage patterns.
+- [ ] The V1 includes a complete dashboard experience, governed analytical serving, and AI chat in one coherent product surface.
+- [ ] AI answers include provenance, freshness metadata, query or evidence traceability, and confidence context for grounded responses.
+- [ ] The platform supports multiple data sources in its design and initial implementation posture, with clear source ownership and quality controls.
+- [ ] Governance controls exist for tenant separation, access control, auditability, lineage, and compliance-sensitive operational review.
+- [ ] The platform can be demonstrated end to end in a cloud deployment posture with operational observability, secrets handling, and runbook readiness.
+- [ ] The product is strong enough to be judged as a real V1 candidate rather than a technical scaffold or internal prototype.
 
 ## Acceptance Tests
 
 | ID | Scenario | Given | When | Then |
 |----|----------|-------|------|------|
-| AT-001 | Dashboard exploration | A signed-in tenant user with valid permissions | The user opens the product and selects key market views | The user can explore governed crypto analytics with current metrics, filters, and visual summaries. |
-| AT-002 | Grounded AI answer | A signed-in user asks a market question in natural language | The AI copilot generates an answer | The response includes a grounded answer plus provenance, freshness, and query evidence. |
-| AT-003 | Portuguese-first interaction | A Portuguese-speaking user opens the product and interacts with dashboards or AI chat | The request is processed | The product returns UI labels, metrics context, and AI answers in Portuguese consistently for supported V1 flows. |
-| AT-004 | Tenant isolation | Two tenants exist with separate accounts and permissions | One tenant user accesses dashboards or AI chat | The user can access only their authorized product surface and never another tenant's protected data or audit trail. |
-| AT-005 | Freshness enforcement | A core supported feed is delayed or stale beyond SLA | A user queries related insights | The system surfaces freshness status and does not present stale results as current without warning. |
-| AT-006 | Governance traceability | An administrator reviews a critical AI-assisted answer | The admin inspects the audit surface | The admin can trace the answer to source dataset versions, query evidence, and request metadata. |
+| AT-001 | Dashboard exploration | An authenticated tenant user opens the platform | The user navigates the dashboard experience | The user can explore governed crypto market views, filters, rankings, and comparisons with freshness visibility. |
+| AT-002 | Grounded AI answer | An authenticated user asks a market question in natural language | The AI experience returns an answer | The response includes grounded explanation plus provenance, freshness, and evidence context. |
+| AT-003 | Portuguese-first product | A Portuguese-speaking user uses dashboard and AI chat flows | The product renders UI and responses | The product behaves in Portuguese consistently for supported V1 flows. |
+| AT-004 | Tenant isolation | Two tenants exist with distinct permissions | One tenant user accesses product surfaces | The user cannot access another tenant's protected data, AI context, or audit trails. |
+| AT-005 | Freshness enforcement | One core data feed is stale or delayed | A user opens related analytics or asks an affected question | The platform exposes freshness state and does not present stale data as silently current. |
+| AT-006 | Governance traceability | An administrator or authorized operator reviews an important AI-assisted answer | The reviewer inspects the audit surface | The answer can be traced to source datasets, evidence or query artifacts, and request metadata. |
+| AT-007 | Operational readiness | The platform is evaluated for V1 approval | Operators review observability, controls, and runbooks | The platform exposes meaningful readiness signals rather than relying only on local tests or placeholder assets. |
 
-## Out of Scope
+## Out Of Scope
 
-Explicitly not included in this feature:
+No meaningful scope cuts were accepted during brainstorm.
 
-- Portfolio management
-- Trading or execution workflows
-- Social/community features
-- User-generated content ecosystems
-- Rebuilding the prior implementation line by line
+This means the `design` phase must treat scope pressure, sequencing, and risk management as explicit concerns rather than assuming a narrow V1.
 
 ## Constraints
 
 | Type | Constraint | Impact |
 |------|------------|--------|
-| Technical | The product must be rebuilt as a new cloud-first SaaS on Databricks rather than a direct port of the previous local Docker architecture. | Design must define Databricks-native platform boundaries, services, and deployment topology. |
-| Product | V1 must preserve the flagship end-to-end vision instead of narrowing to a small internal tool. | Scope management must protect the core differentiated experience without losing production viability. |
-| Security/Compliance | Trust, lineage, access control, and auditability are required from the start. | Design must include identity, authorization, observability, and governed data/AI flows early. |
-| Operational | Real-time or near-real-time experiences are expected where possible. | Architecture must define freshness tiers, streaming boundaries, and graceful degradation paths. |
-| Business | The product must work for self-serve adoption while remaining extensible for enterprise expansion. | Design must balance multi-tenant SaaS simplicity with enterprise controls and premium plan boundaries. |
+| Technical | Databricks is mandatory as the core platform. | Design must define Databricks-native boundaries for ingestion, ETL, governance, serving, AI, and operations. |
+| Product | The product should recreate almost the full ambition of the prior concept. | Design cannot collapse the effort into a small demo without violating the chosen product direction. |
+| Security/Compliance | Security, compliance, lineage, governance, access control, and auditability are required from the start. | Design must include identity, authorization, traceability, review surfaces, and controlled data/AI flows early. |
+| Operational | The V1 is expected to behave like a serious production candidate, not only a local scaffold. | Design must include observability, runbooks, quality posture, and operational controls as part of the product definition. |
+| Data | CoinGecko plus other data sources are in scope from the beginning. | Design must define source mix, source trust model, onboarding strategy, and data ownership. |
+| Business | The product serves both self-serve and institutional expectations from day one. | Design must reconcile broad adoption with stronger controls and governance-sensitive workflows. |
 
 ## Technical Context
 
-> Essential context for design. This prevents misplaced files and missed infrastructure work.
+> Essential context for design. This prevents misplaced architecture and false assumptions about maturity.
 
 | Aspect | Value | Notes |
 |--------|-------|-------|
-| **Deployment Location** | `custom path (greenfield monorepo/product structure to be defined in design)` | The current repo is effectively empty aside from AgentCodex artifacts. |
-| **KB Domains** | `lakehouse`, `medallion`, `lakeflow`, `operations` | Design should use these patterns as the nearest local knowledge base for Databricks platform and data architecture. |
-| **IaC Impact** | `new resources` | A new cloud environment, tenancy model, secrets, observability, and data services will be required. |
-| **Runtime/Platform** | `Databricks cloud-first multi-tenant SaaS` | Databricks is fixed; the design still needs to choose supporting services, serving pattern, and control boundaries. |
+| **Deployment Location** | `custom greenfield monorepo/product structure` | Existing repo contents are partial scaffolding and must not be mistaken for full product completion. |
+| **Runtime/Platform** | `Databricks cloud-first multi-tenant SaaS` | Databricks is fixed, but exact product-serving, data, AI, and operational boundaries still need design finalization. |
+| **Architecture Pressure** | `full-product ambition with strong controls` | Design must resolve sequencing pressure created by the lack of meaningful YAGNI cuts. |
+| **IaC / Resource Impact** | `new resources and new operating surfaces` | Environment separation, secrets, observability, tenancy, and external serving all need explicit design treatment. |
+| **Relevant KB Domains** | `lakehouse`, `medallion`, `lakeflow`, `operations` | Design should anchor implementation decisions in these local domains where applicable. |
+
+## Product Scope
+
+The defined V1 includes all of the following as one integrated product:
+
+- public external frontend
+- authenticated multi-tenant product access
+- governed data ingestion and medallion pipeline posture
+- dashboard analytics and comparative market views
+- AI chat for market research and explanation
+- provenance, freshness, and confidence signaling
+- operational observability, alerting posture, and reviewability
+- governance, access control, lineage, and auditability surfaces
 
 ## Data Contract
 
-> This feature includes data pipelines, analytics serving, freshness SLAs, lineage, and governed AI access to analytical data.
+> This feature includes multiple source families, governed analytics, and AI evidenceability from the start.
 
 ### Source Inventory
 
-| Source | Type | Volume | Freshness | Owner |
-|--------|------|--------|-----------|-------|
-| CoinGecko market data | API | TBD during design; expected high-cardinality market snapshots and time series | real-time or near-real-time where feasible | Product platform team |
-| Derived analytical datasets | Databricks lakehouse tables/views | TBD during design; depends on modeled assets, exchanges, and history depth | tiered by layer | Product platform team |
-| AI retrieval/query evidence | metadata and query logs | proportional to AI/chat traffic | immediate | Product platform team |
+| Source | Type | Freshness | Notes |
+|--------|------|-----------|-------|
+| CoinGecko market data | API | near-real-time where feasible | Mandatory starting source, but not the only intended source |
+| Additional market and reference sources | API / feed / partner datasets | TBD in design | Must be explicitly defined rather than hand-waved |
+| Derived analytical datasets | Databricks lakehouse tables and views | tiered by layer | Must back dashboards and AI grounding |
+| AI retrieval, evidence, and query artifacts | metadata and logs | immediate | Required for trust and audit surfaces |
 
 ### Schema Contract
 
 | Column | Type | Constraints | PII? |
 |--------|------|-------------|------|
-| `asset_id` | `STRING` | not null, stable business key | No |
-| `observed_at` | `TIMESTAMP` | not null, freshness anchor | No |
-| `metric_name` | `STRING` | not null | No |
-| `metric_value` | `DECIMAL` | not null where metric is emitted | No |
-| `tenant_id` | `STRING` | required for protected product data and audit surfaces | Potentially sensitive |
+| `asset_id` | `STRING` | required, stable business identifier | No |
+| `observed_at` | `TIMESTAMP` | required, freshness anchor | No |
+| `metric_name` | `STRING` | required for analytical semantics | No |
+| `metric_value` | `DECIMAL` | required where metric is emitted | No |
+| `source_system` | `STRING` | required for multi-source traceability | No |
+| `tenant_id` | `STRING` | required where access or audit scope is tenant-specific | Potentially sensitive |
 
 ### Freshness SLAs
 
 | Layer | Target | Measurement |
 |-------|--------|-------------|
-| Raw / ingestion | as close to source availability as feasible; target defined per feed in design | source timestamp vs ingestion timestamp |
-| Curated analytics | near-real-time for key market intelligence views; batch fallback allowed for secondary views | pipeline completion and serving lag |
-| AI answer evidence | freshness displayed at response time | response metadata vs dataset watermark |
-
-### Completeness Metrics
-
-- Critical market datasets must publish completeness checks and freshness status before being exposed as trusted intelligence.
-- Tenant-facing analytical views must detect and surface degraded or partial data instead of silently presenting missing coverage.
+| Raw ingestion | as close to source availability as feasible | source timestamp vs ingestion timestamp |
+| Curated analytics | near-real-time for priority views, defined explicitly in design | pipeline completion and serving lag |
+| AI answer evidence | always surfaced at response time | response metadata vs dataset watermark |
 
 ### Lineage Requirements
 
-- Lineage is required from source ingestion through curated analytical views used by dashboards and AI responses.
-- Critical AI answers must be traceable to dataset versions, query artifacts, and freshness metadata.
-- Audit surfaces must support impact analysis for schema or model changes affecting tenant-facing intelligence.
+- Lineage is required from source ingestion through curated views, dashboards, and AI-assisted answers.
+- Multi-source blending must remain reviewable and attributable.
+- Critical AI answers must be traceable to source datasets, freshness state, and request/evidence artifacts.
 
 ## Assumptions
 
@@ -146,69 +157,69 @@ Assumptions that could invalidate the design if wrong:
 
 | ID | Assumption | If Wrong, Impact | Validated? |
 |----|------------|------------------|------------|
-| A-001 | CoinGecko or equivalent market data sources can support the breadth and freshness required for V1. | The scope or provider strategy would need revision, including secondary data sources. | [ ] |
-| A-002 | A Databricks-first multi-tenant architecture can deliver the intended AI + analytics experience within acceptable cost bounds. | The tenancy, freshness, or AI interaction model may need narrowing. | [ ] |
-| A-003 | Portuguese-first release is sufficient for V1 adoption before multilingual expansion. | Localization may need to be accelerated earlier than planned. | [ ] |
-| A-004 | Public self-serve and enterprise expansion can share one product core without conflicting requirements in V1. | Separate product tiers or control planes may be needed earlier. | [ ] |
-| A-005 | Real-time or near-real-time expectations are necessary for the core differentiated value. | A more tiered freshness strategy may be sufficient and cheaper. | [ ] |
+| A-001 | CoinGecko plus additional sources can be onboarded early enough to satisfy the chosen V1 breadth. | The source strategy or V1 claims would need narrowing despite the brainstorm choice. | [ ] |
+| A-002 | A Databricks-first multi-tenant architecture can support the chosen full-product scope at acceptable cost and complexity. | The product may require stricter sequencing or commercial trade-offs. | [ ] |
+| A-003 | Portuguese-first release remains appropriate even for the broader user mix. | Localization scope may need to expand sooner. | [ ] |
+| A-004 | One V1 can satisfy both self-serve and institutional expectations without splitting the control plane early. | The product may need stronger tier separation sooner than planned. | [ ] |
+| A-005 | The project can ship a strong production-candidate V1 without meaningful YAGNI cuts. | Design and build may need explicit phased subplans inside the same V1. | [ ] |
 
 ## Clarity Score Breakdown
 
 | Element | Score (0-3) | Notes |
 |---------|-------------|-------|
-| Problem | 3 | Clear problem and product direction were established in the brainstorm. |
-| Users | 3 | Primary user classes and pain points are explicit. |
-| Goals | 3 | Prioritized goals are clear and aligned with the selected product position. |
-| Success | 2 | Success criteria are measurable at a product level, but final SLA numbers and target thresholds remain for design. |
-| Scope | 2 | Boundaries are explicit, but cloud vendor, exact data providers, and exact V1 cuts remain open. |
-| **Total** | **13/15** | Ready to move into design with targeted open questions carried forward. |
+| Problem | 3 | The product goal is explicit and ambitious. |
+| Users | 3 | User classes and approval posture are clear. |
+| Goals | 3 | Product-level goals are strong and aligned to the brainstorm. |
+| Success | 3 | Success posture is clear, including operational seriousness. |
+| Scope | 2 | Scope is explicit, but intentionally broad and therefore high-risk. |
+| **Total** | **14/15** | Ready for design, with risk driven by breadth rather than ambiguity. |
 
 ## Open Questions
 
-- Which exact Databricks-native and adjacent managed services should anchor ingestion, serving, auth, and observability at V1 launch versus later hardening?
-- What exact data provider mix is required beyond CoinGecko to satisfy breadth, freshness, and reliability goals?
-- What are the exact Portuguese-first UX and content boundaries for V1?
-- Which user journeys are mandatory for V1 dashboard exploration versus later institutional expansion?
-- What concrete SLA and latency targets are commercially and financially viable for V1?
+- Which exact additional sources beyond CoinGecko are mandatory for the first approved V1?
+- Which Databricks-native and adjacent managed services anchor ingestion, auth, serving, and observability at launch?
+- What exact user journeys must exist on day one for self-serve, analyst, and institutional flows?
+- What exact compliance posture is required for the intended user mix in V1?
+- What sequencing inside design prevents a “complete V1” from collapsing into an unfinishable plan?
 
 ## Architecture Direction
 
-The feature will proceed with a split AI architecture rather than one generic agent layer:
+The feature proceeds with the following product direction:
 
-- `AI/BI Genie` for natural-language analytics over governed Gold tables, views, and metric views in Unity Catalog.
-- `External web frontend` as the main tenant-facing product experience layer for the public SaaS surface.
-- `Databricks Apps` only for internal operational tools, admin surfaces, premium internal workflows, or rapid prototypes where platform proximity matters more than serving-cost efficiency.
-- `Mosaic AI Agent Framework` as the primary coded copilot for market-intelligence workflows that need custom orchestration, provenance, guardrails, and response policies.
-- `Agent Bricks` only as an optional accelerator for bounded subcases or prototyping, not as the foundation of the product.
+- `External web frontend` as the main public product surface
+- `Databricks` as the mandatory data, analytics, AI, governance, and model-lifecycle platform
+- `AI/BI Genie` for governed structured analytical NLQ
+- `Mosaic AI Agent Framework` for the main coded market copilot
+- `Sentinela` for observability and multi-agent operational interpretation
+- `Databricks Apps` reserved for internal/admin or platform-adjacent operational workflows
 
 ### Rationale
 
-- Genie is the most direct fit for governed NLQ over structured lakehouse analytics.
-- A public SaaS frontend should avoid paying Databricks app runtime costs for high-volume lightweight web traffic when cheaper external web serving is sufficient.
-- The primary copilot requires custom product behavior, explainability, provenance, and business rules that should live in code.
-- Agent Bricks remains useful for selective acceleration, but its beta posture and operational constraints make it a poor default foundation for the core product.
-- This split keeps analytical Q&A simple where the platform already provides leverage, reserves custom agent engineering for the differentiated user experience, and keeps public web serving cost-optimized.
+- This keeps the public product cost posture separate from the Databricks workspace runtime.
+- It preserves the earlier product ambition while upgrading maturity and governance.
+- It aligns the product to a trustworthy split between governed analytics and coded AI assistance.
+- It keeps operational review and observability strong enough for the chosen V1 posture.
 
 ## Revision History
 
 | Version | Date | Author | Changes |
 |---------|------|--------|---------|
 | 1.0 | `2026-04-29` | workflow-definer | Initial version |
+| 2.0 | `2026-04-30` | workflow-definer | Rewritten from refreshed brainstorm for full-product V1 direction |
 
 ## Exit Check
 
 - [x] problem statement is clear and specific
-- [x] at least one user persona has a pain point
-- [x] goals use MoSCoW priorities
-- [x] success criteria are measurable
+- [x] target users and approver posture are explicit
+- [x] goals reflect the refreshed brainstorm
+- [x] success criteria are measurable at product level
 - [x] acceptance tests are testable
 - [x] constraints are explicit
-- [x] out of scope is explicit
-- [x] assumptions documented with impact if wrong
-- [x] KB domains identified for design
-- [x] technical context gathered
+- [x] non-cut scope pressure is made explicit
+- [x] assumptions are documented
+- [x] technical context is gathered
 - [x] clarity score >= 12/15
 
 ## Next Step
 
-**Ready for:** `build planning` using `.agentcodex/features/DESIGN_coingeckoanalytical.md` as the implementation baseline.
+**Ready for:** `design`, with explicit attention to architecture boundaries, source strategy, sequencing pressure, and complete-V1 feasibility.

@@ -28,6 +28,7 @@ CoinGeckoAnalytical should be treated as a project that aims to start close to `
 - resumable history exists
 - release verification uses durable reports
 - sentinela monitoring baseline is defined
+- infrastructure-as-code exists for governed environment setup, not only bundle deployment
 
 ## Current Status
 
@@ -42,3 +43,14 @@ CoinGeckoAnalytical should be treated as a project that aims to start close to `
 ## Gap To Close
 
 The project still needs implementation-grade artifacts and verification before it can claim a real maturity-5 operating posture.
+
+## IaC Rule
+
+For this project, `maturity 5` should assume Terraform or equivalent IaC for:
+
+- Unity Catalog catalogs and schemas
+- grants and principal binding
+- environment separation across dev, staging, and prod
+- execution identity for ingestion, pipelines, ops, and audit workloads
+
+Databricks bundles alone are not sufficient evidence for this maturity target.

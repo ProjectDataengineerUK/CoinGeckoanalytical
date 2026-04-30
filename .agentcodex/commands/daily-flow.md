@@ -24,6 +24,8 @@ Define the repo-local daily operating ritual for building CoinGeckoAnalytical wi
 2. Define expected inputs, outputs, and verification.
 3. Update or create the relevant report in `.agentcodex/reports/`.
 4. Keep telemetry, cost, and freshness implications visible in the work item.
+5. Do not count placeholders, design boundaries, or local-only deploy helpers as delivered product behavior.
+6. Do not resume `deploy` or `ship` work before one real user-facing slice is closed end to end.
 
 ## End Of Day
 
@@ -36,5 +38,6 @@ Define the repo-local daily operating ritual for building CoinGeckoAnalytical wi
 
 - what changed in the architecture or scope?
 - what was implemented versus only designed?
+- what is real product behavior versus scaffolding or prototype?
 - what new risk appeared in security, cost, or operations?
 - what is the next smallest high-value slice?

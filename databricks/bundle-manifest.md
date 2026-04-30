@@ -10,6 +10,12 @@ Package the Databricks-side jobs as a deployable bundle with scheduled ingestion
 
 ## Resources
 
+### `market_source_ingestion_job`
+
+- schedule: every 5 minutes
+- task: `market_source_ingestion_job.py`
+- purpose: ingest normalized CoinGecko market rows into `bronze_market_snapshots`
+
 ### `ops_usage_ingestion_job`
 
 - schedule: every 5 minutes
@@ -40,6 +46,7 @@ Package the Databricks-side jobs as a deployable bundle with scheduled ingestion
 
 - bundle is serverless-friendly and avoids cluster lifecycle management
 - deployment should run against a dev target first
+- market source ingestion should remain ahead of Gold-serving validation and refresh
 - ingestion should remain ahead of refresh in the operational cadence
 - bundle run ingest should feed Sentinela before dashboard refresh and release checks
 
@@ -88,6 +95,7 @@ When the Databricks CLI is available, use:
 cd /home/user/Projetos/CoinGeckoanalytical/databricks
 databricks bundle validate
 databricks bundle deploy -t dev
+databricks bundle run market_source_ingestion_job -t dev
 databricks bundle run ops_usage_ingestion_job -t dev
 databricks bundle run ops_readiness_refresh_job -t dev
 ```

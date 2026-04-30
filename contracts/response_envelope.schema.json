@@ -48,6 +48,17 @@
       "type": "array",
       "items": { "type": "string" },
       "default": []
+    },
+    "routing": {
+      "type": ["object", "null"],
+      "additionalProperties": true
+    },
+    "payload": {
+      "type": ["object", "null"],
+      "additionalProperties": true
+    },
+    "schema_version": {
+      "type": ["string", "null"]
     }
   }
 }

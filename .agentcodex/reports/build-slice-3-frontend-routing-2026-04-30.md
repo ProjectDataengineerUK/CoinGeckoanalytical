@@ -2,23 +2,24 @@
 
 - date: `2026-04-30`
 - project: `CoinGeckoAnalytical`
-- slice: `frontend and routing baseline`
+- slice: `public frontend shell and BFF boundary`
 
 ## Delivered
 
-- updated `frontend/README.md` with public-surface scope
-- updated `backend/README.md` with routing and policy boundary scope
-- updated `databricks/README.md` with serving and governance scope
+- created `frontend/frontend-shell.md`
+- created `frontend/auth-and-tenant-boundary.md`
+- created `backend/bff-boundary.md`
+- created `backend/routing-decision-matrix.md`
 
 ## Verification
 
-- public frontend is explicitly external to Databricks
-- routing boundary is explicit for `Genie` versus copilot requests
-- Databricks remains the governed backend plane
-- Portuguese-first public surface is preserved in the build posture
+- frontend shell now has explicit dashboard/chat entry points
+- tenant and auth boundaries are documented
+- BFF responsibilities and downstream routing rules are documented
+- public serving remains external to Databricks
 
 ## Remaining Work
 
-- add concrete API endpoint mapping
-- create a minimal backend routing implementation stub
-- define request/response examples for dashboard and chat flows
+- turn these boundaries into executable frontend/backend code
+- connect routing rules to concrete handlers
+- add example request/response payloads for each route

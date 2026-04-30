@@ -24,10 +24,13 @@ Plataforma de crypto market intelligence com frontend externo, Databricks como p
 - brainstorm: `.agentcodex/features/BRAINSTORM_coingeckoanalytical.md`
 - define: `.agentcodex/features/DEFINE_coingeckoanalytical.md`
 - design: `.agentcodex/features/DESIGN_coingeckoanalytical.md`
+- build: `.agentcodex/features/BUILD_coingeckoanalytical.md`
 
 ## Direcao Atual
 
 - fonte principal inicial: `CoinGecko API`
 - arquitetura alvo: `external frontend + Databricks data/AI plane + sentinela ops plane`
 - observabilidade: tokens, custo, freshness, qualidade e trilha de auditoria
-- proximo passo: `build planning`
+- fase ativa: `build reset`
+- postura atual: `o repo tem scaffolding tecnico forte, mas ainda nao fechou um slice real de produto`
+- proximo passo: `implementar um V1 real ponta a ponta antes de retomar deploy ou ship`

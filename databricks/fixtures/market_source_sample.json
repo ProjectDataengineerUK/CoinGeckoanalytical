@@ -1,0 +1,44 @@
+[
+  {
+    "category": "store_of_value",
+    "circulating_supply": 19500000,
+    "current_price": 95000,
+    "id": "bitcoin",
+    "last_updated": "2026-04-30T00:00:00Z",
+    "market_cap": 1850000000000,
+    "market_cap_rank": 1,
+    "name": "Bitcoin",
+    "payload_version": "coingecko_markets_v1",
+    "source_system": "coingecko_api",
+    "symbol": "btc",
+    "total_volume": 35000000000
+  },
+  {
+    "category": "smart_contract_platform",
+    "circulating_supply": 120000000,
+    "current_price": 3200,
+    "id": "ethereum",
+    "last_updated": "2026-04-30T00:00:00Z",
+    "market_cap": 420000000000,
+    "market_cap_rank": 2,
+    "name": "Ethereum",
+    "payload_version": "coingecko_markets_v1",
+    "source_system": "coingecko_api",
+    "symbol": "eth",
+    "total_volume": 18000000000
+  },
+  {
+    "category": "smart_contract_platform",
+    "circulating_supply": 440000000,
+    "current_price": 180,
+    "id": "solana",
+    "last_updated": "2026-04-30T00:00:00Z",
+    "market_cap": 80000000000,
+    "market_cap_rank": 5,
+    "name": "Solana",
+    "payload_version": "coingecko_markets_v1",
+    "source_system": "coingecko_api",
+    "symbol": "sol",
+    "total_volume": 7000000000
+  }
+]

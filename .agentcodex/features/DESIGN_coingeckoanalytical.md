@@ -1,137 +1,175 @@
 # DESIGN: CoinGeckoAnalytical
 
-> Target design for `coingeckoanalytical` based on the approved Databricks-first product direction.
+> Target design for `coingeckoanalytical`, rewritten from the refreshed define for a complete-V1 product direction.
 
 ## Metadata
 
 | Attribute | Value |
 |-----------|-------|
 | **Feature** | `coingeckoanalytical` |
-| **Date** | `2026-04-29` |
+| **Date** | `2026-04-30` |
 | **Owner** | `operator` |
 | **Authoring Role** | `workflow-designer` |
-| **Status** | Draft ready for build planning |
+| **Status** | Ready for Build Planning |
 | **Baseline Input** | `.agentcodex/features/DEFINE_coingeckoanalytical.md` |
 
 ## Design Decision
 
-The product will use a three-plane architecture with split AI serving paths:
+The product uses a three-plane architecture designed to support a broad V1 without pretending that every subsystem must be implemented simultaneously:
 
-- `External web frontend` for the public tenant-facing product surface.
-- `Databricks data/AI plane` for ingestion, ETL, governance, Gold assets, Genie, Vector Search, and model lifecycle.
-- `Sentinela operations plane` for multi-agent coordination, freshness, quality, cost, tokens, and audit observability.
-- `AI/BI Genie` for governed analytical natural-language querying on structured Gold data.
-- `Mosaic AI Agent Framework` for the main market copilot with custom orchestration, provenance, and response policy enforcement.
-- `Databricks Apps` only for internal operational tools, admin experiences, premium internal workflows, or rapid platform-native prototypes.
-- `Agent Bricks` only for selective experiments or bounded accelerators, not as the main platform dependency.
+- `External web frontend` is the public tenant-facing product surface.
+- `Databricks data/AI plane` is the mandatory backbone for ingestion, transformation, governance, analytical serving, AI support, and model lifecycle.
+- `Sentinela operations plane` is the operational trust layer for freshness, quality, cost, token, lineage, alert, and audit interpretation.
+- `AI/BI Genie` is the primary path for governed structured analytical natural-language querying.
+- `Mosaic AI Agent Framework` is the primary coded market copilot path for narrative reasoning, comparisons, and guided analysis.
+- `Databricks Apps` are reserved for internal/admin and low-volume operational surfaces.
+
+## Core Design Principle
+
+The V1 is intentionally broad, but the architecture must still preserve buildability.
+
+That means the design separates:
+
+- `full V1 product scope`
+- `mandatory architectural capabilities`
+- `build sequencing inside the same V1`
+
+This is not a reduced-scope MVP design. It is a full-product design with explicit internal sequencing so the team can deliver a serious V1 without mistaking scaffolding for product completion.
 
 ## Why This Design
 
-- `Genie` fits structured analytics over Unity Catalog assets better than a custom agent for every analytical question.
-- The flagship copilot needs custom prompt orchestration, tool routing, provenance, confidence policy, and answer shaping that should remain in code.
-- A public web frontend can be served much more cheaply than keeping the main product UX on hourly Databricks app runtime.
-- Databricks remains the right backend control plane for data, governed analytics, model serving, and AI orchestration.
-- Sentinela belongs in the operations plane, not in the public request path, so it can monitor and coordinate without inflating latency.
-- `Agent Bricks` can speed up a narrow proof of concept, but its beta posture makes it unsuitable as the core production abstraction.
+- The product must preserve the ambition of the prior concept while upgrading maturity and control surfaces.
+- Databricks remains the right control plane for medallion data, governed analytics, AI support, model lifecycle, and operational review.
+- A public external frontend preserves cost efficiency and keeps the product surface decoupled from workspace-bound runtime costs.
+- `Genie` is the lowest-friction path for governed analytical NLQ over structured Gold assets.
+- The flagship market copilot still requires coded orchestration, retrieval, provenance, policy handling, and answer shaping that should remain in code.
+- Sentinela must remain off the public request path so it can observe, interpret, and coordinate operations without becoming a latency dependency.
 
 ## System Overview
 
 ```text
-External market APIs
-  -> Bronze ingestion
-  -> Silver normalization and quality
-  -> Gold analytical models and metric views
-  -> Unity Catalog governance and lineage
+External market APIs and reference sources
+  -> Bronze ingestion and raw landing
+  -> Silver normalization, enrichment, validation, and source harmonization
+  -> Gold analytical models, evidence views, and governed metric views
+  -> Unity Catalog governance, permissions, lineage, discovery, and model lifecycle
   -> Two serving paths:
-     1. Genie for governed analytical NLQ
-     2. Agent Framework + Model Serving + retrieval/evidence for the copilot
-  -> Backend APIs / governed serving layer
+     1. Genie for structured governed analytical Q&A
+     2. Agent Framework + retrieval + model serving for the coded copilot
+  -> Backend-for-frontend / governed serving APIs
   -> External web frontend for dashboard and chat experiences
-  -> Sentinela operations plane for observability and multi-agent coordination
-  -> Databricks Apps only for internal/admin product surfaces
+  -> Sentinela operations plane for observability, readiness, and audit interpretation
+  -> Databricks Apps only for internal/admin workflows
 ```
+
+## Product Planes
+
+### 1. Experience Plane
+
+- Public external web frontend
+- Authenticated multi-tenant access
+- Portuguese-first navigation and copy
+- Dashboard exploration
+- AI chat and guided research
+- Freshness, provenance, and confidence surfaced to the user
+
+### 2. Data And AI Plane
+
+- Multi-source ingestion with CoinGecko included from day one
+- Medallion architecture: Bronze, Silver, Gold
+- Unity Catalog governance and lineage
+- Gold analytical views for dashboard and Genie
+- Evidence views and retrieval surfaces for the coded copilot
+- Model serving, route policy, and usage telemetry
+
+### 3. Operations Plane
+
+- Sentinela signal interpretation
+- Freshness, quality, and completeness monitoring
+- Cost and token monitoring
+- Readiness and release gate interpretation
+- Audit and review surfaces
+- Internal/admin-only operational UX
 
 ## Major Components
 
-### 1. Data Platform
+### 1. Source Ingestion Layer
 
-- Bronze: raw market events, snapshots, reference assets, and provider metadata.
-- Silver: normalized entities, cleaned timeseries, conformed dimensions, quality-checked datasets.
-- Gold: tenant-facing analytical marts, market ranking views, movers, correlations, dominance, and AI-ready evidence views.
-- Unity Catalog: central governance plane for schemas, permissions, lineage, discovery, audit support, and model versioning.
+- `CoinGecko` is a mandatory starting source.
+- Additional market/reference sources are part of the design baseline, not future wish-list items.
+- Each source must declare:
+  - owner
+  - freshness expectation
+  - ingestion strategy
+  - trust/quality posture
+  - lineage identity
 
-### 2. Ingestion and Processing
+### 2. Bronze Layer
 
-- Prefer Databricks-native ingestion and orchestration patterns.
-- Use streaming or micro-batch ingestion for high-value freshness-sensitive feeds.
-- Use scheduled batch for lower-priority enrichment datasets.
-- Publish freshness watermarks and completeness status per served dataset.
+- Raw source snapshots or event streams
+- Provider metadata
+- Source timestamps preserved
+- Minimal transformation beyond safe landing and schema conformance
 
-### 3. Product Experience
+### 3. Silver Layer
 
-- An `external web frontend` hosts the authenticated public tenant-facing product.
-- The app exposes two user entry paths:
-  - dashboard exploration for charts, rankings, filters, and drilldowns
-  - AI copilot for market questions, comparisons, explanations, and guided analysis
-- Portuguese is the default language for UI copy and AI responses in V1.
-- Recommended shape:
-  - static or edge-served frontend for low-cost public traffic
-  - backend-for-frontend or API layer to call Databricks-backed services securely
-  - `Databricks Apps` reserved for admin/internal workflows that benefit from native workspace proximity
+- Cross-source normalization
+- Canonical asset and market dimensions
+- Enrichment and harmonization
+- Quality checks and exception surfacing
+- Intermediate views required for Gold and AI evidenceability
 
-### 4. Analytical NLQ Path
+### 4. Gold Layer
 
-- `Genie` answers structured questions against Gold tables, views, and metric views governed in Unity Catalog.
-- This path is best for:
-  - rankings
-  - top movers
-  - filtered comparisons
-  - market summaries
-  - repeatable KPI-style analytical questions
-- Genie outputs should be clearly labeled as analytics-generated responses, distinct from the richer copilot path.
+- Tenant-facing analytical marts and views
+- Ranking, movers, dominance, comparison, market context, and evidence views
+- Metric views designed for Genie
+- User-facing freshness and quality posture tied to served assets
 
-### 5. Copilot Path
+### 5. Backend-For-Frontend Layer
 
-- `Mosaic AI Agent Framework` implements the main coded copilot.
-- The copilot is responsible for:
-  - intent classification
-  - tool selection
-  - evidence retrieval
-  - market narrative generation
-  - provenance packaging
-  - confidence/freshness policy enforcement
-- Use `Model Serving` for hosted model endpoints and supporting inference APIs.
-- Keep the copilot grounded on governed Gold data and explicit evidence tables, not raw uncontrolled prompt context.
+- Auth and tenant context propagation
+- Routing between dashboard retrieval, Genie, and copilot
+- User-facing response normalization
+- Policy enforcement
+- Audit and telemetry emission
 
-### 6. Optional Agent Bricks Lane
+### 6. Analytical NLQ Path
 
-- Use `Agent Bricks` only for:
-  - fast prototyping of a bounded assistant
-  - selective evaluation of packaged agent capabilities
-  - low-risk experiments that can be replaced later
-- Do not couple core product flows to Agent Bricks beta-only assumptions.
+- `Genie` handles KPI-style, ranking, filtering, comparison, and structured analytical questions.
+- It must operate only on governed Gold assets and metric views.
+- Its output must remain clearly labeled as analytical and distinct from the narrative copilot surface.
 
-### 7. Sentinela Operations Plane
+### 7. Coded Copilot Path
 
-- Centralize freshness, quality, cost, token, and audit signals.
-- Coordinate multi-agent execution without serving public traffic directly.
-- Produce operational summaries and alerts for product, data, and AI teams.
+- `Mosaic AI Agent Framework` handles narrative reasoning, contextual market interpretation, guided analysis, and source-backed explanation.
+- The copilot must:
+  - classify intent
+  - decide route/tool usage
+  - retrieve governed evidence
+  - produce provenance
+  - surface freshness
+  - enforce policy
+  - emit token/cost telemetry
+
+### 8. Sentinela Operations Plane
+
+- Watches data freshness, data quality, route health, cost, tokens, backlog, errors, and compliance-sensitive anomalies.
+- Produces readiness summaries and alert interpretations.
+- Supports operational review without becoming part of the public serving path.
 
 ## Request Routing
 
 | Request Type | Primary Path | Reason |
 |--------------|--------------|--------|
-| KPI, ranking, filter, comparison over structured data | `Genie` | Lowest custom complexity for governed analytical Q&A |
-| Narrative market interpretation with provenance and policy | `Agent Framework` | Requires coded orchestration and answer rules |
-| Dashboard browse and curated insights | `External frontend` + Gold-backed APIs/views | Best fit for public SaaS serving cost and controlled rendering |
-| Admin and internal operational surfaces | `Databricks Apps` | Good fit for low-volume platform-adjacent tools |
-| Experimental niche assistant | `Agent Bricks` | Optional acceleration only |
+| dashboard browse, ranking, comparison, market filters | `frontend + backend + Gold APIs/views` | deterministic rendering and cost-efficient public serving |
+| governed structured analytical NLQ | `Genie` | best fit for repeatable analytics on governed Gold assets |
+| narrative market interpretation and guided research | `Agent Framework` | requires coded orchestration, evidence handling, and answer policy |
+| internal audit and operator review | `Databricks Apps` + ops plane | good fit for low-volume internal workflows |
 
 ## Interface Contracts
 
-### Frontend -> Routing Layer
-
-Purpose: normalize user requests before they hit `Genie` or the coded copilot.
+### Frontend -> Backend Routing
 
 Required request fields:
 
@@ -147,17 +185,15 @@ Required request fields:
 - `time_range`
 - `ui_context`
 
-Expected behavior:
+Rules:
 
-- The frontend must not call `Genie` or the copilot directly with raw workspace credentials.
-- The routing layer decides whether the request is analytical NLQ, dashboard retrieval, or copilot reasoning.
-- The routing layer must attach authorization context and audit metadata before forwarding.
+- the frontend must never call workspace-bound AI or analytical services directly
+- the backend decides dashboard retrieval versus Genie versus copilot
+- the backend attaches authorization, audit, and route policy context
 
-### Routing Layer -> Genie
+### Backend -> Genie
 
-Purpose: send only governed structured analytical questions to `Genie`.
-
-Request contract:
+Required request fields:
 
 - `request_id`
 - `tenant_id`
@@ -169,7 +205,7 @@ Request contract:
 - `time_range`
 - `response_format`
 
-Response contract:
+Required response fields:
 
 - `request_id`
 - `answer_text`
@@ -181,15 +217,13 @@ Response contract:
 
 Rules:
 
-- `Genie` responses must be labeled in the UI as analytical answers.
-- `Genie` responses should avoid freeform market narrative beyond the governed analytical output.
-- If the question exceeds the structured analytics scope, the routing layer must redirect to the copilot path.
+- Genie answers must stay inside governed analytical scope
+- structured outputs must be user-visible as analytical answers
+- overflow from structured scope must be routed to the coded copilot
 
-### Routing Layer -> Copilot
+### Backend -> Copilot
 
-Purpose: send richer reasoning and market-intelligence prompts to the coded `Agent Framework`.
-
-Request contract:
+Required request fields:
 
 - `request_id`
 - `tenant_id`
@@ -203,7 +237,7 @@ Request contract:
 - `policy_context`
 - `locale`
 
-Response contract:
+Required response fields:
 
 - `request_id`
 - `answer_text`
@@ -218,15 +252,13 @@ Response contract:
 
 Rules:
 
-- The copilot must always return provenance metadata when the answer is grounded.
-- The copilot must refuse or downgrade unsupported trading, execution, or out-of-policy requests.
-- The copilot must produce Portuguese-first output in V1 unless explicitly overridden.
+- provenance is mandatory for grounded answers
+- unsupported or risky requests must be refused or degraded explicitly
+- V1 defaults to Portuguese output unless intentionally overridden
 
-### Frontend Rendering Contract
+### Frontend Rendering Envelope
 
-Purpose: keep the UI behavior deterministic across `Genie` and copilot responses.
-
-Shared response envelope:
+Shared user-facing fields:
 
 - `request_id`
 - `surface_type`
@@ -238,155 +270,175 @@ Shared response envelope:
 - `actions`
 - `warnings`
 
-Rendering rules:
-
-- `surface_type=analytics_answer` renders the `Genie` path with structured evidence emphasis.
-- `surface_type=copilot_answer` renders the coded copilot path with richer citations and narrative framing.
-- `warnings` must surface stale data, partial coverage, policy limits, or degraded response modes.
-
-### Observability Contract
-
-Purpose: provide one telemetry shape across frontend, `Genie`, and copilot flows.
-
-Minimum event fields:
-
-- `event_time`
-- `request_id`
-- `tenant_id`
-- `user_id`
-- `route_selected`
-- `model_or_engine`
-- `prompt_tokens`
-- `completion_tokens`
-- `total_tokens`
-- `latency_ms`
-- `cost_estimate`
-- `freshness_watermark`
-- `response_status`
-
 Rules:
 
-- `Genie` and copilot telemetry must be recorded separately but normalized into one analytics schema.
-- Frontend events must correlate with backend request ids for auditability and cost analysis.
-- Missing token fields must be explicit as `null`, not omitted, when a route does not expose token-level usage.
+- `analytics_answer` must emphasize governed structured output
+- `copilot_answer` must emphasize narrative interpretation plus evidence
+- `warnings` must surface stale data, partial coverage, policy limits, or degraded mode
 
-## Token and Cost Strategy
+## Data Strategy
 
-The project should not treat all AI requests equally.
+### Multi-Source Model
 
-- `Genie` usage should be tracked separately from custom copilot token usage because the operational behavior and optimization levers differ.
-- The main copilot must record at least:
-  - `tenant_id`
-  - `user_id` when available
-  - `conversation_id`
-  - `request_type`
-  - `model`
-  - `prompt_tokens`
-  - `completion_tokens`
-  - `total_tokens`
-  - `latency_ms`
-  - `cost_estimate`
-  - `evidence_asset_ids`
-  - `freshness_watermark`
-- Token budgets should be enforced by tenant plan and by request class.
-- High-cost copilot flows should degrade gracefully:
-  - reduce context window
-  - reduce retrieval breadth
-  - redirect simple analytical requests to Genie
-  - surface clear user messaging when policy limits are hit
+The product must not assume a single-provider future.
 
-## Governance and Trust
+Design obligations:
 
-- All served analytical assets must live under Unity Catalog governance.
-- AI answers must expose provenance, freshness, and trace metadata.
-- Tenant isolation must be enforced in both dashboard and AI paths.
-- Sensitive logs and audit trails must be access-controlled and retained according to policy.
-- Prompt inputs should avoid leaking cross-tenant context or unrestricted raw storage paths.
+- each source has a traceable `source_system`
+- Silver harmonization resolves provider differences explicitly
+- Gold views expose source-aware traceability when needed
+- AI responses and audit surfaces can point back to source identity
+
+### Freshness Model
+
+- `tier_a`: critical market views and high-priority operational intelligence
+- `tier_b`: lower-priority comparative or enrichment surfaces
+- user-facing freshness watermark required on served analytics and grounded AI answers
+
+### Quality Model
+
+- null and key integrity checks
+- duplicate suppression
+- bounded numeric sanity checks
+- source completeness checks
+- degraded-state surfacing rather than silent serving
+
+## Governance, Compliance, And Trust
+
+- Unity Catalog is the mandatory governance plane
+- tenant isolation applies to dashboards, AI flows, telemetry, and audit surfaces
+- sensitive logs and traces are access-controlled and retained under policy
+- access to admin audit review is separate from end-user product access
+- compliance posture must be explicit in design, not implied by generic governance language
+- AI trust requires provenance, freshness, confidence signaling, and request traceability
+
+## Security And Access Control
+
+- external users authenticate through the public product surface, not directly against workspace internals
+- workforce and admin access use centralized identity and stronger administrative controls
+- secret storage must remain managed and externalized from app code
+- policy context must be attached before analytical or AI execution
+- tenant-aware authorization boundaries must exist across request routing, served assets, and audit review
 
 ## Observability
 
-- Product metrics:
-  - daily active users
-  - successful dashboard sessions
-  - AI answer success rate
-  - stale-answer suppression rate
-- Data metrics:
-  - ingestion lag
-  - Gold publish latency
-  - completeness score
-  - quality rule pass rate
-- AI metrics:
-  - tokens by tenant
-  - tokens by request type
-  - cost by tenant
-  - grounded-answer rate
-  - citation coverage rate
-  - hallucination review sample outcomes
+### Product Metrics
 
-## Security and Access Control
+- daily active users
+- successful dashboard sessions
+- AI answer success rate
+- stale-answer suppression rate
 
-- SSO or equivalent centralized identity for workforce/admin access.
-- Tenant-aware authorization boundaries for all product-facing surfaces.
-- Secrets must stay in managed secret storage, never in app code or prompt artifacts.
-- Admin audit access must be separated from end-user product access.
+### Data Metrics
 
-## Data Contracts
+- ingestion lag
+- Gold publish latency
+- completeness score
+- quality rule pass rate
 
-Minimum contract families for V1:
+### AI Metrics
 
-- market snapshot contract
-- asset dimension contract
-- analytical metric contract
-- AI evidence contract
-- usage telemetry contract
+- tokens by tenant
+- tokens by request type
+- cost by tenant
+- grounded-answer rate
+- citation coverage rate
+- reviewed answer quality outcomes
 
-Each contract must define schema, freshness expectation, quality checks, lineage owner, and downstream dependencies.
+### Operational Metrics
+
+- alert backlog
+- route health
+- release readiness posture
+- failed or degraded source publishes
+- compliance-sensitive anomaly count
 
 ## Deployment Shape
 
-- Workspace structure aligned to environment separation: `dev`, `staging`, `prod`.
-- Public frontend deployed outside Databricks on low-cost web infrastructure with CDN or edge delivery.
-- CI/CD promotes data, app, and serving artifacts with environment-aware configuration.
-- Production deploys must include rollback strategy for app code, serving endpoints, and data model releases.
+- Databricks environments separated as `dev`, `staging`, `prod`
+- public frontend deployed outside Databricks on cost-efficient infrastructure
+- backend routing and serving boundaries deployed with environment-aware configuration
+- data, AI, and operational assets promoted with controlled release flow
+- rollback must exist for frontend, backend, serving endpoints, and data model changes
 
-## Build Priorities
+## Internal Sequencing Inside The Same V1
 
-1. Establish Gold analytical models and metric views for the highest-value dashboard and Genie use cases.
-2. Define the public external frontend shell with authentication, tenant context, and Portuguese-first navigation.
-3. Implement the first `Agent Framework` copilot slice with provenance, freshness, and token telemetry.
-4. Add observability, cost controls, and admin audit surfaces before wider rollout.
-5. Add `Databricks Apps` only for internal/admin workflows where platform-local UX is useful.
-6. Evaluate `Agent Bricks` only after the core coded copilot path is operational.
+Because no meaningful scope cuts were accepted, the design must define execution order without redefining the product.
+
+### Sequence 1. Foundational Backbone
+
+- source strategy
+- medallion contracts
+- auth and tenant model
+- governance and access control baseline
+- telemetry baseline
+
+### Sequence 2. Public Analytical Surface
+
+- dashboard-serving Gold views
+- frontend shell
+- backend retrieval APIs
+- user-facing freshness posture
+
+### Sequence 3. Governed Analytical NLQ
+
+- Genie metric views
+- governed analytical routing
+- NLQ response labeling and evidence posture
+
+### Sequence 4. Coded Copilot
+
+- evidence views
+- retrieval scope
+- narrative copilot orchestration
+- provenance and trust metadata
+
+### Sequence 5. Operational Completion
+
+- Sentinela readiness surfaces
+- admin/audit review flows
+- runbooks, alerts, and release interpretation
+
+This sequencing preserves the chosen full-product V1 while still preventing random build activity.
+
+## Build Gating Rules
+
+The build must not be considered healthy unless:
+
+- the product can be traced back to this design rather than to isolated scaffolding
+- dashboard, Genie, and copilot paths all map to governed data contracts
+- trust metadata is visible to users, not only to internal schemas
+- operational readiness is treated as product behavior, not as optional postscript
 
 ## Risks
 
 | Risk | Impact | Mitigation |
 |------|--------|------------|
-| Genie does not fully cover nuanced market questions | Users may expect richer reasoning than structured analytics can provide | Route only analytical NLQ to Genie and keep narrative reasoning in the coded copilot |
-| Copilot cost grows too quickly with broad context | Margins and latency degrade | Enforce request-class budgets, retrieval limits, and redirection to Genie |
-| Public app serving inside Databricks would overpay for lightweight web traffic | Serving economics degrade as user traffic grows | Keep the public frontend external and use Databricks for specialized backend capabilities |
-| Real-time freshness is too expensive across all datasets | Platform cost and complexity rise early | Tier freshness by dataset criticality |
-| Beta dependencies change | Rework risk | Keep Agent Bricks isolated from critical flows |
+| Full-product V1 scope overwhelms execution | The team creates scaffolding without closing product flows | enforce internal sequencing and route every build activity to a named product capability |
+| Multi-source onboarding is slower than planned | Product breadth claims become untrustworthy | define mandatory versus follow-on sources explicitly in build planning |
+| Copilot cost becomes too high | Product economics and latency degrade | enforce route policy, retrieval limits, and Genie redirection |
+| Governance/compliance controls slow delivery | schedule pressure increases | treat controls as architecture primitives, not bolt-ons |
+| Public/frontend and Databricks/backend boundaries drift | security and cost posture degrade | keep BFF and route contracts explicit and reviewable |
 
 ## Verification Plan
 
-- Validate that every critical user journey maps to exactly one primary serving path.
-- Review whether each required AgentCodex project-standard block is represented in this design.
-- Verify that token telemetry and cost controls are explicitly present before build.
-- Confirm that tenant isolation applies to both dashboard and AI response flows.
+- verify every critical user journey maps to exactly one primary serving path
+- verify all project-standard blocks are represented in the design
+- verify token/cost instrumentation is explicit before build
+- verify tenant isolation applies across dashboard, AI, telemetry, and audit surfaces
+- verify the internal V1 sequencing is clear enough to avoid fake progress
 
 ## Exit Check
 
 - [x] architecture direction selected
-- [x] app layer selected
+- [x] public experience layer selected
 - [x] analytical NLQ path selected
-- [x] copilot path selected
-- [x] public serving cost posture defined
-- [x] Agent Bricks posture defined
-- [x] token/cost strategy captured
-- [x] governance and observability included
-- [x] build priorities proposed
+- [x] coded copilot path selected
+- [x] governance, compliance, and trust posture included
+- [x] token/cost strategy included
+- [x] internal sequencing for a broad V1 defined
+- [x] build gating logic defined
 
 ## Next Step
 
-**Ready for:** `build planning`, starting with Gold analytical assets, external frontend boundaries, request routing, and telemetry schema for token/cost observability.
+**Ready for:** `build planning`, but only if the build plan follows the internal sequencing above and ties each build slice to concrete product behavior.

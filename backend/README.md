@@ -16,11 +16,17 @@ This layer should route requests to structured analytics via `Genie` and to the 
 
 ## Concrete Assets
 
+- `dashboard_market_overview.py`
+- `routing_bff.py`
 - `copilot_mvp.py`
 - `sentinela.py`
 - `telemetry_handoff.py`
+- `market_source_handoff.py`
 - `notification_handoff.py`
+- `tests/test_dashboard_market_overview.py`
+- `tests/test_routing_bff.py`
 - `tests/test_copilot_mvp.py`
 - `tests/test_sentinela.py`
 - `tests/test_telemetry_handoff.py`
+- `tests/test_market_source_handoff.py`
 - `tests/test_notification_handoff.py`

@@ -6,6 +6,13 @@ Document the scheduled Databricks jobs that keep telemetry and readiness current
 
 ## Jobs
 
+### `market_source_ingestion_job`
+
+- frequency: every 5 minutes
+- task: `market_source_ingestion_job.py`
+- input: source payload handoff for CoinGecko-style market rows
+- output: append to `bronze_market_snapshots`
+
 ### `ops_usage_ingestion_job`
 
 - frequency: every 5 minutes
@@ -43,6 +50,7 @@ Document the scheduled Databricks jobs that keep telemetry and readiness current
 
 ## Ordering
 
+- market source ingestion must complete before Gold-serving routes are treated as real
 - ingestion must complete before refresh
 - dashboard queries read only from the refreshed views
 - bundle run observability feeds the Sentinela release-blocker layer
