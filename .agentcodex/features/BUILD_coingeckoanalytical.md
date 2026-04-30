@@ -163,6 +163,7 @@ Why second:
 - define operational signals and multi-agent coordination
 - define freshness, quality, cost, and audit reporting
 - define release-readiness checks for public serving and Databricks assets
+- include route-specific readiness thresholds and escalation policies
 
 ## Verification Requirements
 
@@ -173,4 +174,4 @@ Why second:
 
 ## Immediate Next Action
 
-Expand the implemented slices into executable Databricks assets, frontend scaffolding, and concrete tests, starting from `Slice 5: sentinela and operations spine` for operational hardening.
+Expand the implemented slices into executable Databricks assets and telemetry wiring, then connect Sentinela to actual ingestion and a dashboard or notebook output.
