@@ -29,6 +29,7 @@ Document the scheduled Databricks jobs that keep telemetry and readiness current
 
 - ingestion failures should block refresh
 - refresh failures should page Sentinela with a hold status
+- bundle or scheduled job failures should be surfaced to Sentinela as release blockers
 
 ## Next Step
 

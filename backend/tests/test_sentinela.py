@@ -209,6 +209,70 @@ class SentinelaTests(unittest.TestCase):
         self.assertEqual(result["blockers"], [])
         self.assertEqual(result["checks"][1]["name"], "error_free")
 
+    def test_analyze_bundle_runs_flags_failures(self) -> None:
+        result = sentinela.analyze_bundle_runs(
+            [
+                {
+                    "job_name": "ops_usage_ingestion_job",
+                    "run_id": "run-1",
+                    "status": "SUCCESS",
+                    "result_state": "SUCCESS",
+                    "update_time": "2026-04-30T00:00:00Z",
+                    "duration_ms": 1200,
+                },
+                {
+                    "job_name": "ops_readiness_refresh_job",
+                    "run_id": "run-2",
+                    "status": "FAILED",
+                    "result_state": "FAILED",
+                    "update_time": "2026-04-30T00:15:00Z",
+                    "duration_ms": 400,
+                },
+            ]
+        )
+
+        kinds = {alert["kind"] for alert in result["alerts"]}
+        self.assertEqual(result["summary"]["runs"], 2)
+        self.assertEqual(result["summary"]["failures"], 1)
+        self.assertIn("bundle_failure", kinds)
+
+    def test_evaluate_release_readiness_blocks_on_bundle_failure(self) -> None:
+        result = sentinela.evaluate_release_readiness(
+            [
+                {
+                    "event_time": "2026-04-30T00:00:00Z",
+                    "request_id": "req-9",
+                    "tenant_id": "tenant-1",
+                    "user_id": "user-1",
+                    "route_selected": "dashboard_api",
+                    "model_or_engine": "dashboard-shell",
+                    "prompt_tokens": 5,
+                    "completion_tokens": 5,
+                    "total_tokens": 10,
+                    "latency_ms": 180,
+                    "cost_estimate": 0.001,
+                    "freshness_watermark": "2026-04-30T00:00:00Z",
+                    "response_status": "success",
+                }
+            ],
+            bundle_runs=[
+                {
+                    "job_name": "ops_usage_ingestion_job",
+                    "run_id": "run-3",
+                    "status": "FAILED",
+                    "result_state": "FAILED",
+                    "update_time": "2026-04-30T00:05:00Z",
+                    "duration_ms": 500,
+                }
+            ],
+        )
+
+        blocker_kinds = {blocker["kind"] for blocker in result["blockers"]}
+        self.assertFalse(result["ready"])
+        self.assertIn("bundle_failure", blocker_kinds)
+        self.assertEqual(result["checks"][-1]["name"], "bundle_runs_failure_free")
+        self.assertTrue(any(alert["kind"] == "bundle_failure" for alert in result["alerts"]))
+
 
 if __name__ == "__main__":
     unittest.main()

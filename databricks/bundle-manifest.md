@@ -34,6 +34,12 @@ Package the Databricks-side jobs as a deployable bundle with scheduled ingestion
 - deploy to a dev workspace target
 - connect alerts to failed schedule runs and stale readiness views
 
+## Failure Signals
+
+- ingestion or refresh failures are treated as release blockers
+- bundle run events should be normalized using `contracts/bundle_run_event.schema.json`
+- Sentinela should interpret failed bundle runs as `bundle_failure` or `bundle_cancelled` alerts
+
 ## Local Validation
 
 When the Databricks CLI is not available, use:

@@ -54,6 +54,16 @@ class ReadinessPolicy:
     route_thresholds: dict[str, dict[str, int | float]] = field(default_factory=dict)
 
 
+@dataclass(frozen=True)
+class BundleRunEvent:
+    job_name: str
+    run_id: str | None
+    status: str
+    result_state: str | None
+    update_time: str | None
+    duration_ms: int | None
+
+
 def analyze_usage_events(events: list[dict[str, Any]]) -> dict[str, Any]:
     alerts: list[dict[str, Any]] = []
     summary = {
@@ -96,9 +106,40 @@ def analyze_usage_events(events: list[dict[str, Any]]) -> dict[str, Any]:
     return {"summary": summary, "alerts": alerts}
 
 
+def analyze_bundle_runs(events: list[dict[str, Any]]) -> dict[str, Any]:
+    alerts: list[dict[str, Any]] = []
+    summary = {
+        "runs": len(events),
+        "successes": 0,
+        "failures": 0,
+        "running": 0,
+        "cancelled": 0,
+    }
+
+    for event in events:
+        status = str(event.get("status", "unknown")).lower()
+        job_name = str(event.get("job_name", "unknown"))
+
+        if status in {"success", "succeeded", "completed"}:
+            summary["successes"] += 1
+        elif status in {"running", "queued", "pending"}:
+            summary["running"] += 1
+        elif status in {"cancelled", "canceled"}:
+            summary["cancelled"] += 1
+            summary["failures"] += 1
+            alerts.append(_bundle_alert("bundle_cancelled", job_name, event))
+        else:
+            summary["failures"] += 1
+            alerts.append(_bundle_alert("bundle_failure", job_name, event))
+
+    summary["alerts"] = len(alerts)
+    return {"summary": summary, "alerts": alerts}
+
+
 def evaluate_release_readiness(
     events: list[dict[str, Any]],
     policy: ReadinessPolicy | dict[str, Any] | None = None,
+    bundle_runs: list[dict[str, Any]] | None = None,
 ) -> dict[str, Any]:
     readiness_policy = _coerce_readiness_policy(policy)
     analysis = analyze_usage_events(events)
@@ -106,6 +147,8 @@ def evaluate_release_readiness(
 
     checks: list[dict[str, Any]] = []
     blockers: list[dict[str, Any]] = []
+    combined_alerts = list(analysis["alerts"])
+    bundle_summary = None
 
     checks.append(_check_telemetry_present(summary["events"] > 0))
     if not summary["events"]:
@@ -132,13 +175,26 @@ def evaluate_release_readiness(
 
     checks.append(_check_summary_metric("alert_free", summary["alerts"] == 0, summary["alerts"]))
 
+    if bundle_runs is not None:
+        bundle_analysis = analyze_bundle_runs(bundle_runs)
+        bundle_summary = bundle_analysis["summary"]
+        combined_alerts.extend(bundle_analysis["alerts"])
+        checks.append(
+            _check_summary_metric("bundle_runs_failure_free", bundle_summary["failures"] == 0, bundle_summary["failures"])
+        )
+        if bundle_summary["failures"] > 0:
+            blockers.extend(
+                _blockers_from_bundle_alerts(bundle_analysis["alerts"])
+            )
+
     return {
         "ready": not blockers,
         "summary": summary,
         "checks": checks,
         "blockers": blockers,
-        "alerts": analysis["alerts"],
+        "alerts": combined_alerts,
         "policy": _policy_payload(readiness_policy),
+        "bundle_summary": bundle_summary,
     }
 
 
@@ -149,6 +205,15 @@ def _alert(kind: str, route_selected: str, event: dict[str, Any]) -> dict[str, A
         "tenant_id": event.get("tenant_id"),
         "route_selected": route_selected,
         "message": _alert_message(kind),
+    }
+
+
+def _bundle_alert(kind: str, job_name: str, event: dict[str, Any]) -> dict[str, Any]:
+    return {
+        "kind": kind,
+        "job_name": job_name,
+        "run_id": event.get("run_id"),
+        "message": _bundle_alert_message(kind, job_name),
     }
 
 
@@ -338,6 +403,19 @@ def _blockers_from_alerts(alerts: list[dict[str, Any]]) -> list[dict[str, Any]]:
     ]
 
 
+def _blockers_from_bundle_alerts(alerts: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    return [
+        {
+            "kind": alert["kind"],
+            "job_name": alert.get("job_name"),
+            "run_id": alert.get("run_id"),
+            "message": alert["message"],
+            "escalation": _escalation_for(alert["kind"]),
+        }
+        for alert in alerts
+    ]
+
+
 def _escalation_for(kind: str) -> str:
     escalation_map = {
         "error_spike": "page_oncall",
@@ -346,6 +424,8 @@ def _escalation_for(kind: str) -> str:
         "freshness_gap": "block_release",
         "token_spike": "review_model_usage",
         "missing_telemetry": "block_release",
+        "bundle_failure": "page_oncall",
+        "bundle_cancelled": "page_oncall",
     }
     return escalation_map.get(kind, "review")
 
@@ -357,5 +437,13 @@ def _alert_message(kind: str) -> str:
         "cost_anomaly": "Estimated cost exceeded the target threshold.",
         "freshness_gap": "Freshness metadata is missing or stale.",
         "token_spike": "Token usage is above the expected copilot bound.",
+    }
+    return messages[kind]
+
+
+def _bundle_alert_message(kind: str, job_name: str) -> str:
+    messages = {
+        "bundle_failure": f"Databricks bundle job {job_name} failed.",
+        "bundle_cancelled": f"Databricks bundle job {job_name} was cancelled.",
     }
     return messages[kind]

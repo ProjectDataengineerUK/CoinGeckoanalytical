@@ -34,3 +34,11 @@ Use this area for governed data assets, analytical serving contracts, deployment
 - `bundle-manifest.md`
 - `test_validate_bundle.py`
 - `model-version-governance.md`
+
+## Operational Contracts
+
+- `../contracts/bundle_run_event.schema.json`
+
+## Observability Scope
+
+- bundle run events are used as release blockers when jobs fail or are cancelled
