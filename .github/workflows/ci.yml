@@ -1,0 +1,44 @@
+name: ci
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+
+jobs:
+  backend-tests:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install test dependency
+        run: python3 -m pip install --upgrade pip pyyaml
+
+      - name: Run backend tests
+        run: python3 -m unittest discover -s backend/tests -p 'test_*.py'
+
+      - name: Run Databricks bundle validation helper
+        run: python3 databricks/validate_bundle.py
+
+      - name: Run Databricks helper tests
+        run: |
+          python3 -m unittest databricks.test_validate_bundle
+          python3 -m unittest databricks.test_bundle_run_observability
+          python3 -m unittest databricks.test_ops_usage_ingestion_job
+          python3 -m unittest databricks.test_ops_readiness_refresh_job
+          python3 -m unittest databricks.test_bundle_run_ingestion_job
+          python3 -m unittest databricks.test_sentinela_alert_ingestion_job
+          python3 -m unittest databricks.test_sentinela_alert_observability
+          python3 -m unittest databricks.test_bundle_run_handoff
+          python3 -m unittest databricks.test_telemetry_handoff
+          python3 -m unittest databricks.test_ops_readiness_refresh_job
+
+      - name: Run workflow contract tests
+        run: python3 -m unittest discover -s repo_tests -p 'test_*.py'
