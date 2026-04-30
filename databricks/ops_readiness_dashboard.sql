@@ -2,7 +2,7 @@
 -- Purpose: notebook/dashboard-friendly queries over telemetry observability
 -- and Gold serving readiness.
 
-CREATE OR REPLACE VIEW ops_ready_overview AS
+CREATE OR REPLACE VIEW cgadev.ops_observability.ops_ready_overview AS
 SELECT
   COUNT(*) AS route_rows,
   SUM(CASE WHEN readiness_status = 'ready' THEN 1 ELSE 0 END) AS ready_routes,
@@ -12,9 +12,9 @@ SELECT
   SUM(total_cost_estimate) AS total_cost_estimate,
   MAX(max_latency_ms) AS peak_latency_ms,
   SUM(stale_freshness_count) AS stale_freshness_count
-FROM ops_release_readiness;
+FROM cgadev.ops_observability.ops_release_readiness;
 
-CREATE OR REPLACE VIEW ops_route_readiness_latest AS
+CREATE OR REPLACE VIEW cgadev.ops_observability.ops_route_readiness_latest AS
 WITH latest_per_route AS (
   SELECT
     route_selected,
@@ -37,7 +37,7 @@ WITH latest_per_route AS (
       PARTITION BY route_selected
       ORDER BY hour_bucket DESC
     ) AS row_number
-  FROM ops_release_readiness
+  FROM cgadev.ops_observability.ops_release_readiness
 )
 SELECT
   route_selected,
@@ -59,17 +59,17 @@ SELECT
 FROM latest_per_route
 WHERE row_number = 1;
 
-CREATE OR REPLACE VIEW ops_alert_backlog AS
+CREATE OR REPLACE VIEW cgadev.ops_observability.ops_alert_backlog AS
 SELECT
   alert_kind,
   route_selected,
   COUNT(*) AS alert_count,
   MAX(event_time) AS latest_event_time
-FROM ops_alert_queue
+FROM cgadev.ops_observability.ops_alert_queue
 GROUP BY alert_kind, route_selected
 ORDER BY alert_count DESC, latest_event_time DESC;
 
-CREATE OR REPLACE VIEW ops_cost_latency_trend AS
+CREATE OR REPLACE VIEW cgadev.ops_observability.ops_cost_latency_trend AS
 SELECT
   route_selected,
   hour_bucket,
@@ -78,11 +78,11 @@ SELECT
   MAX(max_latency_ms) AS max_latency_ms,
   SUM(total_cost_estimate) AS total_cost_estimate,
   SUM(stale_freshness_count) AS stale_freshness_count
-FROM ops_release_readiness
+FROM cgadev.ops_observability.ops_release_readiness
 GROUP BY route_selected, hour_bucket
 ORDER BY hour_bucket DESC, route_selected;
 
-CREATE OR REPLACE VIEW ops_bundle_run_status AS
+CREATE OR REPLACE VIEW cgadev.ops_observability.ops_bundle_run_status AS
 SELECT
   job_name,
   bundle_readiness_status,
@@ -99,19 +99,19 @@ SELECT
   latest_result_state,
   latest_run_state,
   serving_status
-FROM ops_bundle_run_readiness;
+FROM cgadev.ops_observability.ops_bundle_run_readiness;
 
-CREATE OR REPLACE VIEW ops_sentinela_alert_status AS
+CREATE OR REPLACE VIEW cgadev.ops_observability.ops_sentinela_alert_status AS
 SELECT
   sentinela_alert_status,
   total_alerts,
   bundle_alerts,
   runtime_alerts
-FROM ops_sentinela_alert_readiness;
+FROM cgadev.ops_observability.ops_sentinela_alert_readiness;
 
-SELECT * FROM ops_ready_overview;
-SELECT * FROM ops_route_readiness_latest;
-SELECT * FROM ops_alert_backlog;
-SELECT * FROM ops_cost_latency_trend;
-SELECT * FROM ops_bundle_run_status;
-SELECT * FROM ops_sentinela_alert_status;
+SELECT * FROM cgadev.ops_observability.ops_ready_overview;
+SELECT * FROM cgadev.ops_observability.ops_route_readiness_latest;
+SELECT * FROM cgadev.ops_observability.ops_alert_backlog;
+SELECT * FROM cgadev.ops_observability.ops_cost_latency_trend;
+SELECT * FROM cgadev.ops_observability.ops_bundle_run_status;
+SELECT * FROM cgadev.ops_observability.ops_sentinela_alert_status;

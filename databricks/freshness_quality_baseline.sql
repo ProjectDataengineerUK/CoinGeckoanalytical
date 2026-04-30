@@ -2,7 +2,7 @@
 -- Purpose: executable serving checks for Gold assets before they are treated
 -- as trusted current intelligence.
 
-CREATE OR REPLACE VIEW gold_freshness_status AS
+CREATE OR REPLACE VIEW cgadev.market_gold.gold_freshness_status AS
 SELECT
   'gold_market_rankings' AS asset_name,
   'tier_a' AS freshness_tier,
@@ -15,7 +15,7 @@ SELECT
     WHEN timestampdiff(MINUTE, MAX(observed_at), CURRENT_TIMESTAMP()) <= 15 THEN 'within_target'
     ELSE 'stale'
   END AS freshness_status
-FROM gold_market_rankings
+FROM cgadev.market_gold.gold_market_rankings
 
 UNION ALL
 
@@ -31,7 +31,7 @@ SELECT
     WHEN timestampdiff(MINUTE, MAX(observed_at), CURRENT_TIMESTAMP()) <= 30 THEN 'within_target'
     ELSE 'stale'
   END AS freshness_status
-FROM gold_top_movers
+FROM cgadev.market_gold.gold_top_movers
 
 UNION ALL
 
@@ -47,7 +47,7 @@ SELECT
     WHEN timestampdiff(MINUTE, MAX(observed_at), CURRENT_TIMESTAMP()) <= 15 THEN 'within_target'
     ELSE 'stale'
   END AS freshness_status
-FROM gold_market_dominance
+FROM cgadev.market_gold.gold_market_dominance
 
 UNION ALL
 
@@ -63,9 +63,9 @@ SELECT
     WHEN timestampdiff(MINUTE, MAX(observed_at), CURRENT_TIMESTAMP()) <= 60 THEN 'within_target'
     ELSE 'stale'
   END AS freshness_status
-FROM gold_cross_asset_comparison;
+FROM cgadev.market_gold.gold_cross_asset_comparison;
 
-CREATE OR REPLACE VIEW gold_quality_status AS
+CREATE OR REPLACE VIEW cgadev.market_gold.gold_quality_status AS
 SELECT
   'gold_market_rankings' AS asset_name,
   COUNT(*) AS row_count,
@@ -79,7 +79,7 @@ SELECT
     THEN 'pass'
     ELSE 'review'
   END AS quality_status
-FROM gold_market_rankings
+FROM cgadev.market_gold.gold_market_rankings
 
 UNION ALL
 
@@ -96,7 +96,7 @@ SELECT
     THEN 'pass'
     ELSE 'review'
   END AS quality_status
-FROM gold_top_movers
+FROM cgadev.market_gold.gold_top_movers
 
 UNION ALL
 
@@ -113,7 +113,7 @@ SELECT
     THEN 'pass'
     ELSE 'review'
   END AS quality_status
-FROM gold_market_dominance
+FROM cgadev.market_gold.gold_market_dominance
 
 UNION ALL
 
@@ -130,9 +130,9 @@ SELECT
     THEN 'pass'
     ELSE 'review'
   END AS quality_status
-FROM gold_cross_asset_comparison;
+FROM cgadev.market_gold.gold_cross_asset_comparison;
 
-CREATE OR REPLACE VIEW gold_serving_readiness AS
+CREATE OR REPLACE VIEW cgadev.market_gold.gold_serving_readiness AS
 SELECT
   q.asset_name,
   f.freshness_tier,
@@ -150,6 +150,6 @@ SELECT
     WHEN f.freshness_status = 'within_target' AND q.quality_status = 'pass' THEN 'serve'
     ELSE 'hold'
   END AS serving_status
-FROM gold_quality_status q
-JOIN gold_freshness_status f
+FROM cgadev.market_gold.gold_quality_status q
+JOIN cgadev.market_gold.gold_freshness_status f
   ON q.asset_name = f.asset_name;

@@ -3,7 +3,7 @@
 -- and internal ops surfaces into a governed Databricks view layer for
 -- Sentinela, dashboards, and release-readiness analysis.
 
-CREATE TABLE IF NOT EXISTS ops_usage_events (
+CREATE TABLE IF NOT EXISTS cgadev.ops_observability.ops_usage_events (
   event_time TIMESTAMP,
   request_id STRING,
   tenant_id STRING,
@@ -25,7 +25,7 @@ TBLPROPERTIES (
   delta.autoOptimize.autoCompact = true
 );
 
-CREATE OR REPLACE VIEW ops_usage_events_normalized AS
+CREATE OR REPLACE VIEW cgadev.ops_observability.ops_usage_events_normalized AS
 SELECT
   CAST(event_time AS TIMESTAMP) AS event_time,
   request_id,
@@ -56,9 +56,9 @@ SELECT
     WHEN freshness_watermark IS NULL OR freshness_watermark IN ('', 'unknown', 'pending') THEN 'stale'
     ELSE 'fresh'
   END AS freshness_state
-FROM ops_usage_events;
+FROM cgadev.ops_observability.ops_usage_events;
 
-CREATE OR REPLACE VIEW ops_route_health AS
+CREATE OR REPLACE VIEW cgadev.ops_observability.ops_route_health AS
 SELECT
   route_selected,
   hour_bucket,
@@ -72,10 +72,10 @@ SELECT
   SUM(COALESCE(total_tokens, 0)) AS total_tokens,
   SUM(COALESCE(cost_estimate, 0.0)) AS total_cost_estimate,
   SUM(CASE WHEN freshness_state = 'stale' THEN 1 ELSE 0 END) AS stale_freshness_count
-FROM ops_usage_events_normalized
+FROM cgadev.ops_observability.ops_usage_events_normalized
 GROUP BY route_selected, hour_bucket;
 
-CREATE OR REPLACE VIEW ops_release_readiness AS
+CREATE OR REPLACE VIEW cgadev.ops_observability.ops_release_readiness AS
 WITH route_policy AS (
   SELECT * FROM VALUES
     ('genie', 500, 0.02, 1200),
@@ -88,7 +88,7 @@ gold_readiness AS (
   SELECT
     COUNT(*) AS gold_assets_total,
     SUM(CASE WHEN serving_status = 'serve' THEN 1 ELSE 0 END) AS gold_assets_ready
-  FROM gold_serving_readiness
+  FROM cgadev.market_gold.gold_serving_readiness
 )
 SELECT
   h.route_selected,
@@ -118,12 +118,12 @@ SELECT
     THEN 'ready'
     ELSE 'hold'
   END AS readiness_status
-FROM ops_route_health h
+FROM cgadev.ops_observability.ops_route_health h
 JOIN route_policy p
   ON h.route_selected = p.route_selected
 CROSS JOIN gold_readiness g;
 
-CREATE OR REPLACE VIEW ops_alert_queue AS
+CREATE OR REPLACE VIEW cgadev.ops_observability.ops_alert_queue AS
 SELECT
   event_time,
   request_id,
@@ -141,7 +141,7 @@ SELECT
     WHEN route_selected = 'copilot' AND COALESCE(total_tokens, 0) >= 4000 THEN 'token_spike'
     ELSE 'informational'
   END AS alert_kind
-FROM ops_usage_events_normalized
+FROM cgadev.ops_observability.ops_usage_events_normalized
 WHERE response_status = 'error'
    OR latency_ms >= 1000
    OR COALESCE(cost_estimate, 0.0) >= 0.05
