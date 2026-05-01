@@ -1,6 +1,10 @@
 bundle:
   name: coingeckoanalytical-databricks
 
+sync:
+  exclude:
+    - notebooks/**
+
 targets:
   dev:
     default: true
