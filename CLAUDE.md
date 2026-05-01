@@ -61,6 +61,12 @@ Record verification artifacts under `.agentcodex/reports/`.
 - Prefer `OAuth M2M` or workload identity federation over user PAT-based automation.
 - Do not rely on interactive `databricks auth login` flows in CI.
 
+## Approval Model
+
+- All Databricks and Terraform mutations require explicit approval in chat before execution.
+- Approval state is tracked in `.agentcodex/ops/approval-gate-policy.md` and `.agentcodex/reports/approval-gate-status.md`.
+- Treat `workflow_dispatch` gates as the execution mechanism, not the approval source.
+
 ## Project Standard Blocks
 
 Do not consider the project complete until these are implemented or explicitly marked not applicable:

@@ -1,0 +1,66 @@
+name: bronze-migration
+
+on:
+  workflow_dispatch:
+    inputs:
+      confirm_migration:
+        description: "Set to true to run the Bronze schema remediation job."
+        required: false
+        type: boolean
+        default: false
+
+jobs:
+  dev-migration:
+    runs-on: ubuntu-latest
+    if: github.event_name == 'workflow_dispatch' && inputs.confirm_migration
+    env:
+      DATABRICKS_HOST: ${{ secrets.DATABRICKS_HOST }}
+      DATABRICKS_TOKEN: ${{ secrets.DATABRICKS_TOKEN }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install deploy dependencies
+        run: python3 -m pip install --upgrade pip pyyaml
+
+      - name: Install Databricks CLI
+        run: |
+          curl -fsSL https://raw.githubusercontent.com/databricks/setup-cli/main/install.sh | sh
+          databricks version
+
+      - name: Check migration prerequisites
+        id: prereq
+        run: |
+          ready=true
+          if [ -z "$DATABRICKS_HOST" ] || [ -z "$DATABRICKS_TOKEN" ]; then
+            echo "Missing Databricks credentials; skipping migration."
+            ready=false
+          elif ! command -v databricks >/dev/null 2>&1; then
+            echo "Databricks CLI not installed; skipping migration."
+            ready=false
+          fi
+          echo "migration_ready=$ready" >> "$GITHUB_OUTPUT"
+
+      - name: Validate bundle
+        if: steps.prereq.outputs.migration_ready == 'true'
+        run: |
+          cd databricks
+          python3 validate_bundle.py
+          databricks bundle validate
+
+      - name: Deploy bundle
+        if: steps.prereq.outputs.migration_ready == 'true'
+        run: |
+          cd databricks
+          databricks bundle deploy -t dev
+
+      - name: Run Bronze migration
+        if: steps.prereq.outputs.migration_ready == 'true'
+        run: |
+          cd databricks
+          databricks bundle run bronze_market_table_migration_job -t dev

@@ -35,6 +35,8 @@ Use the dedicated workflow that matches the change being made:
 2. `ci.yml` for code validation, bundle validation, and live SQL evidence.
 3. `workflow_dispatch` on `terraform.yml` with `confirm_apply=true` for controlled `dev` apply after plan review.
 4. `workflow_dispatch` on `ci.yml` with `confirm_deploy=true` for controlled Databricks bundle delivery and post-deploy evidence.
+5. `bronze-migration.yml` with `confirm_migration=true` for manual Bronze schema remediation in legacy workspaces.
+6. Keep `.agentcodex/reports/approval-gate-status.md` current so approval state is visible before any execution.
 
 ## End Of Day
 

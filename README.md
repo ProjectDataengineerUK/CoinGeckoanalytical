@@ -31,6 +31,12 @@ Plataforma de crypto market intelligence com frontend externo, Databricks como p
 
 - `terraform.yml`: infra and governance plan/apply
 - `ci.yml`: validation and manual Databricks deploy approval
+- `bronze-migration.yml`: manual Bronze schema remediation approval
+
+## Approval Model
+
+- [Approval policy](.agentcodex/ops/approval-gate-policy.md)
+- [Current approval status](.agentcodex/reports/approval-gate-status.md)
 
 ## Direcao Atual
 

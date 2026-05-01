@@ -45,6 +45,9 @@ Preserve resumable project context in repo files instead of relying on chat memo
 - latest workflow state: `the native next infrastructure step is Terraform plan for dev, but the current local environment does not have the Terraform CLI installed and no real Databricks dev inputs are loaded`
 - latest workflow state: `a native Terraform execution attempt now exists; init succeeded after local CLI bootstrap, but validate is blocked by the Databricks provider schema handshake in this environment before plan can run`
 - latest workflow state: `the repository now compensates for that local Terraform limitation with a dedicated GitHub Actions terraform workflow that keeps plan/apply separate from ci deploy execution`
+- latest workflow state: `the Bronze schema remediation now has a dedicated manual GitHub Actions workflow so the operator can approve and trigger it without enabling automatic deploys`
+- latest workflow state: `approval state is now tracked explicitly in repo-local policy/status artifacts so Databricks and Terraform mutations stay operator-approved rather than push-driven`
+- latest workflow state: `ci deploy, terraform apply, and bronze migration are now all explicitly approved in the repo-local approval status artifact`
 - latest workflow state: `the default publication flow now includes commit and push after validation when the user is ready to publish the change set`
 
 ## Important Decisions
