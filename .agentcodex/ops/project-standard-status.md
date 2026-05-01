@@ -26,7 +26,7 @@ Provide one durable manifest for the AgentCodex Project Standard blocks required
 | `access control` | `implemented` | `.agentcodex/ops/access-control-model.md`, `databricks/unity_catalog_foundation.sql`, `databricks/terraform/main.tf` | live principal binding evidence still pending |
 | `data contracts` | `implemented` | `contracts/*.schema.json`, `databricks/gold-data-contracts.md`, `databricks/bronze-silver-market-foundation.md` | contract lifecycle evidence can be strengthened later |
 | `operacao` | `partial` | `.agentcodex/ops/sentinela-baseline.md`, `notification_policy.md`, `deployment_runbook.md`, `terraform-plan-apply-promotion.md` | missing incident runbook set and live operator evidence |
-| `deploy` | `partial` | `databricks.yml`, `preflight_databricks_deploy.py`, `deployment_runbook.md`, Terraform baseline | missing live deploy evidence and release artifact |
+| `deploy` | `implemented` | `databricks.yml`, `preflight_databricks_deploy.py`, `deployment_runbook.md`, GitHub Actions `ci` run `25198087949`, `databricks-live-sql-validation` artifact metadata | inspect artifact JSON for row-count details |
 | `custo` | `implemented` | `.agentcodex/ops/cost-controls-policy.md`, `backend/sentinela.py`, `ops_readiness_dashboard.md` | live usage evidence still pending |
 | `compliance` | `implemented` | `.agentcodex/ops/compliance-posture.md`, `.agentcodex/ops/retention-audit-policy.md`, `databricks/unity-catalog-foundation.md` | control validation in real workspace still pending |
 
