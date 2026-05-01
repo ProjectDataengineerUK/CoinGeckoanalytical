@@ -46,7 +46,7 @@ Existing repository assets remain useful, but must be interpreted correctly:
 - `contracts/` are valid build support artifacts
 - `backend/telemetry_handoff.py`, `notification_handoff.py`, and related helpers remain useful support code
 - `backend/copilot_mvp.py` remains prototype evidence, not delivered copilot behavior
-- `frontend/README.md` remains placeholder scope, not frontend implementation
+- `frontend/` now has a real shell implementation, but the backend binding is still mock-ready and not yet a live deployed service
 - Databricks bundle, readiness, and deployment helpers remain build-local infrastructure, not product completion
 
 ## Build Strategy

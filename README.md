@@ -14,6 +14,7 @@ Plataforma de crypto market intelligence com frontend externo, Databricks como p
 - `Mosaic AI Agent Framework` para o copilot de mercado
 - `Sentinela` para coordenação multiagente e observabilidade
 - `Databricks Apps` apenas para admin e operação interna
+- `frontend/` com shell real para dashboard e chat, preparado para BFF
 
 ## Documentação
 
@@ -29,7 +30,7 @@ Plataforma de crypto market intelligence com frontend externo, Databricks como p
 ## Workflows
 
 - `terraform.yml`: infra and governance plan/apply
-- `ci.yml`: validation, bundle deploy, smoke ingestion, live SQL evidence
+- `ci.yml`: validation and manual Databricks deploy approval
 
 ## Direcao Atual
 

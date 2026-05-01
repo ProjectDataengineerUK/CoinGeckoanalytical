@@ -19,6 +19,13 @@ The scheduled production jobs use `spark_python_task` for testable CI/CD. Thin n
 - purpose: fetch CoinGecko `/coins/markets`, normalize rows, and append them into `bronze_market_snapshots`
 - smoke behavior: CI can still pass an explicit fixture payload to keep deploy validation deterministic
 
+### `bronze_market_table_migration_job`
+
+- trigger: on-demand only
+- task: `bronze_market_table_migration_job.py`
+- purpose: recreate the Bronze landing table with the canonical decimal schema in workspaces that still have legacy numeric columns
+- safety: do not schedule this as a recurring job because it is a recreation path, not an incremental append
+
 ### `ops_usage_ingestion_job`
 
 - schedule: every 5 minutes
@@ -59,6 +66,7 @@ The scheduled production jobs use `spark_python_task` for testable CI/CD. Thin n
 - validate the bundle with `python3 validate_bundle.py` in this repo, then with the Databricks CLI when available
 - deploy to a dev workspace target
 - connect alerts to failed schedule runs and stale readiness views
+- keep the Bronze migration job available for explicit remediation in legacy workspaces
 
 ## Deployment Runbook
 
@@ -70,6 +78,7 @@ The scheduled production jobs use `spark_python_task` for testable CI/CD. Thin n
 - ingestion or refresh failures are treated as release blockers
 - bundle run events should be normalized using `contracts/bundle_run_event.schema.json`
 - Sentinela should interpret failed bundle runs as `bundle_failure` or `bundle_cancelled` alerts
+- Bronze migration is intentionally on-demand and should only be run when the workspace Bronze table must be remediated
 
 ## Local Validation
 
@@ -99,6 +108,7 @@ When the Databricks CLI is available, use:
 cd /home/user/Projetos/CoinGeckoanalytical/databricks
 databricks bundle validate
 databricks bundle deploy -t dev
+databricks bundle run bronze_market_table_migration_job -t dev
 databricks bundle run market_source_ingestion_job -t dev
 databricks bundle run ops_usage_ingestion_job -t dev
 databricks bundle run ops_readiness_refresh_job -t dev

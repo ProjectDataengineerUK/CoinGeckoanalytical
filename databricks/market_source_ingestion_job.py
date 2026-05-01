@@ -245,6 +245,7 @@ def write_market_rows(
         return IngestionResult(rows_written=0, target_table=target_table)
 
     dataframe = build_bronze_market_dataframe(spark, normalized_rows)
+    dataframe = align_bronze_dataframe_to_target_schema(spark, dataframe, target_table)
     dataframe.write.mode("append").format("delta").saveAsTable(target_table)
     return IngestionResult(rows_written=len(normalized_rows), target_table=target_table)
 
@@ -255,6 +256,61 @@ def build_bronze_market_dataframe(spark: Any, normalized_rows: list[dict[str, An
         raw_dataframe.selectExpr(*BRONZE_SELECT_EXPRESSIONS)
         .dropDuplicates(["source_system", "source_record_id"])
     )
+
+
+def align_bronze_dataframe_to_target_schema(spark: Any, dataframe: Any, target_table: str) -> Any:
+    """
+    Cast Bronze output to the existing target-table schema when the workspace
+    already has a legacy Delta definition. This prevents append-time schema
+    merge failures while preserving the contract for fresh deployments.
+    """
+
+    if not _table_exists(spark, target_table):
+        return dataframe
+
+    try:
+        target_schema = spark.table(target_table).schema
+    except Exception:
+        return dataframe
+
+    select_expressions: list[str] = []
+    for field in target_schema:
+        if field.name not in dataframe.columns:
+            continue
+        select_expressions.append(_cast_expression_for_field(field.name, field.dataType))
+
+    if not select_expressions:
+        return dataframe
+
+    return dataframe.selectExpr(*select_expressions)
+
+
+def _table_exists(spark: Any, target_table: str) -> bool:
+    try:
+        return bool(spark.catalog.tableExists(target_table))
+    except Exception:
+        try:
+            spark.table(target_table)
+            return True
+        except Exception:
+            return False
+
+
+def _cast_expression_for_field(field_name: str, data_type: Any) -> str:
+    dtype_name = type(data_type).__name__ if data_type is not None else ""
+    if dtype_name == "DecimalType":
+        precision = getattr(data_type, "precision", 38)
+        scale = getattr(data_type, "scale", 8)
+        return f"CAST({field_name} AS DECIMAL({precision}, {scale})) AS {field_name}"
+    if dtype_name == "DoubleType":
+        return f"CAST({field_name} AS DOUBLE) AS {field_name}"
+    if dtype_name == "IntegerType":
+        return f"CAST({field_name} AS INT) AS {field_name}"
+    if dtype_name == "TimestampType":
+        return f"CAST({field_name} AS TIMESTAMP) AS {field_name}"
+    if dtype_name == "StringType":
+        return f"CAST({field_name} AS STRING) AS {field_name}"
+    return f"{field_name} AS {field_name}"
 
 
 def main(

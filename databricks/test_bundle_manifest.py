@@ -15,6 +15,7 @@ class BundleManifestTests(unittest.TestCase):
         self.assertEqual(
             set(jobs.keys()),
             {
+                "bronze_market_table_migration_job",
                 "market_source_ingestion_job",
                 "ops_usage_ingestion_job",
                 "ops_bundle_run_ingestion_job",
@@ -22,6 +23,7 @@ class BundleManifestTests(unittest.TestCase):
                 "ops_readiness_refresh_job",
             },
         )
+        self.assertNotIn("schedule", jobs["bronze_market_table_migration_job"])
         self.assertEqual(jobs["market_source_ingestion_job"]["schedule"]["pause_status"], "UNPAUSED")
         self.assertEqual(jobs["ops_usage_ingestion_job"]["schedule"]["timezone_id"], "America/Sao_Paulo")
         self.assertEqual(jobs["ops_readiness_refresh_job"]["schedule"]["pause_status"], "UNPAUSED")

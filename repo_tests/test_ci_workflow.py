@@ -12,6 +12,12 @@ class CIWorkflowTests(unittest.TestCase):
         workflow = yaml.safe_load(workflow_path.read_text(encoding="utf-8"))
         jobs = workflow["jobs"]
         self.assertEqual(set(jobs.keys()), {"lint", "contract", "deploy"})
+        triggers = workflow.get("on")
+        if triggers is None:
+            triggers = workflow.get(True)
+        self.assertIsNotNone(triggers)
+        self.assertIn("workflow_dispatch", triggers)
+        self.assertIn("confirm_deploy", triggers["workflow_dispatch"]["inputs"])
 
         contract_steps = jobs["contract"]["steps"]
         contract_step_names = [step.get("name", "") for step in contract_steps]
@@ -33,6 +39,7 @@ class CIWorkflowTests(unittest.TestCase):
         self.assertIn("python3 -m unittest databricks.test_validate_bundle", contract_run_commands)
         self.assertIn("python3 -m unittest databricks.test_live_sql_validation", contract_run_commands)
         self.assertEqual(jobs["deploy"]["needs"], "contract")
+        self.assertEqual(jobs["deploy"]["if"], "github.event_name == 'workflow_dispatch' && inputs.confirm_deploy")
         self.assertIn("Install deploy dependencies", deploy_step_names)
         self.assertIn("python3 -m pip install --upgrade pip pyyaml", deploy_run_commands)
         self.assertIn("Install Databricks CLI", deploy_step_names)

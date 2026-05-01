@@ -5,6 +5,13 @@ on:
     branches:
       - main
   pull_request:
+  workflow_dispatch:
+    inputs:
+      confirm_deploy:
+        description: "Set to true to run Databricks bundle deploy after validation."
+        required: false
+        type: boolean
+        default: false
 
 jobs:
   lint:
@@ -65,7 +72,7 @@ jobs:
   deploy:
     runs-on: ubuntu-latest
     needs: contract
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    if: github.event_name == 'workflow_dispatch' && inputs.confirm_deploy
     env:
       DATABRICKS_HOST: ${{ secrets.DATABRICKS_HOST }}
       DATABRICKS_TOKEN: ${{ secrets.DATABRICKS_TOKEN }}

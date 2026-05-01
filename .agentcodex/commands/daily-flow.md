@@ -32,9 +32,9 @@ Define the repo-local daily operating ritual for building CoinGeckoAnalytical wi
 Use the dedicated workflow that matches the change being made:
 
 1. `terraform.yml` for infrastructure and governance changes.
-2. `ci.yml` for code validation, bundle validation, deploy, and live SQL evidence.
+2. `ci.yml` for code validation, bundle validation, and live SQL evidence.
 3. `workflow_dispatch` on `terraform.yml` with `confirm_apply=true` for controlled `dev` apply after plan review.
-4. `deploy` in `ci.yml` only for Databricks bundle delivery and post-deploy evidence, not for Terraform.
+4. `workflow_dispatch` on `ci.yml` with `confirm_deploy=true` for controlled Databricks bundle delivery and post-deploy evidence.
 
 ## End Of Day
 

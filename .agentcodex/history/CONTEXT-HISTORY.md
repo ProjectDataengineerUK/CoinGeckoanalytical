@@ -72,12 +72,14 @@ Preserve resumable project context in repo files instead of relying on chat memo
 - the Terraform baseline now includes operational job, policy, and promotion scaffolding instead of catalog-only scope
 - the repository now has a single Project Standard status manifest and explicit Phase 1 policies for cost control, secrets/access, and retention/audit
 - Terraform has been split into a separate workflow so plan/apply are not mixed into the deploy job
+- Databricks bundle deploy now requires explicit `workflow_dispatch` approval in `ci.yml` instead of running automatically on push
+- the frontend shell is now materialized as a real static surface with BFF-ready request/response rendering instead of placeholder documentation only
 - commit and push are now treated as the normal publication path after validation, unless the user asks to hold back publication
 - the deploy evidence path now explicitly distinguishes base deploy credentials from the additional warehouse secret needed for automated live SQL row-count validation
 - the next native execution step before claiming live environment progress is `terraform init` plus `terraform plan` for `dev`, not another repo-only documentation pass
 - the selected direction remains a broad complete-V1 product, not a narrow MVP
 - `deploy` and `ship` remain paused until build closes real user-facing product behavior
-- `frontend/` is currently placeholder scope, not delivered implementation
+- `frontend/` now has a real shell implementation, but it still needs live BFF binding and delivery validation
 - `backend/copilot_mvp.py` is currently prototype evidence, not delivered product behavior
 - the current phase map is `brainstorm completed -> define completed -> design completed -> build active -> ship blocked`
 - the next valid delivery sequence remains `governed data execution baseline -> real dashboard flow -> real governed analytical NLQ -> real grounded copilot -> operational completion -> deploy evidence -> ship decision`

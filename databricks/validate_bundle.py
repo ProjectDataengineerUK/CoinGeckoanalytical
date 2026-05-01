@@ -7,6 +7,7 @@ import yaml
 
 
 REQUIRED_JOB_KEYS = {
+    "bronze_market_table_migration_job",
     "market_source_ingestion_job",
     "ops_usage_ingestion_job",
     "ops_readiness_refresh_job",
@@ -46,7 +47,11 @@ def validate_bundle(bundle: dict[str, Any], root_dir: str | Path | None = None) 
 
     for job_name, job in jobs.items():
         schedule = job.get("schedule")
-        if job_name not in {"ops_bundle_run_ingestion_job", "ops_sentinela_alert_ingestion_job"}:
+        if job_name not in {
+            "bronze_market_table_migration_job",
+            "ops_bundle_run_ingestion_job",
+            "ops_sentinela_alert_ingestion_job",
+        }:
             schedule = schedule or {}
             if schedule.get("pause_status") != "UNPAUSED":
                 errors.append(f"{job_name} must be unpaused")

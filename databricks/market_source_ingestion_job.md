@@ -45,6 +45,7 @@ Append normalized market-source rows into the governed Bronze landing table `bro
 - normalizes CoinGecko-style input into the Bronze contract
 - builds a Spark DataFrame for the Bronze contract
 - applies Spark `selectExpr` casts for strings, timestamps, decimals, and integers
+- aligns the outgoing DataFrame to an existing Bronze table schema when a legacy Delta table is already present in the workspace
 - deduplicates each batch by `source_system` and `source_record_id`
 - enforces the required Bronze market fields
 - coerces numeric fields into stable types
@@ -59,6 +60,15 @@ The job writes through a Spark DataFrame, not a raw Python payload append:
 - `market_cap_rank` is cast to `INT`
 - `symbol` is uppercased in Spark
 - duplicate source records are removed within the batch before write
+- if the target Bronze table already exists with a legacy schema, the job casts the outgoing DataFrame to the existing schema before append to avoid Delta merge failures
+
+## Structural Migration Path
+
+Before the first live ingest on a migrated workspace, run:
+
+- `bronze_market_table_migration.sql`
+
+This recreates the Bronze landing table with the canonical decimal schema so the workspace no longer depends on legacy `DoubleType` columns.
 
 ## Provider Configuration
 
@@ -85,3 +95,4 @@ The job writes through a Spark DataFrame, not a raw Python payload append:
 
 - schedule it ahead of Gold-serving refresh and downstream route validation
 - capture live row counts from a scheduled provider-backed run
+- apply the Bronze migration script before the next live ingest if the workspace already has a legacy Bronze table

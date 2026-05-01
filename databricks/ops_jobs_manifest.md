@@ -13,6 +13,13 @@ Document the scheduled Databricks jobs that keep telemetry and readiness current
 - input: CoinGecko `/coins/markets` when no payload override is supplied; fixture or handoff payload for smoke/replay validation
 - output: append to `bronze_market_snapshots`
 
+### `bronze_market_table_migration_job`
+
+- trigger: on-demand only
+- task: `bronze_market_table_migration_job.py`
+- input: Bronze recreation SQL for legacy workspaces
+- output: recreated `bronze_market_snapshots` with canonical numeric types
+
 ### `ops_usage_ingestion_job`
 
 - frequency: every 5 minutes

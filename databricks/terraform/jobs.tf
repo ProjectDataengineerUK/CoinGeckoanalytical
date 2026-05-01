@@ -1,10 +1,25 @@
 locals {
   ops_job_names = {
+    bronze_migration     = "bronze_market_table_migration_job"
     market_source       = "market_source_ingestion_job"
     usage_ingestion     = "ops_usage_ingestion_job"
     bundle_ingestion    = "ops_bundle_run_ingestion_job"
     sentinela_ingestion = "ops_sentinela_alert_ingestion_job"
     readiness_refresh   = "ops_readiness_refresh_job"
+  }
+}
+
+resource "databricks_job" "bronze_market_table_migration" {
+  name = local.ops_job_names.bronze_migration
+
+  task {
+    task_key = "migrate_bronze_market_table"
+
+    spark_python_task {
+      python_file = "${var.bundle_root}/bronze_market_table_migration_job.py"
+    }
+
+    existing_cluster_id = var.ops_cluster_id
   }
 }
 

@@ -305,6 +305,66 @@ class MarketSourceIngestionJobTests(unittest.TestCase):
         self.assertIn("CAST(price_usd AS DECIMAL(38, 8)) AS price_usd", fake_spark.dataframe.select_expressions)
         self.assertEqual(fake_spark.dataframe.dedup_keys, ["source_system", "source_record_id"])
 
+    def test_align_bronze_dataframe_to_target_schema_casts_legacy_double_columns(self) -> None:
+        class FakeField:
+            def __init__(self, name: str, data_type: object) -> None:
+                self.name = name
+                self.dataType = data_type
+
+        class FakeSchema:
+            def __iter__(self):
+                return iter(
+                    [
+                        FakeField("market_cap_usd", type("DoubleType", (), {})()),
+                        FakeField("price_usd", type("DoubleType", (), {})()),
+                        FakeField("circulating_supply", type("DoubleType", (), {})()),
+                    ]
+                )
+
+        class FakeTable:
+            def __init__(self) -> None:
+                self.schema = FakeSchema()
+
+        class FakeCatalog:
+            def tableExists(self, target_table: str) -> bool:
+                return target_table == "cgadev.market_bronze.bronze_market_snapshots"
+
+        class FakeDataFrame:
+            def __init__(self) -> None:
+                self.columns = [
+                    "market_cap_usd",
+                    "price_usd",
+                    "circulating_supply",
+                ]
+                self.select_expressions: tuple[str, ...] = ()
+
+            def selectExpr(self, *expressions: str) -> "FakeDataFrame":
+                self.select_expressions = expressions
+                return self
+
+        class FakeSpark:
+            def __init__(self) -> None:
+                self.catalog = FakeCatalog()
+                self.dataframe = FakeDataFrame()
+                self.table_calls: list[str] = []
+
+            def table(self, target_table: str) -> FakeTable:
+                self.table_calls.append(target_table)
+                return FakeTable()
+
+        fake_spark = FakeSpark()
+        aligned = market_source_ingestion_job.align_bronze_dataframe_to_target_schema(
+            fake_spark,
+            fake_spark.dataframe,
+            "cgadev.market_bronze.bronze_market_snapshots",
+        )
+
+        self.assertIs(aligned, fake_spark.dataframe)
+        self.assertIn("CAST(market_cap_usd AS DOUBLE) AS market_cap_usd", fake_spark.dataframe.select_expressions)
+        self.assertIn("CAST(price_usd AS DOUBLE) AS price_usd", fake_spark.dataframe.select_expressions)
+        self.assertIn("CAST(circulating_supply AS DOUBLE) AS circulating_supply", fake_spark.dataframe.select_expressions)
+        self.assertEqual(fake_spark.table_calls, ["cgadev.market_bronze.bronze_market_snapshots"])
+
 
 if __name__ == "__main__":
     unittest.main()

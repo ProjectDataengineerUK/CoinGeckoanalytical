@@ -33,12 +33,13 @@ databricks bundle validate
 1. Validate the bundle locally.
 2. Validate the bundle with the Databricks CLI.
 3. Deploy to `dev`.
-4. Run `market_source_ingestion_job` once with the market fixture payload.
-5. Run `ops_usage_ingestion_job` once with a test payload.
-6. Run `ops_bundle_run_ingestion_job` once with a test payload.
-7. Run `ops_sentinela_alert_ingestion_job` once with a test payload.
-8. Run `ops_readiness_refresh_job`.
-9. Inspect `ops_ready_overview`, `ops_bundle_run_status`, and `ops_sentinela_alert_status`.
+4. If the Bronze table already exists with legacy numeric types, run `bronze_market_table_migration_job` once in `dev`.
+5. Run `market_source_ingestion_job` once with the market fixture payload.
+6. Run `ops_usage_ingestion_job` once with a test payload.
+7. Run `ops_bundle_run_ingestion_job` once with a test payload.
+8. Run `ops_sentinela_alert_ingestion_job` once with a test payload.
+9. Run `ops_readiness_refresh_job`.
+10. Inspect `ops_ready_overview`, `ops_bundle_run_status`, and `ops_sentinela_alert_status`.
 
 ## Commands
 
@@ -52,6 +53,7 @@ python3 validate_bundle.py
 python3 preflight_databricks_deploy.py
 databricks bundle validate
 databricks bundle deploy -t dev
+databricks bundle run bronze_market_table_migration_job -t dev
 databricks bundle run market_source_ingestion_job -t dev
 databricks bundle run ops_usage_ingestion_job -t dev
 databricks bundle run ops_bundle_run_ingestion_job -t dev
@@ -74,13 +76,14 @@ Use these repo-local payloads for the first live smoke:
 2. Confirm `DATABRICKS_SQL_WAREHOUSE_ID` is set when the SQL checks will run through automation.
 3. Confirm the CLI can authenticate to the target workspace.
 4. Validate and deploy the bundle to `dev`.
-5. Run `market_source_ingestion_job` with the market fixture payload.
-6. Verify rows landed in `cgadev.market_bronze.bronze_market_snapshots`.
-7. Verify dependent Silver views resolve and return rows.
-8. Verify dependent Gold views resolve and return rows.
-9. Verify Genie metric views resolve in `cgadev.ai_serving`.
-10. Only after that run the operational ingestion and refresh jobs.
-11. Record the exact row counts and timestamps in a live validation report.
+5. Run `bronze_market_table_migration_job` if the Bronze table uses a legacy schema.
+6. Run `market_source_ingestion_job` with the market fixture payload.
+7. Verify rows landed in `cgadev.market_bronze.bronze_market_snapshots`.
+8. Verify dependent Silver views resolve and return rows.
+9. Verify dependent Gold views resolve and return rows.
+10. Verify Genie metric views resolve in `cgadev.ai_serving`.
+11. Only after that run the operational ingestion and refresh jobs.
+12. Record the exact row counts and timestamps in a live validation report.
 
 ## SQL Checks
 
@@ -153,6 +156,7 @@ Treat the `market overview intelligence` data plane as live-validated only when:
 ## Rollback Notes
 
 - pause the ingestion and refresh jobs before changing SQL views
+- use the Bronze recreation script to reset the landing table if a legacy schema keeps blocking append operations
 - revert the bundle definition before changing schedules
 - keep backend handoff formats compatible with the active contracts
 

@@ -32,6 +32,7 @@ GitHub Actions deploys use `DATABRICKS_HOST` and `DATABRICKS_TOKEN`. If `DATABRI
 - `telemetry-observability.sql`
 - `ops_readiness_dashboard.sql`
 - `market_source_ingestion_job.py`
+- `bronze_market_table_migration_job.py`
 - `ops_usage_ingestion_job.py`
 - `bundle_run_ingestion_job.py`
 - `sentinela_alert_ingestion_job.py`
@@ -50,6 +51,7 @@ GitHub Actions deploys use `DATABRICKS_HOST` and `DATABRICKS_TOKEN`. If `DATABRI
 - `telemetry-observability.md`
 - `ops_readiness_dashboard.md`
 - `market_source_ingestion_job.md`
+- `bronze_market_table_migration_job.md`
 - `ops_usage_ingestion_job.md`
 - `bundle_run_ingestion_job.md`
 - `sentinela_alert_ingestion_job.md`
@@ -61,6 +63,7 @@ GitHub Actions deploys use `DATABRICKS_HOST` and `DATABRICKS_TOKEN`. If `DATABRI
 - `test_preflight_databricks_deploy.py`
 - `bundle_run_observability.md`
 - `test_market_source_ingestion_job.py`
+- `test_bronze_market_table_migration_job.py`
 - `test_bundle_run_ingestion_job.py`
 - `test_bundle_run_observability.py`
 - `test_sentinela_alert_ingestion_job.py`

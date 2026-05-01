@@ -1,0 +1,171 @@
+<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>CoinGeckoAnalytical</title>
+    <meta
+      name="description"
+      content="Frontend público da CoinGeckoAnalytical para dashboards governados e chat analítico."
+    />
+    <link rel="stylesheet" href="./app.css" />
+  </head>
+  <body>
+    <div class="ambient ambient-left"></div>
+    <div class="ambient ambient-right"></div>
+
+    <main class="app-shell">
+      <header class="hero">
+        <div>
+          <p class="eyebrow">CoinGeckoAnalytical</p>
+          <h1>Camada pública governada para mercado, analytics e copilot.</h1>
+          <p class="lede">
+            Frontend externo com BFF dedicado. O navegador nunca fala com Databricks
+            diretamente.
+          </p>
+        </div>
+
+        <section class="session-card" aria-label="contexto de sessão">
+          <div class="session-grid">
+            <label>
+              <span>Tenant</span>
+              <input id="tenant-id" value="tenant_alpha" />
+            </label>
+            <label>
+              <span>Usuário</span>
+              <input id="user-id" value="user_123" />
+            </label>
+            <label>
+              <span>Session</span>
+              <input id="session-id" value="sess_20260501_01" />
+            </label>
+            <label>
+              <span>Plano</span>
+              <input id="plan-tier" value="pro" />
+            </label>
+          </div>
+        </section>
+      </header>
+
+      <nav class="nav" aria-label="roteamento primario">
+        <button class="nav-tab active" data-view="dashboard">Dashboard</button>
+        <button class="nav-tab" data-view="chat">Chat</button>
+        <button class="nav-tab" data-view="admin">Admin</button>
+      </nav>
+
+      <section class="workspace">
+        <section class="panel">
+          <div class="panel-header">
+            <div>
+              <p class="panel-kicker">BFF/API</p>
+              <h2>Entrada de pedido</h2>
+            </div>
+            <button id="load-sample" class="ghost-button">Carregar exemplo</button>
+          </div>
+
+          <div class="field-row">
+            <label>
+              <span>Rota</span>
+              <select id="request-type-hint">
+                <option value="dashboard_query">dashboard_query</option>
+                <option value="analytics_nlq">analytics_nlq</option>
+                <option value="copilot">copilot</option>
+                <option value="auto">auto</option>
+              </select>
+            </label>
+            <label>
+              <span>Canal</span>
+              <select id="channel">
+                <option value="web_dashboard">web_dashboard</option>
+                <option value="web_chat">web_chat</option>
+                <option value="api">api</option>
+              </select>
+            </label>
+          </div>
+
+          <label class="stacked">
+            <span>Mensagem</span>
+            <textarea id="message-text" rows="5">market overview</textarea>
+          </label>
+
+          <div class="field-row">
+            <label class="stacked">
+              <span>Ativos selecionados</span>
+              <input id="selected-assets" value="btc,eth,sol" />
+            </label>
+            <label class="stacked">
+              <span>Janela</span>
+              <input id="time-range" value="24h" />
+            </label>
+          </div>
+
+          <button id="send-request" class="primary-button">Executar no BFF</button>
+          <p class="hint">
+            Modo local usa um mock compatível com o envelope de resposta. O campo API
+            base pode ser ligado ao BFF real depois.
+          </p>
+        </section>
+
+        <section class="panel response-panel">
+          <div class="panel-header">
+            <div>
+              <p class="panel-kicker">Resposta</p>
+              <h2>Envelope renderizado</h2>
+            </div>
+            <span id="response-route" class="route-pill">sem rota</span>
+          </div>
+
+          <article class="answer-card">
+            <p id="response-title" class="answer-title">Aguardando execução</p>
+            <p id="response-body" class="answer-body">
+              Selecione uma rota e envie uma solicitação para ver dashboard ou copilot.
+            </p>
+            <div class="meta-grid">
+              <div>
+                <span>Frescura</span>
+                <strong id="response-freshness">-</strong>
+              </div>
+              <div>
+                <span>Confiança</span>
+                <strong id="response-confidence">-</strong>
+              </div>
+              <div>
+                <span>Citacoes</span>
+                <strong id="response-citations">-</strong>
+              </div>
+            </div>
+          </article>
+
+          <section>
+            <h3>Payload</h3>
+            <pre id="response-json" class="code-block">{}</pre>
+          </section>
+        </section>
+      </section>
+
+      <section class="grid-three">
+        <article class="mini-card">
+          <p class="panel-kicker">Dashboard</p>
+          <h3>Mercado governado</h3>
+          <ul id="dashboard-summary"></ul>
+        </article>
+        <article class="mini-card">
+          <p class="panel-kicker">Chat</p>
+          <h3>Copilot / Genie</h3>
+          <ul id="chat-summary"></ul>
+        </article>
+        <article class="mini-card">
+          <p class="panel-kicker">Ops</p>
+          <h3>Controles de plataforma</h3>
+          <ul>
+            <li>Tenant isolation no browser</li>
+            <li>BFF como unico ponto de backend</li>
+            <li>Sem credenciais Databricks no cliente</li>
+          </ul>
+        </article>
+      </section>
+    </main>
+
+    <script src="./app.js" type="module"></script>
+  </body>
+</html>
