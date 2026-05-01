@@ -30,9 +30,8 @@ gc = _load("genie_client", _GENIE_PATH)
 _BASE_ENV: dict[str, str] = {
     "DATABRICKS_HOST": "https://adb-123.azuredatabricks.net",
     "DATABRICKS_GENIE_SPACE_ID": "space-abc",
-    "DATABRICKS_SP_CLIENT_ID": "sp-id",
-    "DATABRICKS_SP_CLIENT_SECRET": "sp-secret",
-    "AZURE_TENANT_ID": "tenant-xyz",
+    "DATABRICKS_CLIENT_ID": "sp-id",
+    "DATABRICKS_CLIENT_SECRET": "sp-secret",
 }
 
 
@@ -41,7 +40,6 @@ def _make_config(
     space_id: str = "space-abc",
     client_id: str = "sp-id",
     client_secret: str = "sp-secret",
-    tenant_id: str = "tenant-xyz",
     poll_max_attempts: int = 3,
     poll_interval_seconds: float = 0.0,
 ) -> Any:
@@ -50,7 +48,6 @@ def _make_config(
         space_id=space_id,
         client_id=client_id,
         client_secret=client_secret,
-        tenant_id=tenant_id,
         poll_max_attempts=poll_max_attempts,
         poll_interval_seconds=poll_interval_seconds,
     )
@@ -123,7 +120,6 @@ class TestLoadConfigFromEnv(unittest.TestCase):
         self.assertEqual(config.space_id, "space-abc")
         self.assertEqual(config.client_id, "sp-id")
         self.assertEqual(config.client_secret, "sp-secret")
-        self.assertEqual(config.tenant_id, "tenant-xyz")
 
     def test_returns_none_when_host_missing(self) -> None:
         env = {k: v for k, v in _BASE_ENV.items() if k != "DATABRICKS_HOST"}
@@ -177,7 +173,7 @@ class TestGetOAuthToken(unittest.TestCase):
 
     def test_cache_hit_does_not_make_new_request(self) -> None:
         config = _make_config()
-        cache_key = f"{config.tenant_id}:{config.client_id}"
+        cache_key = f"{config.host}:{config.client_id}"
         gc._TOKEN_CACHE[cache_key] = ("cached-tok", time.monotonic() + 9999)
 
         with patch("urllib.request.urlopen") as mock_urlopen:
@@ -188,7 +184,7 @@ class TestGetOAuthToken(unittest.TestCase):
 
     def test_expired_cache_entry_triggers_refresh(self) -> None:
         config = _make_config()
-        cache_key = f"{config.tenant_id}:{config.client_id}"
+        cache_key = f"{config.host}:{config.client_id}"
         gc._TOKEN_CACHE[cache_key] = ("old-tok", 0.0)  # already expired
 
         fake_urlopen = _fake_urlopen_factory([_token_response("refreshed-tok")])
@@ -226,7 +222,7 @@ class TestGetOAuthToken(unittest.TestCase):
         with patch("urllib.request.urlopen", side_effect=fake_urlopen):
             gc._get_oauth_token(config)
 
-        cache_key = f"{config.tenant_id}:{config.client_id}"
+        cache_key = f"{config.host}:{config.client_id}"
         _, expires_at = gc._TOKEN_CACHE[cache_key]
         # TTL must be min(9999, 3300) = 3300 seconds from now
         self.assertAlmostEqual(expires_at - before, 3300, delta=2)
@@ -239,7 +235,7 @@ class TestGetOAuthToken(unittest.TestCase):
         with patch("urllib.request.urlopen", side_effect=fake_urlopen):
             gc._get_oauth_token(config)
 
-        cache_key = f"{config.tenant_id}:{config.client_id}"
+        cache_key = f"{config.host}:{config.client_id}"
         _, expires_at = gc._TOKEN_CACHE[cache_key]
         self.assertAlmostEqual(expires_at - before, 600, delta=2)
 
@@ -489,7 +485,7 @@ class TestAskGenie(unittest.TestCase):
 
     def test_cached_token_is_reused_within_ask_genie(self) -> None:
         config = _make_config()
-        cache_key = f"{config.tenant_id}:{config.client_id}"
+        cache_key = f"{config.host}:{config.client_id}"
         gc._TOKEN_CACHE[cache_key] = ("pre-cached-tok", time.monotonic() + 9999)
 
         attachments = [_text_attachment("result")]

@@ -28,9 +28,8 @@ class TestLoadConfigFromEnv(unittest.TestCase):
         env = {
             "DATABRICKS_HOST": "https://adb-123.azuredatabricks.net",
             "DATABRICKS_SQL_WAREHOUSE_ID": "wh-abc",
-            "DATABRICKS_SP_CLIENT_ID": "sp-id",
-            "DATABRICKS_SP_CLIENT_SECRET": "sp-secret",
-            "AZURE_TENANT_ID": "tenant-xyz",
+            "DATABRICKS_CLIENT_ID": "sp-id",
+            "DATABRICKS_CLIENT_SECRET": "sp-secret",
         }
         config = client.load_config_from_env(env)
         self.assertIsNotNone(config)
@@ -168,7 +167,6 @@ class TestBuildSQL(unittest.TestCase):
             warehouse_id="wh",
             client_id="cid",
             client_secret="sec",
-            tenant_id="tid",
             catalog=catalog,
         )
 
@@ -255,7 +253,6 @@ class TestTokenCache(unittest.TestCase):
             warehouse_id="wh",
             client_id="client-id",
             client_secret="secret",
-            tenant_id="tenant-abc",
         )
 
     def test_token_is_cached_on_second_call(self) -> None:
@@ -281,7 +278,7 @@ class TestTokenCache(unittest.TestCase):
 
     def test_expired_token_triggers_refresh(self) -> None:
         config = self._make_config()
-        cache_key = f"{config.tenant_id}:{config.client_id}"
+        cache_key = f"{config.host}:{config.client_id}"
         client._TOKEN_CACHE[cache_key] = ("old-token", 0.0)
 
         call_count = 0
@@ -305,7 +302,7 @@ class TestTokenCache(unittest.TestCase):
         import time
 
         config = self._make_config()
-        cache_key = f"{config.tenant_id}:{config.client_id}"
+        cache_key = f"{config.host}:{config.client_id}"
         client._TOKEN_CACHE[cache_key] = ("cached-token", time.monotonic() + 1000)
 
         with patch("urllib.request.urlopen") as mock_urlopen:

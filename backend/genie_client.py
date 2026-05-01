@@ -20,7 +20,6 @@ class GenieConfig:
     space_id: str
     client_id: str
     client_secret: str
-    tenant_id: str
     poll_max_attempts: int = 30
     poll_interval_seconds: float = 2.0
 
@@ -34,27 +33,26 @@ def load_config_from_env(env: dict[str, str] | None = None) -> GenieConfig | Non
     return GenieConfig(
         host=host,
         space_id=space_id,
-        client_id=source.get("DATABRICKS_SP_CLIENT_ID", ""),
-        client_secret=source.get("DATABRICKS_SP_CLIENT_SECRET", ""),
-        tenant_id=source.get("AZURE_TENANT_ID", ""),
+        client_id=source.get("DATABRICKS_CLIENT_ID", ""),
+        client_secret=source.get("DATABRICKS_CLIENT_SECRET", ""),
     )
 
 
 def _get_oauth_token(config: GenieConfig) -> str:
-    cache_key = f"{config.tenant_id}:{config.client_id}"
+    cache_key = f"{config.host}:{config.client_id}"
     now = time.monotonic()
     if cache_key in _TOKEN_CACHE:
         token, expires_at = _TOKEN_CACHE[cache_key]
         if now < expires_at:
             return token
 
-    url = f"https://login.microsoftonline.com/{config.tenant_id}/oauth2/v2.0/token"
+    url = f"{config.host}/oidc/v1/token"
     body = urllib.parse.urlencode(
         {
             "grant_type": "client_credentials",
             "client_id": config.client_id,
             "client_secret": config.client_secret,
-            "scope": "2ff814a6-3304-4ab8-85cb-cd0e6f879c1d/.default",
+            "scope": "all-apis",
         }
     ).encode()
     req = urllib.request.Request(url, data=body, method="POST")

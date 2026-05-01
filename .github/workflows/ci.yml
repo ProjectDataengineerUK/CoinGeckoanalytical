@@ -79,9 +79,8 @@ jobs:
     if: github.event_name == 'workflow_dispatch' && inputs.confirm_deploy
     env:
       DATABRICKS_HOST: ${{ secrets.DATABRICKS_HOST }}
-      ARM_CLIENT_ID: ${{ secrets.DATABRICKS_SP_CLIENT_ID }}
-      ARM_CLIENT_SECRET: ${{ secrets.DATABRICKS_SP_CLIENT_SECRET }}
-      ARM_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
+      DATABRICKS_CLIENT_ID: ${{ secrets.DATABRICKS_CLIENT_ID }}
+      DATABRICKS_CLIENT_SECRET: ${{ secrets.DATABRICKS_CLIENT_SECRET }}
       DATABRICKS_SQL_WAREHOUSE_ID: ${{ secrets.DATABRICKS_SQL_WAREHOUSE_ID }}
     steps:
       - name: Checkout
@@ -104,8 +103,8 @@ jobs:
         id: prereq
         run: |
           ready=true
-          if [ -z "$DATABRICKS_HOST" ] || [ -z "$ARM_CLIENT_ID" ] || [ -z "$ARM_CLIENT_SECRET" ]; then
-            echo "Missing Databricks credentials (DATABRICKS_HOST, DATABRICKS_SP_CLIENT_ID, DATABRICKS_SP_CLIENT_SECRET); skipping deploy."
+          if [ -z "$DATABRICKS_HOST" ] || [ -z "$DATABRICKS_CLIENT_ID" ] || [ -z "$DATABRICKS_CLIENT_SECRET" ]; then
+            echo "Missing Databricks credentials (DATABRICKS_HOST, DATABRICKS_CLIENT_ID, DATABRICKS_CLIENT_SECRET); skipping deploy."
             ready=false
           elif ! command -v databricks >/dev/null 2>&1; then
             echo "Databricks CLI not installed; skipping deploy."

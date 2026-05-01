@@ -24,7 +24,6 @@ class DatabricksSQLConfig:
     warehouse_id: str
     client_id: str
     client_secret: str
-    tenant_id: str
     catalog: str = "cgadev"
     timeout_seconds: int = 30
 
@@ -38,28 +37,27 @@ def load_config_from_env(env: dict[str, str] | None = None) -> DatabricksSQLConf
     return DatabricksSQLConfig(
         host=host,
         warehouse_id=warehouse_id,
-        client_id=source.get("DATABRICKS_SP_CLIENT_ID", ""),
-        client_secret=source.get("DATABRICKS_SP_CLIENT_SECRET", ""),
-        tenant_id=source.get("AZURE_TENANT_ID", ""),
+        client_id=source.get("DATABRICKS_CLIENT_ID", ""),
+        client_secret=source.get("DATABRICKS_CLIENT_SECRET", ""),
         catalog=source.get("COINGECKO_CATALOG", "cgadev"),
     )
 
 
 def _get_oauth_token(config: DatabricksSQLConfig) -> str:
-    cache_key = f"{config.tenant_id}:{config.client_id}"
+    cache_key = f"{config.host}:{config.client_id}"
     now = time.monotonic()
     if cache_key in _TOKEN_CACHE:
         token, expires_at = _TOKEN_CACHE[cache_key]
         if now < expires_at:
             return token
 
-    url = f"https://login.microsoftonline.com/{config.tenant_id}/oauth2/v2.0/token"
+    url = f"{config.host}/oidc/v1/token"
     body = urllib.parse.urlencode(
         {
             "grant_type": "client_credentials",
             "client_id": config.client_id,
             "client_secret": config.client_secret,
-            "scope": "2ff814a6-3304-4ab8-85cb-cd0e6f879c1d/.default",
+            "scope": "all-apis",
         }
     ).encode()
     req = urllib.request.Request(url, data=body, method="POST")
