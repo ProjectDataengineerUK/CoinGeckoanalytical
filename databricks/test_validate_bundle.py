@@ -26,6 +26,12 @@ class ValidateBundleTests(unittest.TestCase):
 
         self.assertEqual(errors, [])
 
+    def test_validate_bundle_requires_notebook_assets(self) -> None:
+        bundle = validate_bundle.load_bundle(Path(__file__).resolve().parent / "databricks.yml")
+        errors = validate_bundle.validate_bundle(bundle, root_dir=Path(__file__).resolve().parent / "missing-root")
+
+        self.assertTrue(any("missing Databricks notebook asset" in error for error in errors))
+
     def test_validate_bundle_flags_bad_job_schedule(self) -> None:
         bundle = validate_bundle.load_bundle(Path(__file__).resolve().parent / "databricks.yml")
         bundle["resources"]["jobs"]["ops_usage_ingestion_job"]["schedule"]["pause_status"] = "PAUSED"

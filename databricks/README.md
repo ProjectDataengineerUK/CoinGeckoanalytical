@@ -17,6 +17,7 @@ GitHub Actions deploys use `DATABRICKS_HOST` and `DATABRICKS_TOKEN`. If `DATABRI
 - telemetry observability and release-readiness views
 - Unity Catalog governance for data and models
 - Databricks Apps only for admin and internal operations
+- thin Databricks notebooks for workspace execution, validation, and operations review
 
 ## Concrete Assets
 
@@ -64,6 +65,18 @@ GitHub Actions deploys use `DATABRICKS_HOST` and `DATABRICKS_TOKEN`. If `DATABRI
 - `test_bundle_run_observability.py`
 - `test_sentinela_alert_ingestion_job.py`
 - `model-version-governance.md`
+- `notebooks/01_ingest_coingecko_market.py`
+- `notebooks/02_validate_market_layers.py`
+- `notebooks/03_ops_readiness_review.py`
+- `notebooks/README.md`
+
+## Notebook Layer
+
+The notebooks are intentionally thin. Production logic remains in versioned Python and SQL files, while notebooks provide the familiar Databricks workspace experience:
+
+- run the CoinGecko market ingestion path
+- inspect Bronze/Silver/Gold/Genie row counts
+- review operational readiness and Sentinela views
 
 ## Operational Contracts
 

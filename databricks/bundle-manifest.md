@@ -10,6 +10,8 @@ Package the Databricks-side jobs as a deployable bundle with scheduled ingestion
 
 ## Resources
 
+The scheduled production jobs use `spark_python_task` for testable CI/CD. Thin notebooks also exist under `databricks/notebooks/` for Databricks workspace execution and review.
+
 ### `market_source_ingestion_job`
 
 - schedule: every 5 minutes

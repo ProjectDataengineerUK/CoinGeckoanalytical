@@ -14,6 +14,12 @@ REQUIRED_JOB_KEYS = {
     "ops_sentinela_alert_ingestion_job",
 }
 
+REQUIRED_NOTEBOOKS = {
+    "notebooks/01_ingest_coingecko_market.py",
+    "notebooks/02_validate_market_layers.py",
+    "notebooks/03_ops_readiness_review.py",
+}
+
 
 def load_bundle(path: str | Path = "databricks.yml") -> dict[str, Any]:
     bundle_path = Path(path)
@@ -60,6 +66,11 @@ def validate_bundle(bundle: dict[str, Any], root_dir: str | Path | None = None) 
 
         if task.get("environment_key") != "default":
             errors.append(f"{job_name} must use environment_key default")
+
+    for notebook in sorted(REQUIRED_NOTEBOOKS):
+        notebook_path = base_dir / notebook
+        if not notebook_path.exists():
+            errors.append(f"missing Databricks notebook asset: {notebook}")
 
     return errors
 
