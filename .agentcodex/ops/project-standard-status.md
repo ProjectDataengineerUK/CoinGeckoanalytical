@@ -10,6 +10,7 @@ Provide one durable manifest for the AgentCodex Project Standard blocks required
 - workflow_phase: `build`
 - phase_group: `Phase 1 Base`
 - status_date: `2026-05-01`
+- last_update: `2026-05-01 sessão 2 — WS2+WS4 concluídos, 147 testes passando`
 
 ## Status Matrix
 
@@ -20,7 +21,7 @@ Provide one durable manifest for the AgentCodex Project Standard blocks required
 | `dados` | `implemented` | `databricks/silver_market_pipeline_job.py` (novo), `bronze_silver_market_foundation.sql`, `gold_market_views.sql`, `genie_metric_views.sql` — cadeia Bronze→Silver→Gold agora tem pipeline completo | bind to live Databricks execution evidence |
 | `governanca` | `implemented` | `.agentcodex/ops/governance-and-ownership.md`, `databricks/unity-catalog-foundation.md`, `databricks/terraform/main.tf` | live workspace grants and owners still need evidence |
 | `lineage` | `implemented` | `databricks/unity-catalog-lineage-map.md`, `databricks/gold-data-contracts.md` | add live Catalog Explorer validation evidence |
-| `execucao` | `implemented` | `backend/databricks_sql_client.py` (novo — OAuth M2M, SQL Statements API, polling, type coercion), BFF com fallback demo→live. Execução local usa demo mode; workspace live usa Gold real via DBSQL | live warehouse evidence pendente |
+| `execucao` | `implemented` | `backend/databricks_sql_client.py` (OAuth M2M, SQL Statements API, polling), `backend/genie_client.py` (ask_genie, polling, GenieAnswer), `backend/mosaic_copilot_client.py` (Model Serving, MosaicAnswer com token telemetry). BFF encadeia live→demo fallback para DBSQL e live→stub fallback para Genie/Mosaic | live warehouse + endpoint evidence pendente |
 | `validacao` | `partial` | backend tests, repo tests, `validate_bundle.py`, helper tests | missing live workspace validation and end-to-end acceptance report |
 | `observabilidade` | `implemented` | `backend/sentinela.py`, `telemetry-observability.sql`, `ops_readiness_dashboard.sql` | live ingestion and rendered dashboard evidence still pending |
 | `access control` | `implemented` | `.agentcodex/ops/access-control-model.md`, `databricks/unity_catalog_foundation.sql`, `databricks/terraform/main.tf` | live principal binding evidence still pending |
