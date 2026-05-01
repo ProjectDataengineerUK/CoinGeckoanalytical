@@ -9,13 +9,19 @@ on:
         type: boolean
         default: false
 
+permissions:
+  id-token: write
+  contents: read
+
 jobs:
   dev-migration:
     runs-on: ubuntu-latest
     if: github.event_name == 'workflow_dispatch' && inputs.confirm_migration
     env:
       DATABRICKS_HOST: ${{ secrets.DATABRICKS_HOST }}
-      DATABRICKS_TOKEN: ${{ secrets.DATABRICKS_TOKEN }}
+      ARM_CLIENT_ID: ${{ secrets.DATABRICKS_SP_CLIENT_ID }}
+      ARM_CLIENT_SECRET: ${{ secrets.DATABRICKS_SP_CLIENT_SECRET }}
+      ARM_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -37,8 +43,8 @@ jobs:
         id: prereq
         run: |
           ready=true
-          if [ -z "$DATABRICKS_HOST" ] || [ -z "$DATABRICKS_TOKEN" ]; then
-            echo "Missing Databricks credentials; skipping migration."
+          if [ -z "$DATABRICKS_HOST" ] || [ -z "$ARM_CLIENT_ID" ] || [ -z "$ARM_CLIENT_SECRET" ]; then
+            echo "Missing Databricks credentials (DATABRICKS_HOST, DATABRICKS_SP_CLIENT_ID, DATABRICKS_SP_CLIENT_SECRET); skipping migration."
             ready=false
           elif ! command -v databricks >/dev/null 2>&1; then
             echo "Databricks CLI not installed; skipping migration."

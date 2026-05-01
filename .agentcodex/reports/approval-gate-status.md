@@ -4,7 +4,7 @@
 
 - `ci.yml` deploy gate: `approved`
 - `terraform.yml` apply gate: `approved`
-- `bronze-migration.yml` migration gate: `approved`
+- `bronze-migration.yml` migration gate: `dispatched`
 
 ## Interpretation
 
@@ -14,4 +14,4 @@
 
 ## Next Approved Action
 
-- trigger `terraform.yml` with `confirm_apply=true`
+- wait for `bronze-migration.yml` run `25216983089` to finish, then inspect result

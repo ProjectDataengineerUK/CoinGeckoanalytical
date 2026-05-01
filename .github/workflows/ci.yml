@@ -13,6 +13,10 @@ on:
         type: boolean
         default: false
 
+permissions:
+  id-token: write
+  contents: read
+
 jobs:
   lint:
     runs-on: ubuntu-latest
@@ -75,7 +79,9 @@ jobs:
     if: github.event_name == 'workflow_dispatch' && inputs.confirm_deploy
     env:
       DATABRICKS_HOST: ${{ secrets.DATABRICKS_HOST }}
-      DATABRICKS_TOKEN: ${{ secrets.DATABRICKS_TOKEN }}
+      ARM_CLIENT_ID: ${{ secrets.DATABRICKS_SP_CLIENT_ID }}
+      ARM_CLIENT_SECRET: ${{ secrets.DATABRICKS_SP_CLIENT_SECRET }}
+      ARM_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
       DATABRICKS_SQL_WAREHOUSE_ID: ${{ secrets.DATABRICKS_SQL_WAREHOUSE_ID }}
     steps:
       - name: Checkout
@@ -98,8 +104,8 @@ jobs:
         id: prereq
         run: |
           ready=true
-          if [ -z "$DATABRICKS_HOST" ] || [ -z "$DATABRICKS_TOKEN" ]; then
-            echo "Missing Databricks credentials; skipping deploy."
+          if [ -z "$DATABRICKS_HOST" ] || [ -z "$ARM_CLIENT_ID" ] || [ -z "$ARM_CLIENT_SECRET" ]; then
+            echo "Missing Databricks credentials (DATABRICKS_HOST, DATABRICKS_SP_CLIENT_ID, DATABRICKS_SP_CLIENT_SECRET); skipping deploy."
             ready=false
           elif ! command -v databricks >/dev/null 2>&1; then
             echo "Databricks CLI not installed; skipping deploy."
@@ -121,6 +127,8 @@ jobs:
           cd databricks
           databricks bundle deploy -t dev
           databricks bundle run market_source_ingestion_job -t dev -- --payload-json "$MARKET_PAYLOAD_JSON" --target-table "cgadev.market_bronze.bronze_market_snapshots"
+          databricks bundle run silver_market_pipeline_job -t dev
+          databricks bundle run bronze_market_table_migration_job -t dev
           databricks bundle run ops_usage_ingestion_job -t dev
           databricks bundle run ops_bundle_run_ingestion_job -t dev
           databricks bundle run ops_sentinela_alert_ingestion_job -t dev

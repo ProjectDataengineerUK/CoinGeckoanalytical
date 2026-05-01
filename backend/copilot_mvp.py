@@ -62,6 +62,8 @@ class TelemetryEnvelope:
     schema_version: str = "copilot.telemetry.v1"
 
 
+_STUB_WARNING = "mvp_stub_response"
+
 STRUCTURED_ROUTE_SIGNALS = (
     "rank",
     "ranking",
@@ -182,7 +184,7 @@ def build_copilot_response(request: CopilotRequest) -> dict[str, Any]:
             freshness={"watermark": "pending", "status": "unknown"},
             confidence={"label": "provisional", "score": 0.64},
             actions=["follow_up_question", "open_analytics_view"],
-            warnings=["mvp_stub_response"],
+            warnings=[_STUB_WARNING],
             routing={
                 "surface": decision.surface,
                 "reason": decision.reason,
