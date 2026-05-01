@@ -10,7 +10,7 @@ Document the scheduled Databricks jobs that keep telemetry and readiness current
 
 - frequency: every 5 minutes
 - task: `market_source_ingestion_job.py`
-- input: source payload handoff for CoinGecko-style market rows
+- input: CoinGecko `/coins/markets` when no payload override is supplied; fixture or handoff payload for smoke/replay validation
 - output: append to `bronze_market_snapshots`
 
 ### `ops_usage_ingestion_job`

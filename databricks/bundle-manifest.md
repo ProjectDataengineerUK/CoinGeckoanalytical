@@ -14,7 +14,8 @@ Package the Databricks-side jobs as a deployable bundle with scheduled ingestion
 
 - schedule: every 5 minutes
 - task: `market_source_ingestion_job.py`
-- purpose: ingest normalized CoinGecko market rows into `bronze_market_snapshots`
+- purpose: fetch CoinGecko `/coins/markets`, normalize rows, and append them into `bronze_market_snapshots`
+- smoke behavior: CI can still pass an explicit fixture payload to keep deploy validation deterministic
 
 ### `ops_usage_ingestion_job`
 

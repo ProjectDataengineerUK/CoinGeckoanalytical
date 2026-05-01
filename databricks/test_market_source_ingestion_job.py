@@ -78,6 +78,169 @@ class MarketSourceIngestionJobTests(unittest.TestCase):
         self.assertEqual(parsed["target_table"], "cgadev.market_bronze.bronze_market_snapshots")
         self.assertIn('"id":"bitcoin"', parsed["payload_json"])
 
+    def test_build_coingecko_markets_url_uses_expected_endpoint_and_pagination(self) -> None:
+        config = market_source_ingestion_job.CoinGeckoFetchConfig(
+            base_url="https://api.coingecko.com/api/v3",
+            per_page=100,
+            pages=2,
+            price_change_percentage="24h",
+        )
+
+        url = market_source_ingestion_job.build_coingecko_markets_url(config, page=2)
+
+        self.assertTrue(url.startswith("https://api.coingecko.com/api/v3/coins/markets?"))
+        self.assertIn("vs_currency=usd", url)
+        self.assertIn("order=market_cap_desc", url)
+        self.assertIn("per_page=100", url)
+        self.assertIn("page=2", url)
+        self.assertIn("sparkline=false", url)
+        self.assertIn("price_change_percentage=24h", url)
+
+    def test_load_coingecko_fetch_config_from_env(self) -> None:
+        config = market_source_ingestion_job.load_coingecko_fetch_config_from_env(
+            {
+                "COINGECKO_API_BASE_URL": "https://example.test/api/v3",
+                "COINGECKO_VS_CURRENCY": "brl",
+                "COINGECKO_MARKET_ORDER": "volume_desc",
+                "COINGECKO_PER_PAGE": "50",
+                "COINGECKO_PAGES": "3",
+                "COINGECKO_SPARKLINE": "true",
+                "COINGECKO_PRICE_CHANGE_PERCENTAGE": "1h,24h",
+                "COINGECKO_REQUEST_TIMEOUT_SECONDS": "9",
+                "COINGECKO_MAX_RETRIES": "2",
+                "COINGECKO_RETRY_BACKOFF_SECONDS": "0.5",
+                "COINGECKO_API_KEY": "demo-key",
+                "COINGECKO_API_KEY_HEADER": "x-cg-demo-api-key",
+            }
+        )
+
+        self.assertEqual(config.base_url, "https://example.test/api/v3")
+        self.assertEqual(config.vs_currency, "brl")
+        self.assertEqual(config.order, "volume_desc")
+        self.assertEqual(config.per_page, 50)
+        self.assertEqual(config.pages, 3)
+        self.assertTrue(config.sparkline)
+        self.assertEqual(config.api_key, "demo-key")
+
+    def test_fetch_coingecko_market_rows_paginates_until_short_page(self) -> None:
+        calls: list[str] = []
+        original_request_json = market_source_ingestion_job.request_json
+
+        def fake_request_json(url: str, config: market_source_ingestion_job.CoinGeckoFetchConfig) -> list[dict[str, object]]:
+            calls.append(url)
+            if "page=1" in url:
+                return [
+                    {
+                        "id": "bitcoin",
+                        "symbol": "btc",
+                        "name": "Bitcoin",
+                        "market_cap": 1,
+                        "current_price": 1,
+                        "total_volume": 1,
+                        "circulating_supply": 1,
+                        "market_cap_rank": 1,
+                        "last_updated": "2026-04-30T00:00:00Z",
+                    },
+                    {
+                        "id": "ethereum",
+                        "symbol": "eth",
+                        "name": "Ethereum",
+                        "market_cap": 1,
+                        "current_price": 1,
+                        "total_volume": 1,
+                        "circulating_supply": 1,
+                        "market_cap_rank": 2,
+                        "last_updated": "2026-04-30T00:00:00Z",
+                    },
+                ]
+            return [
+                {
+                    "id": "solana",
+                    "symbol": "sol",
+                    "name": "Solana",
+                    "market_cap": 1,
+                    "current_price": 1,
+                    "total_volume": 1,
+                    "circulating_supply": 1,
+                    "market_cap_rank": 5,
+                    "last_updated": "2026-04-30T00:00:00Z",
+                }
+            ]
+
+        try:
+            market_source_ingestion_job.request_json = fake_request_json
+            rows = market_source_ingestion_job.fetch_coingecko_market_rows(
+                market_source_ingestion_job.CoinGeckoFetchConfig(per_page=2, pages=3)
+            )
+        finally:
+            market_source_ingestion_job.request_json = original_request_json
+
+        self.assertEqual(len(rows), 3)
+        self.assertEqual(len(calls), 2)
+        self.assertIn("page=1", calls[0])
+        self.assertIn("page=2", calls[1])
+
+    def test_main_fetches_coingecko_when_no_payload_is_provided(self) -> None:
+        class FakeWriter:
+            def __init__(self) -> None:
+                self.mode_value: str | None = None
+                self.format_value: str | None = None
+                self.target_table: str | None = None
+
+            def mode(self, value: str) -> "FakeWriter":
+                self.mode_value = value
+                return self
+
+            def format(self, value: str) -> "FakeWriter":
+                self.format_value = value
+                return self
+
+            def saveAsTable(self, target_table: str) -> None:
+                self.target_table = target_table
+
+        class FakeDataFrame:
+            def __init__(self) -> None:
+                self.write = FakeWriter()
+
+        class FakeSpark:
+            def __init__(self) -> None:
+                self.rows: list[dict[str, object]] | None = None
+                self.dataframe = FakeDataFrame()
+
+            def createDataFrame(self, rows: list[dict[str, object]]) -> FakeDataFrame:
+                self.rows = rows
+                return self.dataframe
+
+        original_fetch = market_source_ingestion_job.fetch_coingecko_market_rows
+
+        def fake_fetch(config: market_source_ingestion_job.CoinGeckoFetchConfig | None = None) -> list[dict[str, object]]:
+            return [
+                {
+                    "id": "bitcoin",
+                    "symbol": "btc",
+                    "name": "Bitcoin",
+                    "market_cap": 1,
+                    "current_price": 1,
+                    "total_volume": 1,
+                    "circulating_supply": 1,
+                    "market_cap_rank": 1,
+                    "last_updated": "2026-04-30T00:00:00Z",
+                }
+            ]
+
+        try:
+            market_source_ingestion_job.fetch_coingecko_market_rows = fake_fetch
+            fake_spark = FakeSpark()
+            result = market_source_ingestion_job.main(fake_spark, target_table="cgadev.market_bronze.bronze_market_snapshots")
+        finally:
+            market_source_ingestion_job.fetch_coingecko_market_rows = original_fetch
+
+        self.assertEqual(result.rows_written, 1)
+        self.assertIsNotNone(fake_spark.rows)
+        assert fake_spark.rows is not None
+        self.assertEqual(fake_spark.rows[0]["asset_id"], "bitcoin")
+        self.assertEqual(fake_spark.dataframe.write.target_table, "cgadev.market_bronze.bronze_market_snapshots")
+
 
 if __name__ == "__main__":
     unittest.main()

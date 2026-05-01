@@ -1,11 +1,19 @@
 from __future__ import annotations
 
 import json
+import os
 import sys
+import time
+import urllib.error
+import urllib.parse
+import urllib.request
 from dataclasses import dataclass
 from datetime import datetime, timezone
 from typing import Any
 
+
+DEFAULT_COINGECKO_BASE_URL = "https://api.coingecko.com/api/v3"
+DEFAULT_COINGECKO_MARKETS_PATH = "/coins/markets"
 
 REQUIRED_FIELDS = (
     "source_system",
@@ -33,6 +41,22 @@ class IngestionResult:
     target_table: str
 
 
+@dataclass(frozen=True)
+class CoinGeckoFetchConfig:
+    base_url: str = DEFAULT_COINGECKO_BASE_URL
+    vs_currency: str = "usd"
+    order: str = "market_cap_desc"
+    per_page: int = 250
+    pages: int = 1
+    sparkline: bool = False
+    price_change_percentage: str | None = "1h,24h,7d,30d"
+    request_timeout_seconds: int = 30
+    max_retries: int = 3
+    retry_backoff_seconds: float = 1.0
+    api_key: str | None = None
+    api_key_header: str = "x-cg-demo-api-key"
+
+
 def parse_payload(payload_json: str | None, payload_path: str | None = None) -> list[dict[str, Any]]:
     if payload_json:
         data = json.loads(payload_json)
@@ -47,6 +71,80 @@ def parse_payload(payload_json: str | None, payload_path: str | None = None) -> 
     if not isinstance(data, list):
         raise ValueError("Market payload must be a JSON object or an array of JSON objects.")
     return [dict(item) for item in data]
+
+
+def build_coingecko_markets_url(config: CoinGeckoFetchConfig, page: int) -> str:
+    query: dict[str, str | int] = {
+        "vs_currency": config.vs_currency,
+        "order": config.order,
+        "per_page": config.per_page,
+        "page": page,
+        "sparkline": str(config.sparkline).lower(),
+    }
+    if config.price_change_percentage:
+        query["price_change_percentage"] = config.price_change_percentage
+    return f"{config.base_url.rstrip('/')}{DEFAULT_COINGECKO_MARKETS_PATH}?{urllib.parse.urlencode(query)}"
+
+
+def request_json(url: str, config: CoinGeckoFetchConfig) -> Any:
+    headers = {"accept": "application/json"}
+    if config.api_key:
+        headers[config.api_key_header] = config.api_key
+    request = urllib.request.Request(url, headers=headers, method="GET")
+    with urllib.request.urlopen(request, timeout=config.request_timeout_seconds) as response:
+        return json.loads(response.read().decode("utf-8"))
+
+
+def fetch_coingecko_market_rows(config: CoinGeckoFetchConfig | None = None) -> list[dict[str, Any]]:
+    active_config = config or load_coingecko_fetch_config_from_env()
+    rows: list[dict[str, Any]] = []
+
+    for page in range(1, active_config.pages + 1):
+        url = build_coingecko_markets_url(active_config, page)
+        page_rows = _request_json_with_retry(url, active_config)
+        if not isinstance(page_rows, list):
+            raise ValueError("CoinGecko markets response must be a JSON array.")
+        rows.extend(dict(item) for item in page_rows)
+        if len(page_rows) < active_config.per_page:
+            break
+
+    return rows
+
+
+def load_coingecko_fetch_config_from_env(env: dict[str, str] | None = None) -> CoinGeckoFetchConfig:
+    active_env = env if env is not None else os.environ
+    return CoinGeckoFetchConfig(
+        base_url=active_env.get("COINGECKO_API_BASE_URL", DEFAULT_COINGECKO_BASE_URL),
+        vs_currency=active_env.get("COINGECKO_VS_CURRENCY", "usd"),
+        order=active_env.get("COINGECKO_MARKET_ORDER", "market_cap_desc"),
+        per_page=_coerce_int_env(active_env.get("COINGECKO_PER_PAGE"), 250),
+        pages=_coerce_int_env(active_env.get("COINGECKO_PAGES"), 1),
+        sparkline=_coerce_bool_env(active_env.get("COINGECKO_SPARKLINE"), False),
+        price_change_percentage=active_env.get("COINGECKO_PRICE_CHANGE_PERCENTAGE", "1h,24h,7d,30d"),
+        request_timeout_seconds=_coerce_int_env(active_env.get("COINGECKO_REQUEST_TIMEOUT_SECONDS"), 30),
+        max_retries=_coerce_int_env(active_env.get("COINGECKO_MAX_RETRIES"), 3),
+        retry_backoff_seconds=_coerce_float_env(active_env.get("COINGECKO_RETRY_BACKOFF_SECONDS"), 1.0),
+        api_key=active_env.get("COINGECKO_API_KEY"),
+        api_key_header=active_env.get("COINGECKO_API_KEY_HEADER", "x-cg-demo-api-key"),
+    )
+
+
+def _request_json_with_retry(url: str, config: CoinGeckoFetchConfig) -> Any:
+    attempt = 0
+    while True:
+        try:
+            return request_json(url, config)
+        except urllib.error.HTTPError as exc:
+            attempt += 1
+            if exc.code not in {429, 500, 502, 503, 504} or attempt >= config.max_retries:
+                body = exc.read().decode("utf-8", errors="replace")
+                raise RuntimeError(f"CoinGecko request failed: {exc.code} {body}") from exc
+            time.sleep(config.retry_backoff_seconds * attempt)
+        except urllib.error.URLError as exc:
+            attempt += 1
+            if attempt >= config.max_retries:
+                raise RuntimeError(f"CoinGecko request failed: {exc.reason}") from exc
+            time.sleep(config.retry_backoff_seconds * attempt)
 
 
 def normalize_market_row(row: dict[str, Any]) -> dict[str, Any]:
@@ -139,8 +237,12 @@ def main(
     payload_json: str | None = None,
     payload_path: str | None = None,
     target_table: str = "bronze_market_snapshots",
+    fetch_config: CoinGeckoFetchConfig | None = None,
 ) -> IngestionResult:
-    rows = parse_payload(payload_json, payload_path=payload_path)
+    if payload_json or payload_path:
+        rows = parse_payload(payload_json, payload_path=payload_path)
+    else:
+        rows = fetch_coingecko_market_rows(fetch_config)
     return write_market_rows(spark, rows, target_table=target_table)
 
 
@@ -154,6 +256,24 @@ def _coerce_required_int(value: Any) -> int:
     if value in {None, ""}:
         raise ValueError("Required integer market field is missing.")
     return int(value)
+
+
+def _coerce_int_env(value: str | None, default: int) -> int:
+    if value in {None, ""}:
+        return default
+    return int(value)
+
+
+def _coerce_float_env(value: str | None, default: float) -> float:
+    if value in {None, ""}:
+        return default
+    return float(value)
+
+
+def _coerce_bool_env(value: str | None, default: bool) -> bool:
+    if value in {None, ""}:
+        return default
+    return str(value).strip().lower() in {"1", "true", "yes", "y"}
 
 
 def _utc_now_isoformat() -> str:

@@ -47,6 +47,7 @@
 - the first live deploy failed only at `ops_readiness_refresh_job` because a runtime refresh path attempted to apply ownership to missing Unity Catalog principal `data_platform`; remediation is recorded at `.agentcodex/reports/deploy-failure-principal-remediation-2026-04-30.md`
 - after publishing `9e0e299`, the user reported that the deploy passed; the next evidence step is recorded at `.agentcodex/reports/post-deploy-success-next-step-2026-04-30.md`
 - GitHub Actions API confirmed `ci` run `25198087949` completed `lint`, `contract`, and `deploy` successfully; the run uploaded `databricks-live-sql-validation`, and live evidence is recorded at `.agentcodex/reports/live-workspace-validation-2026-04-30.md`
+- the market ingestion gap was closed in `.agentcodex/reports/build-slice-1-coingecko-fetch-2026-05-01.md`; `market_source_ingestion_job` now fetches CoinGecko `/coins/markets` directly when no explicit payload is supplied, while CI smoke can still pass a deterministic fixture payload
 - commit and push are now the normal publication path after validation, unless the user explicitly asks to hold back publication
 - the frontend remains a placeholder and no real user-facing V1 slice is closed yet
 
