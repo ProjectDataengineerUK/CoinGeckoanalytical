@@ -135,6 +135,10 @@ jobs:
           name: terraform-dev-plan
           path: databricks/terraform
 
+      - name: Terraform init
+        run: terraform init
+        working-directory: databricks/terraform
+
       - name: Terraform apply dev
         run: terraform apply -auto-approve tfplan
         working-directory: databricks/terraform

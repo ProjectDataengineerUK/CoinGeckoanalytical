@@ -31,6 +31,47 @@ class OpsReadinessRefreshJobTests(unittest.TestCase):
         self.assertTrue(statements[0].startswith("CREATE OR REPLACE VIEW a"))
         self.assertTrue(statements[1].startswith("CREATE OR REPLACE VIEW b"))
 
+    def test_runtime_refresh_skips_principal_management_statements(self) -> None:
+        class FakeSpark:
+            def __init__(self) -> None:
+                self.statements: list[str] = []
+
+            def sql(self, statement: str) -> None:
+                self.statements.append(statement)
+
+        with tempfile.TemporaryDirectory() as temp_dir:
+            sql_path = Path(temp_dir) / "foundation.sql"
+            sql_path.write_text(
+                "\n".join(
+                    [
+                        "CREATE SCHEMA IF NOT EXISTS cgadev.market_bronze;",
+                        "-- Example ownership posture for the dev catalog.",
+                        "ALTER SCHEMA cgadev.market_bronze OWNER TO `data_platform`;",
+                        "-- Shared product reads.",
+                        "GRANT USE SCHEMA ON SCHEMA cgadev.market_bronze TO `product_backend`;",
+                        "CREATE OR REPLACE VIEW cgadev.market_bronze.v AS SELECT 1;",
+                    ]
+                ),
+                encoding="utf-8",
+            )
+
+            fake_spark = FakeSpark()
+            result = ops_readiness_refresh_job.refresh_views(
+                fake_spark,
+                sql_files=("foundation.sql",),
+                base_dir=temp_dir,
+            )
+
+        self.assertEqual(result["statements_executed"], 2)
+        self.assertEqual(result["principal_management_statements_skipped"], 2)
+        self.assertEqual(
+            fake_spark.statements,
+            [
+                "CREATE SCHEMA IF NOT EXISTS cgadev.market_bronze",
+                "CREATE OR REPLACE VIEW cgadev.market_bronze.v AS SELECT 1",
+            ],
+        )
+
     def test_refresh_views_reports_executed_files(self) -> None:
         class FakeSpark:
             def __init__(self) -> None:

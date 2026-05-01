@@ -45,6 +45,11 @@
 - `python3 -m unittest repo_tests.test_terraform_workflow`
 - `python3 -m unittest discover -s repo_tests -p 'test_*.py'`
 
+## Follow-Up Hardening
+
+- `dev-apply` now runs `terraform init` after downloading the reviewed plan artifact, so a clean GitHub runner installs the required providers before `terraform apply`.
+- `repo_tests/test_terraform_workflow.py` now asserts that both plan and apply jobs include Terraform initialization.
+
 ## Remaining Work
 
 - configure the Terraform secrets in GitHub Actions

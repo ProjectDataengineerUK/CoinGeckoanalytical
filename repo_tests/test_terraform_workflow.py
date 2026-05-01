@@ -35,6 +35,7 @@ class TerraformWorkflowTests(unittest.TestCase):
         self.assertIn("terraform plan -out=tfplan", plan_run_commands)
         self.assertIn("Terraform apply dev", apply_step_names)
         self.assertIn("Download Terraform dev plan artifact", apply_step_names)
+        self.assertIn("Terraform init", apply_step_names)
         self.assertIn("terraform apply -auto-approve tfplan", apply_run_commands)
 
 

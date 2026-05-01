@@ -41,6 +41,10 @@
 - the Terraform path is sequenced ahead of live environment claims, but workspace execution evidence is still blocked by missing local CLI plus missing real `dev` inputs
 - the Terraform path is now also blocked by provider runtime behavior in this environment, so the next valid infrastructure move is to re-run `validate/plan` where the Databricks provider handshake succeeds
 - the current repo answer to that environment limit is a dedicated GitHub Actions `terraform` workflow with plan/artifact output and a controlled manual apply path, while `ci.yml` keeps release/deploy concerns separate
+- the controlled Terraform apply path now initializes Terraform in the clean apply runner before applying the downloaded reviewed plan artifact
+- a configuration sweep was recorded at `.agentcodex/reports/configuration-sweep-2026-04-30.md`; local tests, bundle validation, market chain validation, and compile validation passed, while remote secret/workflow verification remains blocked locally because `gh` is not installed
+- the native next-step analysis was recorded at `.agentcodex/reports/native-next-step-2026-04-30.md`; since local `HEAD` and `origin/main` are aligned before the current validated changes, the next native action is to commit and push the local change set to trigger GitHub Actions evidence
+- the first live deploy failed only at `ops_readiness_refresh_job` because a runtime refresh path attempted to apply ownership to missing Unity Catalog principal `data_platform`; remediation is recorded at `.agentcodex/reports/deploy-failure-principal-remediation-2026-04-30.md`
 - commit and push are now the normal publication path after validation, unless the user explicitly asks to hold back publication
 - the frontend remains a placeholder and no real user-facing V1 slice is closed yet
 

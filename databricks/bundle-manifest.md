@@ -27,6 +27,7 @@ Package the Databricks-side jobs as a deployable bundle with scheduled ingestion
 - schedule: every 15 minutes
 - task: `ops_readiness_refresh_job.py`
 - purpose: refresh telemetry observability and readiness views
+- runtime safety: skips principal-management statements so deploy refresh is not blocked by missing placeholder groups such as `data_platform`
 
 ### `ops_bundle_run_ingestion_job`
 

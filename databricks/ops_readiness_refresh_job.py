@@ -23,6 +23,22 @@ def load_sql_statements(path: str | Path) -> list[str]:
     return [statement for statement in statements if statement]
 
 
+def sql_without_leading_comments(statement: str) -> str:
+    lines = statement.splitlines()
+    while lines and (not lines[0].strip() or lines[0].strip().startswith("--")):
+        lines.pop(0)
+    return "\n".join(lines).lstrip()
+
+
+def is_runtime_safe_statement(statement: str) -> bool:
+    normalized = sql_without_leading_comments(statement).upper()
+    if normalized.startswith("ALTER ") and " OWNER TO " in normalized:
+        return False
+    if normalized.startswith(("GRANT ", "REVOKE ")):
+        return False
+    return True
+
+
 def resolve_base_dir(base_dir: str | Path | None = None) -> Path:
     if base_dir is not None:
         return Path(base_dir)
@@ -41,11 +57,15 @@ def resolve_base_dir(base_dir: str | Path | None = None) -> Path:
 def refresh_views(spark: Any, sql_files: tuple[str, ...] = DEFAULT_SQL_FILES, base_dir: str | Path | None = None) -> dict[str, Any]:
     root = resolve_base_dir(base_dir)
     executed_statements: list[str] = []
+    skipped_principal_statements: list[str] = []
     executed_files: list[str] = []
 
     for sql_file in sql_files:
         sql_path = root / sql_file
         for statement in load_sql_statements(sql_path):
+            if not is_runtime_safe_statement(statement):
+                skipped_principal_statements.append(statement)
+                continue
             spark.sql(statement)
             executed_statements.append(statement)
         executed_files.append(sql_file)
@@ -53,6 +73,7 @@ def refresh_views(spark: Any, sql_files: tuple[str, ...] = DEFAULT_SQL_FILES, ba
     return {
         "files": executed_files,
         "statements_executed": len(executed_statements),
+        "principal_management_statements_skipped": len(skipped_principal_statements),
     }
 
 

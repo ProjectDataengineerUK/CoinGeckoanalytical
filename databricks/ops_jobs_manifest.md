@@ -24,8 +24,9 @@ Document the scheduled Databricks jobs that keep telemetry and readiness current
 
 - frequency: every 15 minutes
 - task: `ops_readiness_refresh_job.py`
-- input: `telemetry-observability.sql` and `ops_readiness_dashboard.sql`
+- input: runtime-safe Unity Catalog foundation SQL, telemetry observability SQL, market readiness SQL, and dashboard readiness SQL
 - output: refreshed views for dashboard consumption
+- safety: skips ownership and grant statements if they are accidentally present in the runtime refresh path
 
 ### `ops_bundle_run_observability`
 
