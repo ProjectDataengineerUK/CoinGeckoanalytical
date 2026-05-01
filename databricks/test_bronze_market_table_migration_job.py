@@ -28,6 +28,27 @@ class BronzeMarketTableMigrationJobTests(unittest.TestCase):
 
         self.assertEqual(statements, ["-- comment\nCREATE OR REPLACE TABLE a AS SELECT 1"])
 
+    def test_load_sql_statements_skips_comment_only_blocks(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            sql_path = Path(temp_dir) / "migration.sql"
+            sql_path.write_text(
+                "CREATE OR REPLACE TABLE a AS SELECT 1;\n-- trailing comment only\n",
+                encoding="utf-8",
+            )
+            statements = bronze_market_table_migration_job.load_sql_statements(sql_path)
+        self.assertEqual(len(statements), 1)
+        self.assertIn("SELECT 1", statements[0])
+
+    def test_load_sql_statements_skips_header_comment_block(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            sql_path = Path(temp_dir) / "migration.sql"
+            sql_path.write_text(
+                "-- header\n-- line 2\n\nCREATE TABLE x (id STRING);\n",
+                encoding="utf-8",
+            )
+            statements = bronze_market_table_migration_job.load_sql_statements(sql_path)
+        self.assertEqual(len(statements), 1)
+
     def test_run_migration_executes_sql_statements(self) -> None:
         class FakeSpark:
             def __init__(self) -> None:

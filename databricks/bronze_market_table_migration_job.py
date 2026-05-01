@@ -8,10 +8,18 @@ from typing import Any
 DEFAULT_SQL_FILE = "bronze_market_table_migration.sql"
 
 
+def _has_executable_sql(statement: str) -> bool:
+    for line in statement.splitlines():
+        stripped = line.strip()
+        if stripped and not stripped.startswith("--"):
+            return True
+    return False
+
+
 def load_sql_statements(path: str | Path) -> list[str]:
     sql_text = Path(path).read_text(encoding="utf-8")
-    statements = [statement.strip() for statement in sql_text.split(";")]
-    return [statement for statement in statements if statement]
+    statements = [s.strip() for s in sql_text.split(";")]
+    return [s for s in statements if _has_executable_sql(s)]
 
 
 def resolve_base_dir(base_dir: str | Path | None = None) -> Path:
