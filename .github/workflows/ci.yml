@@ -69,6 +69,8 @@ jobs:
           python3 -m unittest databricks.test_sentinela_alert_ingestion_job
           python3 -m unittest databricks.test_sentinela_alert_observability
           python3 -m unittest databricks.test_ops_readiness_refresh_job
+          python3 -m unittest databricks.test_bronze_market_table_migration_job
+          python3 -m unittest databricks.test_silver_market_pipeline_job
 
       - name: Run workflow contract tests
         run: python3 -m unittest discover -s repo_tests -p 'test_*.py'

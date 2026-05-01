@@ -16,7 +16,7 @@ CREATE OR REPLACE TABLE cgadev.market_bronze.bronze_market_snapshots (
   price_usd DECIMAL(38, 8),
   volume_24h_usd DECIMAL(38, 8),
   circulating_supply DECIMAL(38, 8),
-  market_cap_rank INT,
+  market_cap_rank BIGINT,
   payload_version STRING
 );
 
