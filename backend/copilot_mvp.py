@@ -1,8 +1,27 @@
 from __future__ import annotations
 
 import datetime as dt
+import importlib.util
+import sys
 from dataclasses import asdict, dataclass, field
+from pathlib import Path
 from typing import Any
+
+
+def _load_mosaic_client() -> Any | None:
+    name = "mosaic_copilot_client"
+    if name in sys.modules:
+        return sys.modules[name]
+    candidate = Path(__file__).resolve().parent / "mosaic_copilot_client.py"
+    if not candidate.exists():
+        return None
+    spec = importlib.util.spec_from_file_location(name, candidate)
+    if spec is None or spec.loader is None:
+        return None
+    mod = importlib.util.module_from_spec(spec)
+    sys.modules[name] = mod
+    spec.loader.exec_module(mod)
+    return mod
 
 
 @dataclass(frozen=True)
@@ -169,6 +188,36 @@ def build_copilot_response(request: CopilotRequest) -> dict[str, Any]:
                 },
             )
         )
+
+    _mosaic = _load_mosaic_client()
+    mosaic_config = _mosaic.load_config_from_env() if _mosaic is not None else None
+    if mosaic_config is not None:
+        try:
+            answer = _mosaic.ask_mosaic(mosaic_config, request.message_text)
+            if answer.execution_status == "completed":
+                return serialize_response_envelope(
+                    ResponseEnvelope(
+                        request_id=request.request_id,
+                        surface_type="copilot_answer",
+                        title="Copilot de mercado",
+                        body=answer.answer_text,
+                        citations=["unity_catalog.gold_market_views", "mosaic_ai_vector_search"],
+                        freshness={"watermark": "live", "status": "fresh"},
+                        confidence={"label": "model_grounded", "score": 0.85},
+                        actions=["follow_up_question", "open_analytics_view"],
+                        warnings=[],
+                        routing={
+                            "surface": decision.surface,
+                            "reason": decision.reason,
+                            "signals": list(decision.signals),
+                            "latency_ms": answer.latency_ms,
+                            "model_id": answer.model_id,
+                            "token_count_hint": answer.token_count_hint,
+                        },
+                    )
+                )
+        except Exception:
+            pass
 
     response_text = (
         "Resposta de copilot MVP: use o agente para analise narrativa, com "
