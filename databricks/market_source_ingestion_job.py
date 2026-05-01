@@ -47,7 +47,7 @@ BRONZE_SELECT_EXPRESSIONS = (
     "CAST(price_usd AS DECIMAL(38, 8)) AS price_usd",
     "CAST(volume_24h_usd AS DECIMAL(38, 8)) AS volume_24h_usd",
     "CAST(circulating_supply AS DECIMAL(38, 8)) AS circulating_supply",
-    "CAST(market_cap_rank AS INT) AS market_cap_rank",
+    "CAST(market_cap_rank AS BIGINT) AS market_cap_rank",
     "CAST(payload_version AS STRING) AS payload_version",
 )
 
@@ -304,6 +304,8 @@ def _cast_expression_for_field(field_name: str, data_type: Any) -> str:
         return f"CAST({field_name} AS DECIMAL({precision}, {scale})) AS {field_name}"
     if dtype_name == "DoubleType":
         return f"CAST({field_name} AS DOUBLE) AS {field_name}"
+    if dtype_name == "LongType":
+        return f"CAST({field_name} AS BIGINT) AS {field_name}"
     if dtype_name == "IntegerType":
         return f"CAST({field_name} AS INT) AS {field_name}"
     if dtype_name == "TimestampType":
