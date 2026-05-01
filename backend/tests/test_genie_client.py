@@ -167,7 +167,7 @@ class TestGetOAuthToken(unittest.TestCase):
         fake_urlopen = _fake_urlopen_factory([_token_response("tok-miss")])
 
         with patch("urllib.request.urlopen", side_effect=fake_urlopen):
-            token = gc._get_oauth_token(config)
+            token = gc._get_bearer_token(config)
 
         self.assertEqual(token, "tok-miss")
 
@@ -177,7 +177,7 @@ class TestGetOAuthToken(unittest.TestCase):
         gc._TOKEN_CACHE[cache_key] = ("cached-tok", time.monotonic() + 9999)
 
         with patch("urllib.request.urlopen") as mock_urlopen:
-            token = gc._get_oauth_token(config)
+            token = gc._get_bearer_token(config)
             mock_urlopen.assert_not_called()
 
         self.assertEqual(token, "cached-tok")
@@ -190,7 +190,7 @@ class TestGetOAuthToken(unittest.TestCase):
         fake_urlopen = _fake_urlopen_factory([_token_response("refreshed-tok")])
 
         with patch("urllib.request.urlopen", side_effect=fake_urlopen):
-            token = gc._get_oauth_token(config)
+            token = gc._get_bearer_token(config)
 
         self.assertEqual(token, "refreshed-tok")
 
@@ -207,8 +207,8 @@ class TestGetOAuthToken(unittest.TestCase):
             return mock_resp
 
         with patch("urllib.request.urlopen", side_effect=fake_urlopen):
-            t1 = gc._get_oauth_token(config)
-            t2 = gc._get_oauth_token(config)
+            t1 = gc._get_bearer_token(config)
+            t2 = gc._get_bearer_token(config)
 
         self.assertEqual(t1, "tok-single")
         self.assertEqual(t2, "tok-single")
@@ -220,7 +220,7 @@ class TestGetOAuthToken(unittest.TestCase):
 
         before = time.monotonic()
         with patch("urllib.request.urlopen", side_effect=fake_urlopen):
-            gc._get_oauth_token(config)
+            gc._get_bearer_token(config)
 
         cache_key = f"{config.host}:{config.client_id}"
         _, expires_at = gc._TOKEN_CACHE[cache_key]
@@ -233,7 +233,7 @@ class TestGetOAuthToken(unittest.TestCase):
 
         before = time.monotonic()
         with patch("urllib.request.urlopen", side_effect=fake_urlopen):
-            gc._get_oauth_token(config)
+            gc._get_bearer_token(config)
 
         cache_key = f"{config.host}:{config.client_id}"
         _, expires_at = gc._TOKEN_CACHE[cache_key]

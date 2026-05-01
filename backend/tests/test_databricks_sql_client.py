@@ -168,6 +168,7 @@ class TestBuildSQL(unittest.TestCase):
             client_id="cid",
             client_secret="sec",
             catalog=catalog,
+            token=None,
         )
 
     def _captured_sql(self, fn: Any, *args: Any, **kwargs: Any) -> str:
@@ -253,6 +254,7 @@ class TestTokenCache(unittest.TestCase):
             warehouse_id="wh",
             client_id="client-id",
             client_secret="secret",
+            token=None,
         )
 
     def test_token_is_cached_on_second_call(self) -> None:
@@ -269,8 +271,8 @@ class TestTokenCache(unittest.TestCase):
             return mock_resp
 
         with patch("urllib.request.urlopen", side_effect=fake_urlopen):
-            t1 = client._get_oauth_token(config)
-            t2 = client._get_oauth_token(config)
+            t1 = client._get_bearer_token(config)
+            t2 = client._get_bearer_token(config)
 
         self.assertEqual(t1, "tok-1")
         self.assertEqual(t2, "tok-1")
@@ -293,7 +295,7 @@ class TestTokenCache(unittest.TestCase):
             return mock_resp
 
         with patch("urllib.request.urlopen", side_effect=fake_urlopen):
-            token = client._get_oauth_token(config)
+            token = client._get_bearer_token(config)
 
         self.assertEqual(token, "new-token")
         self.assertEqual(call_count, 1)
@@ -306,7 +308,7 @@ class TestTokenCache(unittest.TestCase):
         client._TOKEN_CACHE[cache_key] = ("cached-token", time.monotonic() + 1000)
 
         with patch("urllib.request.urlopen") as mock_urlopen:
-            token = client._get_oauth_token(config)
+            token = client._get_bearer_token(config)
             mock_urlopen.assert_not_called()
 
         self.assertEqual(token, "cached-token")

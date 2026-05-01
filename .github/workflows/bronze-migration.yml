@@ -19,6 +19,7 @@ jobs:
     if: github.event_name == 'workflow_dispatch' && inputs.confirm_migration
     env:
       DATABRICKS_HOST: ${{ secrets.DATABRICKS_HOST }}
+      DATABRICKS_TOKEN: ${{ secrets.DATABRICKS_TOKEN }}
       DATABRICKS_CLIENT_ID: ${{ secrets.DATABRICKS_CLIENT_ID }}
       DATABRICKS_CLIENT_SECRET: ${{ secrets.DATABRICKS_CLIENT_SECRET }}
     steps:
@@ -42,8 +43,11 @@ jobs:
         id: prereq
         run: |
           ready=true
-          if [ -z "$DATABRICKS_HOST" ] || [ -z "$DATABRICKS_CLIENT_ID" ] || [ -z "$DATABRICKS_CLIENT_SECRET" ]; then
-            echo "Missing Databricks credentials (DATABRICKS_HOST, DATABRICKS_CLIENT_ID, DATABRICKS_CLIENT_SECRET); skipping migration."
+          if [ -z "$DATABRICKS_HOST" ]; then
+            echo "Missing DATABRICKS_HOST; skipping migration."
+            ready=false
+          elif [ -z "$DATABRICKS_TOKEN" ] && { [ -z "$DATABRICKS_CLIENT_ID" ] || [ -z "$DATABRICKS_CLIENT_SECRET" ]; }; then
+            echo "Missing auth: set DATABRICKS_TOKEN or both DATABRICKS_CLIENT_ID and DATABRICKS_CLIENT_SECRET; skipping migration."
             ready=false
           elif ! command -v databricks >/dev/null 2>&1; then
             echo "Databricks CLI not installed; skipping migration."

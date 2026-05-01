@@ -22,8 +22,9 @@ _INT_TYPES = {"INT", "BIGINT", "SMALLINT", "TINYINT", "LONG"}
 class DatabricksSQLConfig:
     host: str
     warehouse_id: str
-    client_id: str
-    client_secret: str
+    token: str | None = None
+    client_id: str = ""
+    client_secret: str = ""
     catalog: str = "cgadev"
     timeout_seconds: int = 30
 
@@ -37,19 +38,23 @@ def load_config_from_env(env: dict[str, str] | None = None) -> DatabricksSQLConf
     return DatabricksSQLConfig(
         host=host,
         warehouse_id=warehouse_id,
+        token=source.get("DATABRICKS_TOKEN") or None,
         client_id=source.get("DATABRICKS_CLIENT_ID", ""),
         client_secret=source.get("DATABRICKS_CLIENT_SECRET", ""),
         catalog=source.get("COINGECKO_CATALOG", "cgadev"),
     )
 
 
-def _get_oauth_token(config: DatabricksSQLConfig) -> str:
+def _get_bearer_token(config: DatabricksSQLConfig) -> str:
+    if config.token:
+        return config.token
+
     cache_key = f"{config.host}:{config.client_id}"
     now = time.monotonic()
     if cache_key in _TOKEN_CACHE:
-        token, expires_at = _TOKEN_CACHE[cache_key]
+        cached, expires_at = _TOKEN_CACHE[cache_key]
         if now < expires_at:
-            return token
+            return cached
 
     url = f"{config.host}/oidc/v1/token"
     body = urllib.parse.urlencode(
@@ -64,10 +69,10 @@ def _get_oauth_token(config: DatabricksSQLConfig) -> str:
     with urllib.request.urlopen(req, timeout=config.timeout_seconds) as resp:
         data: dict[str, Any] = json.loads(resp.read())
 
-    token = str(data["access_token"])
+    bearer = str(data["access_token"])
     ttl = int(data.get("expires_in", 3600))
-    _TOKEN_CACHE[cache_key] = (token, now + min(ttl, 3300))
-    return token
+    _TOKEN_CACHE[cache_key] = (bearer, now + min(ttl, 3300))
+    return bearer
 
 
 def _post_json(url: str, body: dict[str, Any], token: str, timeout: int) -> dict[str, Any]:
@@ -117,7 +122,7 @@ def _rows_from_response(data: dict[str, Any]) -> list[dict[str, Any]]:
 
 
 def execute_statement(config: DatabricksSQLConfig, sql: str) -> list[dict[str, Any]]:
-    token = _get_oauth_token(config)
+    token = _get_bearer_token(config)
     submit_url = f"{config.host}/api/2.0/sql/statements"
     body = {
         "warehouse_id": config.warehouse_id,

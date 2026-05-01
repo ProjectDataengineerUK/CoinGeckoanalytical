@@ -16,8 +16,9 @@ _TOKEN_CACHE: dict[str, tuple[str, float]] = {}
 class MosaicConfig:
     host: str
     endpoint_name: str
-    client_id: str
-    client_secret: str
+    token: str | None = None
+    client_id: str = ""
+    client_secret: str = ""
     timeout_seconds: int = 30
 
 
@@ -30,18 +31,22 @@ def load_config_from_env(env: dict[str, str] | None = None) -> MosaicConfig | No
     return MosaicConfig(
         host=host,
         endpoint_name=endpoint_name,
+        token=source.get("DATABRICKS_TOKEN") or None,
         client_id=source.get("DATABRICKS_CLIENT_ID", ""),
         client_secret=source.get("DATABRICKS_CLIENT_SECRET", ""),
     )
 
 
-def _get_oauth_token(config: MosaicConfig) -> str:
+def _get_bearer_token(config: MosaicConfig) -> str:
+    if config.token:
+        return config.token
+
     cache_key = f"{config.host}:{config.client_id}"
     now = time.monotonic()
     if cache_key in _TOKEN_CACHE:
-        token, expires_at = _TOKEN_CACHE[cache_key]
+        cached, expires_at = _TOKEN_CACHE[cache_key]
         if now < expires_at:
-            return token
+            return cached
 
     url = f"{config.host}/oidc/v1/token"
     body = urllib.parse.urlencode(
@@ -56,10 +61,10 @@ def _get_oauth_token(config: MosaicConfig) -> str:
     with urllib.request.urlopen(req, timeout=config.timeout_seconds) as resp:
         data: dict[str, Any] = json.loads(resp.read())
 
-    token = str(data["access_token"])
+    bearer = str(data["access_token"])
     ttl = int(data.get("expires_in", 3600))
-    _TOKEN_CACHE[cache_key] = (token, now + min(ttl, 3300))
-    return token
+    _TOKEN_CACHE[cache_key] = (bearer, now + min(ttl, 3300))
+    return bearer
 
 
 @dataclass(frozen=True)
@@ -77,7 +82,7 @@ def ask_mosaic(
     conversation_history: list[dict[str, str]] | None = None,
 ) -> MosaicAnswer:
     started_at = time.monotonic()
-    token = _get_oauth_token(config)
+    token = _get_bearer_token(config)
 
     messages: list[dict[str, str]] = list(conversation_history or [])
     messages.append({"role": "user", "content": question})
