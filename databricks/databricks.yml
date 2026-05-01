@@ -37,6 +37,20 @@ resources:
             environment_version: "2"
             dependencies: []
 
+    silver_market_table_migration_job:
+      name: silver_market_table_migration_job
+      description: Provision Silver Delta tables; drops legacy views if present.
+      tasks:
+        - task_key: migrate_silver_market_tables
+          spark_python_task:
+            python_file: ./silver_market_migration_job.py
+          environment_key: default
+      environments:
+        - environment_key: default
+          spec:
+            environment_version: "2"
+            dependencies: []
+
     silver_market_pipeline_job:
       name: silver_market_pipeline_job
       description: Materialise Silver Delta tables (changes, dominance, cross-asset comparison) from Bronze snapshots.

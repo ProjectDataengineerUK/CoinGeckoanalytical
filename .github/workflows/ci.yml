@@ -71,6 +71,7 @@ jobs:
           python3 -m unittest databricks.test_ops_readiness_refresh_job
           python3 -m unittest databricks.test_bronze_market_table_migration_job
           python3 -m unittest databricks.test_silver_market_pipeline_job
+          python3 -m unittest databricks.test_silver_market_migration_job
 
       - name: Run workflow contract tests
         run: python3 -m unittest discover -s repo_tests -p 'test_*.py'
@@ -133,6 +134,7 @@ jobs:
           databricks bundle deploy -t dev
           databricks bundle run bronze_market_table_migration_job -t dev
           databricks bundle run market_source_ingestion_job -t dev -- --payload-json "$MARKET_PAYLOAD_JSON" --target-table "cgadev.market_bronze.bronze_market_snapshots"
+          databricks bundle run silver_market_table_migration_job -t dev
           databricks bundle run silver_market_pipeline_job -t dev
           databricks bundle run ops_usage_ingestion_job -t dev
           databricks bundle run ops_bundle_run_ingestion_job -t dev
