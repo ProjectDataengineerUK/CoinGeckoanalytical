@@ -46,6 +46,17 @@ The deploy smoke keeps passing a fixture payload so GitHub Actions remains deter
 
 The scheduled Databricks job can now run without a payload and fetch real CoinGecko market data.
 
+## Spark Layer
+
+The market source job now materializes a Spark DataFrame contract before writing to Delta:
+
+- `selectExpr` casts to the Bronze schema
+- timestamp fields are cast to `TIMESTAMP`
+- market numeric fields are cast to `DECIMAL(38, 8)`
+- rank is cast to `INT`
+- symbols are uppercased through Spark
+- duplicate source records are removed with `dropDuplicates(["source_system", "source_record_id"])`
+
 ## Verification
 
 Run locally:

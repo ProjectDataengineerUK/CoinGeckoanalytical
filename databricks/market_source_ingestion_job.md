@@ -43,9 +43,22 @@ Append normalized market-source rows into the governed Bronze landing table `bro
 - supports CoinGecko pagination through environment configuration
 - uses retry/backoff for transient provider failures
 - normalizes CoinGecko-style input into the Bronze contract
+- builds a Spark DataFrame for the Bronze contract
+- applies Spark `selectExpr` casts for strings, timestamps, decimals, and integers
+- deduplicates each batch by `source_system` and `source_record_id`
 - enforces the required Bronze market fields
 - coerces numeric fields into stable types
 - appends the normalized rows to the target Delta table
+
+## Spark Contract
+
+The job writes through a Spark DataFrame, not a raw Python payload append:
+
+- `observed_at` and `ingested_at` are cast to `TIMESTAMP`
+- market numeric fields are cast to `DECIMAL(38, 8)`
+- `market_cap_rank` is cast to `INT`
+- `symbol` is uppercased in Spark
+- duplicate source records are removed within the batch before write
 
 ## Provider Configuration
 
@@ -66,6 +79,7 @@ Append normalized market-source rows into the governed Bronze landing table `bro
 - designed for Databricks Jobs / serverless execution
 - uses batch append only
 - fetches from CoinGecko during scheduled runs unless a payload override is supplied
+- uses Spark DataFrame transformations before Delta write
 
 ## Next Step
 

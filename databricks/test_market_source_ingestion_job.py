@@ -201,6 +201,16 @@ class MarketSourceIngestionJobTests(unittest.TestCase):
         class FakeDataFrame:
             def __init__(self) -> None:
                 self.write = FakeWriter()
+                self.select_expressions: tuple[str, ...] = ()
+                self.dedup_keys: list[str] = []
+
+            def selectExpr(self, *expressions: str) -> "FakeDataFrame":
+                self.select_expressions = expressions
+                return self
+
+            def dropDuplicates(self, keys: list[str]) -> "FakeDataFrame":
+                self.dedup_keys = keys
+                return self
 
         class FakeSpark:
             def __init__(self) -> None:
@@ -239,7 +249,61 @@ class MarketSourceIngestionJobTests(unittest.TestCase):
         self.assertIsNotNone(fake_spark.rows)
         assert fake_spark.rows is not None
         self.assertEqual(fake_spark.rows[0]["asset_id"], "bitcoin")
+        self.assertIn("CAST(observed_at AS TIMESTAMP) AS observed_at", fake_spark.dataframe.select_expressions)
+        self.assertIn("CAST(market_cap_usd AS DECIMAL(38, 8)) AS market_cap_usd", fake_spark.dataframe.select_expressions)
+        self.assertEqual(fake_spark.dataframe.dedup_keys, ["source_system", "source_record_id"])
+        self.assertEqual(fake_spark.dataframe.write.mode_value, "append")
+        self.assertEqual(fake_spark.dataframe.write.format_value, "delta")
         self.assertEqual(fake_spark.dataframe.write.target_table, "cgadev.market_bronze.bronze_market_snapshots")
+
+    def test_build_bronze_market_dataframe_applies_spark_contract_transformations(self) -> None:
+        class FakeDataFrame:
+            def __init__(self) -> None:
+                self.select_expressions: tuple[str, ...] = ()
+                self.dedup_keys: list[str] = []
+
+            def selectExpr(self, *expressions: str) -> "FakeDataFrame":
+                self.select_expressions = expressions
+                return self
+
+            def dropDuplicates(self, keys: list[str]) -> "FakeDataFrame":
+                self.dedup_keys = keys
+                return self
+
+        class FakeSpark:
+            def __init__(self) -> None:
+                self.rows: list[dict[str, object]] | None = None
+                self.dataframe = FakeDataFrame()
+
+            def createDataFrame(self, rows: list[dict[str, object]]) -> FakeDataFrame:
+                self.rows = rows
+                return self.dataframe
+
+        normalized_rows = market_source_ingestion_job.normalize_market_rows(
+            [
+                {
+                    "id": "bitcoin",
+                    "symbol": "btc",
+                    "name": "Bitcoin",
+                    "market_cap": 1,
+                    "current_price": 1,
+                    "total_volume": 1,
+                    "circulating_supply": 1,
+                    "market_cap_rank": 1,
+                    "last_updated": "2026-04-30T00:00:00Z",
+                }
+            ]
+        )
+        fake_spark = FakeSpark()
+
+        dataframe = market_source_ingestion_job.build_bronze_market_dataframe(fake_spark, normalized_rows)
+
+        self.assertIs(dataframe, fake_spark.dataframe)
+        self.assertEqual(fake_spark.rows, normalized_rows)
+        self.assertEqual(len(fake_spark.dataframe.select_expressions), len(market_source_ingestion_job.BRONZE_SELECT_EXPRESSIONS))
+        self.assertIn("UPPER(CAST(symbol AS STRING)) AS symbol", fake_spark.dataframe.select_expressions)
+        self.assertIn("CAST(price_usd AS DECIMAL(38, 8)) AS price_usd", fake_spark.dataframe.select_expressions)
+        self.assertEqual(fake_spark.dataframe.dedup_keys, ["source_system", "source_record_id"])
 
 
 if __name__ == "__main__":

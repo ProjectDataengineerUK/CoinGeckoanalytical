@@ -34,6 +34,23 @@ REQUIRED_FIELDS = (
 
 ALLOWED_SOURCE_SYSTEMS = {"coingecko_api", "internal_reference", "partner_feed"}
 
+BRONZE_SELECT_EXPRESSIONS = (
+    "CAST(source_system AS STRING) AS source_system",
+    "CAST(source_record_id AS STRING) AS source_record_id",
+    "CAST(asset_id AS STRING) AS asset_id",
+    "UPPER(CAST(symbol AS STRING)) AS symbol",
+    "CAST(name AS STRING) AS name",
+    "CAST(category AS STRING) AS category",
+    "CAST(observed_at AS TIMESTAMP) AS observed_at",
+    "CAST(ingested_at AS TIMESTAMP) AS ingested_at",
+    "CAST(market_cap_usd AS DECIMAL(38, 8)) AS market_cap_usd",
+    "CAST(price_usd AS DECIMAL(38, 8)) AS price_usd",
+    "CAST(volume_24h_usd AS DECIMAL(38, 8)) AS volume_24h_usd",
+    "CAST(circulating_supply AS DECIMAL(38, 8)) AS circulating_supply",
+    "CAST(market_cap_rank AS INT) AS market_cap_rank",
+    "CAST(payload_version AS STRING) AS payload_version",
+)
+
 
 @dataclass(frozen=True)
 class IngestionResult:
@@ -227,9 +244,17 @@ def write_market_rows(
     if not normalized_rows:
         return IngestionResult(rows_written=0, target_table=target_table)
 
-    dataframe = spark.createDataFrame(normalized_rows)
+    dataframe = build_bronze_market_dataframe(spark, normalized_rows)
     dataframe.write.mode("append").format("delta").saveAsTable(target_table)
     return IngestionResult(rows_written=len(normalized_rows), target_table=target_table)
+
+
+def build_bronze_market_dataframe(spark: Any, normalized_rows: list[dict[str, Any]]) -> Any:
+    raw_dataframe = spark.createDataFrame(normalized_rows)
+    return (
+        raw_dataframe.selectExpr(*BRONZE_SELECT_EXPRESSIONS)
+        .dropDuplicates(["source_system", "source_record_id"])
+    )
 
 
 def main(
