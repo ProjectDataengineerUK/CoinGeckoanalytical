@@ -49,6 +49,7 @@
 - GitHub Actions API confirmed `ci` run `25198087949` completed `lint`, `contract`, and `deploy` successfully; the run uploaded `databricks-live-sql-validation`, and live evidence is recorded at `.agentcodex/reports/live-workspace-validation-2026-04-30.md`
 - the market ingestion gap was closed in `.agentcodex/reports/build-slice-1-coingecko-fetch-2026-05-01.md`; `market_source_ingestion_job` now fetches CoinGecko `/coins/markets` directly when no explicit payload is supplied, while CI smoke can still pass a deterministic fixture payload
 - a thin Databricks notebook layer was added in `.agentcodex/reports/build-slice-1-databricks-notebooks-2026-05-01.md`; production logic remains in tested Python/SQL assets while notebooks provide workspace-native entrypoints and review surfaces
+- GitHub Actions API confirmed `ci` run `25215006212` failed only in the `deploy` job after adding notebooks; remediation is recorded at `.agentcodex/reports/deploy-failure-notebook-sync-remediation-2026-05-01.md`, and the bundle now excludes `notebooks/**` from production job file sync while still validating source-controlled notebook assets
 - commit and push are now the normal publication path after validation, unless the user explicitly asks to hold back publication
 - the frontend remains a placeholder and no real user-facing V1 slice is closed yet
 

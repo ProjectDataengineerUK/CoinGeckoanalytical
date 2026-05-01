@@ -35,6 +35,10 @@ def validate_bundle(bundle: dict[str, Any], root_dir: str | Path | None = None) 
     if bundle.get("bundle", {}).get("name") != "coingeckoanalytical-databricks":
         errors.append("bundle name must be coingeckoanalytical-databricks")
 
+    sync_excludes = set(bundle.get("sync", {}).get("exclude", []))
+    if "notebooks/**" not in sync_excludes:
+        errors.append("Databricks notebooks must be excluded from job bundle file sync")
+
     jobs = bundle.get("resources", {}).get("jobs", {})
     missing_jobs = REQUIRED_JOB_KEYS - set(jobs.keys())
     if missing_jobs:

@@ -10,7 +10,7 @@ Package the Databricks-side jobs as a deployable bundle with scheduled ingestion
 
 ## Resources
 
-The scheduled production jobs use `spark_python_task` for testable CI/CD. Thin notebooks also exist under `databricks/notebooks/` for Databricks workspace execution and review.
+The scheduled production jobs use `spark_python_task` for testable CI/CD. Thin notebooks also exist under `databricks/notebooks/` for Databricks workspace execution and review. The bundle excludes those notebooks from job file sync so deploys only move production job assets; notebook import remains an explicit workspace action.
 
 ### `market_source_ingestion_job`
 

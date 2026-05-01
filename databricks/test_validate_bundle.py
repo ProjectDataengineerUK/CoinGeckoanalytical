@@ -32,6 +32,14 @@ class ValidateBundleTests(unittest.TestCase):
 
         self.assertTrue(any("missing Databricks notebook asset" in error for error in errors))
 
+    def test_validate_bundle_requires_notebooks_excluded_from_job_file_sync(self) -> None:
+        bundle = validate_bundle.load_bundle(Path(__file__).resolve().parent / "databricks.yml")
+        bundle["sync"]["exclude"] = []
+
+        errors = validate_bundle.validate_bundle(bundle, root_dir=Path(__file__).resolve().parent)
+
+        self.assertIn("Databricks notebooks must be excluded from job bundle file sync", errors)
+
     def test_validate_bundle_flags_bad_job_schedule(self) -> None:
         bundle = validate_bundle.load_bundle(Path(__file__).resolve().parent / "databricks.yml")
         bundle["resources"]["jobs"]["ops_usage_ingestion_job"]["schedule"]["pause_status"] = "PAUSED"
