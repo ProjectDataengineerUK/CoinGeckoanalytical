@@ -15,7 +15,7 @@ assert BACKEND_SPEC is not None and BACKEND_SPEC.loader is not None
 sys.modules[BACKEND_SPEC.name] = market_source_handoff
 BACKEND_SPEC.loader.exec_module(market_source_handoff)
 
-INGESTION_MODULE_PATH = Path(__file__).resolve().parent.parent / "databricks" / "market_source_ingestion_job.py"
+INGESTION_MODULE_PATH = Path(__file__).resolve().parent.parent / "databricks" / "jobs" / "market_source_ingestion_job.py"
 INGESTION_SPEC = importlib.util.spec_from_file_location("market_source_ingestion_job", INGESTION_MODULE_PATH)
 market_source_ingestion_job = importlib.util.module_from_spec(INGESTION_SPEC)
 assert INGESTION_SPEC is not None and INGESTION_SPEC.loader is not None
