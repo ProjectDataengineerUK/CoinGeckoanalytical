@@ -89,8 +89,8 @@ def validate_market_overview_chain(root_dir: str | Path | None = None) -> list[s
         if marker not in lineage_map:
             errors.append(f"lineage map missing marker: {marker}")
 
-    if 'target_table: str = "bronze_market_snapshots"' not in market_job:
-        errors.append("market source ingestion job must target bronze_market_snapshots by default")
+    if 'target_table: str = "cgadev.market_bronze.bronze_market_snapshots"' not in market_job:
+        errors.append("market source ingestion job must target cgadev.market_bronze.bronze_market_snapshots by default")
 
     if 'DEFAULT_BRONZE_TABLE = "bronze_market_snapshots"' not in silver_pipeline_job:
         errors.append("silver pipeline job must read from bronze_market_snapshots by default")

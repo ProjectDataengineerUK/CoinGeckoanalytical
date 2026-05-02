@@ -238,7 +238,7 @@ def normalize_market_rows(rows: list[dict[str, Any]]) -> list[dict[str, Any]]:
 def write_market_rows(
     spark: Any,
     rows: list[dict[str, Any]],
-    target_table: str = "bronze_market_snapshots",
+    target_table: str = "cgadev.market_bronze.bronze_market_snapshots",
 ) -> IngestionResult:
     normalized_rows = normalize_market_rows(rows)
     if not normalized_rows:
@@ -319,7 +319,7 @@ def main(
     spark: Any,
     payload_json: str | None = None,
     payload_path: str | None = None,
-    target_table: str = "bronze_market_snapshots",
+    target_table: str = "cgadev.market_bronze.bronze_market_snapshots",
     fetch_config: CoinGeckoFetchConfig | None = None,
 ) -> IngestionResult:
     if payload_json or payload_path:
@@ -406,14 +406,24 @@ if __name__ == "__main__":
     try:
         widgets["target_table"] = dbutils.widgets.get("target_table")  # type: ignore[name-defined]
     except Exception:  # pragma: no cover - Databricks widget fallback
-        widgets["target_table"] = "bronze_market_snapshots"
+        widgets["target_table"] = "cgadev.market_bronze.bronze_market_snapshots"
 
     runtime_args = parse_runtime_args(sys.argv[1:])
+
+    coingecko_api_key = os.environ.get("COINGECKO_API_KEY")
+    if not coingecko_api_key:
+        try:
+            coingecko_api_key = dbutils.secrets.get("coingecko", "api_key")  # type: ignore[name-defined]
+        except Exception:  # pragma: no cover - secret not configured
+            coingecko_api_key = None
+
+    fetch_config = CoinGeckoFetchConfig(api_key=coingecko_api_key) if coingecko_api_key else None
 
     result = main(
         spark_session,
         payload_json=widgets["payload_json"] or runtime_args["payload_json"],
         payload_path=widgets["payload_path"] or runtime_args["payload_path"],
-        target_table=widgets["target_table"] or runtime_args["target_table"] or "bronze_market_snapshots",
+        target_table=widgets["target_table"] or runtime_args["target_table"] or "cgadev.market_bronze.bronze_market_snapshots",
+        fetch_config=fetch_config,
     )
     print(json.dumps({"rows_written": result.rows_written, "target_table": result.target_table}))

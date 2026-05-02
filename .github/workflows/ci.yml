@@ -133,7 +133,7 @@ jobs:
           cd databricks
           databricks bundle deploy -t dev
           databricks bundle run bronze_market_table_migration_job -t dev
-          databricks bundle run market_source_ingestion_job -t dev -- --payload-json "$MARKET_PAYLOAD_JSON" --target-table "cgadev.market_bronze.bronze_market_snapshots"
+          databricks bundle run market_source_ingestion_job -t dev -- --payload-json "$MARKET_PAYLOAD_JSON"
           databricks bundle run silver_market_table_migration_job -t dev
           databricks bundle run silver_market_pipeline_job -t dev
           databricks bundle run ops_usage_ingestion_job -t dev
