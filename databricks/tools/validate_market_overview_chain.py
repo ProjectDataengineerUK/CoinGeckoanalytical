@@ -25,10 +25,10 @@ EXPECTED_GOLD_OBJECTS = {
 }
 
 EXPECTED_METRIC_VIEWS = {
-    "mv_market_rankings": "source: cgadev.market_gold.gold_market_rankings",
-    "mv_top_movers": "source: cgadev.market_gold.gold_top_movers",
-    "mv_market_dominance": "source: cgadev.market_gold.gold_market_dominance",
-    "mv_cross_asset_compare": "source: cgadev.market_gold.gold_cross_asset_comparison",
+    "mv_market_rankings": "FROM cgadev.market_gold.gold_market_rankings",
+    "mv_top_movers": "FROM cgadev.market_gold.gold_top_movers",
+    "mv_market_dominance": "FROM cgadev.market_gold.gold_market_dominance",
+    "mv_cross_asset_compare": "FROM cgadev.market_gold.gold_cross_asset_comparison",
 }
 
 
@@ -61,10 +61,10 @@ def validate_market_overview_chain(root_dir: str | Path | None = None) -> list[s
         if signature not in gold_sql:
             errors.append(f"missing Gold object definition: {object_name}")
 
-    for metric_name, signature in EXPECTED_METRIC_VIEWS.items():
-        if f"CREATE OR REPLACE VIEW {metric_name}" not in metric_sql:
+    for metric_name, source_signature in EXPECTED_METRIC_VIEWS.items():
+        if f"cgadev.ai_serving.{metric_name}" not in metric_sql:
             errors.append(f"missing metric view definition: {metric_name}")
-        if signature not in metric_sql:
+        if source_signature not in metric_sql:
             errors.append(f"metric view source mismatch for: {metric_name}")
 
     dependency_checks = (

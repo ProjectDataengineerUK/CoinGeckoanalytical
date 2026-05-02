@@ -9,6 +9,7 @@ DEFAULT_SQL_FILES = (
     "../sql/migrations/unity_catalog_runtime_foundation.sql",
     "../sql/layers/bronze_silver_market_foundation.sql",
     "../sql/layers/gold_market_views.sql",
+    "../sql/layers/genie_metric_views.sql",
     "../sql/observability/freshness_quality_baseline.sql",
     "../sql/observability/telemetry-observability.sql",
     "../sql/observability/bundle_run_observability.sql",

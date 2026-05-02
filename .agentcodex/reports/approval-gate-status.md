@@ -10,7 +10,8 @@
 
 | Date       | Action                          | Approved by | State      | Notes |
 |------------|---------------------------------|-------------|------------|-------|
-| 2026-05-01 | `ci.yml` confirm_deploy=true    | operator    | dispatched | Full deploy sequence post folder reorganization + validator fixes. Commits: 1265620, 38defbc, a9734ee |
+| 2026-05-02 | `ci.yml` confirm_deploy=true    | operator    | dispatched | Fix ai_serving views + CoinGecko API key injection. Commits: 63c512a, 1281aa3 + genie/ops fixes |
+| 2026-05-02 | `ci.yml` confirm_deploy=true    | operator    | executed   | Full deploy post folder reorg + validator fixes. Run 25252497484 ✓ |
 | 2026-05-01 | `bronze-migration.yml`          | operator    | executed   | Bronze schema remediation run 25216983089 |
 
 ## Interpretation
