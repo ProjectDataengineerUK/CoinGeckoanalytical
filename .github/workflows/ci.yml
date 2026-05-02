@@ -158,7 +158,7 @@ jobs:
           databricks bundle run silver_enrichment_migration_job -t dev
           databricks bundle run defillama_ingestion_job -t dev
           databricks bundle run github_activity_ingestion_job -t dev
-          databricks bundle run fred_macro_ingestion_job -t dev -- --skip-live
+          FRED_API_KEY="$FRED_API_KEY" databricks bundle run fred_macro_ingestion_job -t dev
           databricks bundle run silver_enrichment_pipeline_job -t dev
 
       - name: Run live SQL validation

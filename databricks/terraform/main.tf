@@ -92,11 +92,3 @@ resource "databricks_grants" "audit_control" {
     privileges = ["USE_SCHEMA", "SELECT", "MODIFY"]
   }
 }
-
-# Secret scope for Anthropic API key used by External Model endpoints.
-# The scope is managed by Terraform; the secret value must be inserted once manually:
-#   databricks secrets put-secret anthropic api_key --string-value "sk-ant-..."
-# Never store the API key in Terraform state or version control.
-resource "databricks_secret_scope" "anthropic" {
-  name = "anthropic"
-}

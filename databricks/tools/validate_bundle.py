@@ -29,18 +29,6 @@ REQUIRED_NOTEBOOKS = {
     "notebooks/03_ops_readiness_review.py",
 }
 
-REQUIRED_MODEL_ENDPOINTS = {
-    "coingecko_copilot_light",
-    "coingecko_copilot_standard",
-    "coingecko_copilot_complex",
-}
-
-_ENDPOINT_TIER_MODEL = {
-    "coingecko_copilot_light": "claude-haiku",
-    "coingecko_copilot_standard": "claude-sonnet",
-    "coingecko_copilot_complex": "claude-opus",
-}
-
 
 def load_bundle(path: str | Path = "databricks.yml") -> dict[str, Any]:
     bundle_path = Path(path)
@@ -103,32 +91,6 @@ def validate_bundle(bundle: dict[str, Any], root_dir: str | Path | None = None) 
         notebook_path = base_dir / notebook
         if not notebook_path.exists():
             errors.append(f"missing Databricks notebook asset: {notebook}")
-
-    endpoints = bundle.get("resources", {}).get("model_serving_endpoints", {})
-    missing_endpoints = REQUIRED_MODEL_ENDPOINTS - set(endpoints.keys())
-    if missing_endpoints:
-        errors.append(f"missing model_serving_endpoints: {', '.join(sorted(missing_endpoints))}")
-
-    for ep_key, ep in endpoints.items():
-        if ep_key not in REQUIRED_MODEL_ENDPOINTS:
-            continue
-        served = (ep.get("config") or {}).get("served_entities") or []
-        if not served:
-            errors.append(f"{ep_key} must define at least one served_entity")
-            continue
-        ext = served[0].get("external_model") or {}
-        if ext.get("provider") != "anthropic":
-            errors.append(f"{ep_key} external_model.provider must be anthropic")
-        if ext.get("task") != "llm/v1/chat":
-            errors.append(f"{ep_key} external_model.task must be llm/v1/chat")
-        model_name = ext.get("name", "")
-        expected_fragment = _ENDPOINT_TIER_MODEL[ep_key]
-        if expected_fragment not in model_name:
-            errors.append(f"{ep_key} model name must contain '{expected_fragment}', got '{model_name}'")
-        anthropic_cfg = ext.get("anthropic_config") or {}
-        api_key_ref = anthropic_cfg.get("anthropic_api_key", "")
-        if not api_key_ref.startswith("{{secrets/"):
-            errors.append(f"{ep_key} anthropic_api_key must be a secret reference ({{{{secrets/...}}}})")
 
     return errors
 
