@@ -28,7 +28,10 @@ class ValidateMarketOverviewChainTests(unittest.TestCase):
             root = Path(tmpdir)
             source_root = Path(__file__).resolve().parent
             for name in (
+                "bronze_market_table_migration.sql",
                 "bronze_silver_market_foundation.sql",
+                "silver_market_migration.sql",
+                "silver_market_pipeline_job.py",
                 "gold_market_views.sql",
                 "genie_metric_views.sql",
                 "unity-catalog-lineage-map.md",

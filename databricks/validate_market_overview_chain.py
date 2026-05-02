@@ -7,11 +7,14 @@ EXPECTED_BRONZE_OBJECTS = {
     "bronze_market_snapshots": "CREATE OR REPLACE TABLE cgadev.market_bronze.bronze_market_snapshots",
 }
 
-EXPECTED_SILVER_OBJECTS = {
+EXPECTED_SILVER_SNAPSHOT_OBJECTS = {
     "silver_market_snapshots": "CREATE OR REPLACE VIEW cgadev.market_silver.silver_market_snapshots AS",
-    "silver_market_changes": "CREATE OR REPLACE VIEW cgadev.market_silver.silver_market_changes AS",
-    "silver_market_dominance": "CREATE OR REPLACE VIEW cgadev.market_silver.silver_market_dominance AS",
-    "silver_cross_asset_comparison": "CREATE OR REPLACE VIEW cgadev.market_silver.silver_cross_asset_comparison AS",
+}
+
+EXPECTED_SILVER_TABLE_OBJECTS = {
+    "silver_market_changes": "CREATE TABLE IF NOT EXISTS cgadev.market_silver.silver_market_changes",
+    "silver_market_dominance": "CREATE TABLE IF NOT EXISTS cgadev.market_silver.silver_market_dominance",
+    "silver_cross_asset_comparison": "CREATE TABLE IF NOT EXISTS cgadev.market_silver.silver_cross_asset_comparison",
 }
 
 EXPECTED_GOLD_OBJECTS = {
@@ -33,18 +36,25 @@ def validate_market_overview_chain(root_dir: str | Path | None = None) -> list[s
     base_dir = Path(root_dir) if root_dir is not None else Path(__file__).resolve().parent
     errors: list[str] = []
 
+    bronze_migration_sql = _read(base_dir / "bronze_market_table_migration.sql")
     bronze_silver_sql = _read(base_dir / "bronze_silver_market_foundation.sql")
+    silver_migration_sql = _read(base_dir / "silver_market_migration.sql")
     gold_sql = _read(base_dir / "gold_market_views.sql")
     metric_sql = _read(base_dir / "genie_metric_views.sql")
     lineage_map = _read(base_dir / "unity-catalog-lineage-map.md")
     market_job = _read(base_dir / "market_source_ingestion_job.py")
+    silver_pipeline_job = _read(base_dir / "silver_market_pipeline_job.py")
 
     for object_name, signature in EXPECTED_BRONZE_OBJECTS.items():
-        if signature not in bronze_silver_sql:
+        if signature not in bronze_migration_sql:
             errors.append(f"missing Bronze object definition: {object_name}")
 
-    for object_name, signature in EXPECTED_SILVER_OBJECTS.items():
+    for object_name, signature in EXPECTED_SILVER_SNAPSHOT_OBJECTS.items():
         if signature not in bronze_silver_sql:
+            errors.append(f"missing Silver object definition: {object_name}")
+
+    for object_name, signature in EXPECTED_SILVER_TABLE_OBJECTS.items():
+        if signature not in silver_migration_sql:
             errors.append(f"missing Silver object definition: {object_name}")
 
     for object_name, signature in EXPECTED_GOLD_OBJECTS.items():
@@ -59,9 +69,6 @@ def validate_market_overview_chain(root_dir: str | Path | None = None) -> list[s
 
     dependency_checks = (
         ("silver_market_snapshots", "FROM cgadev.market_bronze.bronze_market_snapshots", bronze_silver_sql),
-        ("silver_market_changes", "FROM cgadev.market_silver.silver_market_snapshots", bronze_silver_sql),
-        ("silver_market_dominance", "FROM cgadev.market_silver.silver_market_snapshots", bronze_silver_sql),
-        ("silver_cross_asset_comparison", "FROM cgadev.market_silver.silver_market_snapshots", bronze_silver_sql),
         ("gold_market_rankings", "FROM cgadev.market_bronze.bronze_market_snapshots", gold_sql),
         ("gold_top_movers", "FROM cgadev.market_silver.silver_market_changes", gold_sql),
         ("gold_market_dominance", "FROM cgadev.market_silver.silver_market_dominance", gold_sql),
@@ -84,6 +91,9 @@ def validate_market_overview_chain(root_dir: str | Path | None = None) -> list[s
 
     if 'target_table: str = "bronze_market_snapshots"' not in market_job:
         errors.append("market source ingestion job must target bronze_market_snapshots by default")
+
+    if 'DEFAULT_BRONZE_TABLE = "bronze_market_snapshots"' not in silver_pipeline_job:
+        errors.append("silver pipeline job must read from bronze_market_snapshots by default")
 
     return errors
 
