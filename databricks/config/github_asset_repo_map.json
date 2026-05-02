@@ -1,0 +1,22 @@
+[
+  {"asset_id": "bitcoin",                  "owner": "bitcoin",           "repo": "bitcoin"},
+  {"asset_id": "ethereum",                 "owner": "ethereum",          "repo": "go-ethereum"},
+  {"asset_id": "solana",                   "owner": "solana-labs",       "repo": "solana"},
+  {"asset_id": "avalanche-2",              "owner": "ava-labs",          "repo": "avalanchego"},
+  {"asset_id": "polkadot",                 "owner": "paritytech",        "repo": "polkadot-sdk"},
+  {"asset_id": "cosmos",                   "owner": "cosmos",            "repo": "cosmos-sdk"},
+  {"asset_id": "near",                     "owner": "near",              "repo": "nearcore"},
+  {"asset_id": "algorand",                 "owner": "algorand",          "repo": "go-algorand"},
+  {"asset_id": "cardano",                  "owner": "IntersectMBO",      "repo": "cardano-node"},
+  {"asset_id": "ripple",                   "owner": "XRPLF",             "repo": "rippled"},
+  {"asset_id": "litecoin",                 "owner": "litecoin-project",  "repo": "litecoin"},
+  {"asset_id": "dogecoin",                 "owner": "dogecoin",          "repo": "dogecoin"},
+  {"asset_id": "uniswap",                  "owner": "Uniswap",           "repo": "v3-core"},
+  {"asset_id": "aave",                     "owner": "aave",              "repo": "aave-v3-core"},
+  {"asset_id": "chainlink",                "owner": "smartcontractkit",  "repo": "chainlink"},
+  {"asset_id": "maker",                    "owner": "makerdao",          "repo": "dss"},
+  {"asset_id": "compound-governance-token","owner": "compound-finance",  "repo": "compound-protocol"},
+  {"asset_id": "curve-dao-token",          "owner": "curvefi",           "repo": "curve-contract"},
+  {"asset_id": "lido-dao",                 "owner": "lidofinance",       "repo": "lido-dao"},
+  {"asset_id": "polygon",                  "owner": "maticnetwork",      "repo": "bor"}
+]

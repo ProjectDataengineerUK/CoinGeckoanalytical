@@ -190,3 +190,75 @@ SELECT
   END AS quality_status
 FROM ranked_source
 WHERE source_row_number = 1;
+
+-- Phase 2: enriched views
+
+CREATE OR REPLACE VIEW cgadev.market_gold.gold_enriched_rankings AS
+SELECT
+  e.asset_id,
+  e.symbol,
+  e.name,
+  e.market_cap_rank,
+  e.price_usd,
+  e.market_cap_usd,
+  e.volume_24h_usd,
+  e.defi_category,
+  e.tvl_usd,
+  e.fees_24h_usd,
+  e.revenue_24h_usd,
+  e.mcap_tvl_ratio,
+  e.repo_full_name,
+  e.stars,
+  e.commits_30d,
+  e.contributors_count,
+  e.dev_activity_score,
+  e.enriched_at,
+  'tier_b'                  AS freshness_tier,
+  360                        AS freshness_target_minutes,
+  'silver_asset_enriched'    AS lineage_source,
+  CASE WHEN e.asset_id IS NOT NULL THEN 'pass' ELSE 'review' END AS quality_status
+FROM cgadev.market_silver.silver_asset_enriched e;
+
+CREATE OR REPLACE VIEW cgadev.market_gold.gold_defi_protocols AS
+SELECT
+  asset_id,
+  symbol,
+  name,
+  protocol_slug,
+  defi_category,
+  tvl_usd,
+  fees_24h_usd,
+  revenue_24h_usd,
+  mcap_tvl_ratio,
+  enriched_at,
+  'tier_b'                  AS freshness_tier,
+  360                        AS freshness_target_minutes,
+  'silver_asset_enriched'    AS lineage_source,
+  CASE WHEN tvl_usd > 0 THEN 'pass' ELSE 'review' END AS quality_status
+FROM cgadev.market_silver.silver_asset_enriched
+WHERE tvl_usd IS NOT NULL AND tvl_usd > 0;
+
+CREATE OR REPLACE VIEW cgadev.market_gold.gold_macro_regime AS
+SELECT
+  series_id,
+  series_name,
+  latest_date,
+  current_value,
+  value_30d_ago,
+  change_30d_pct,
+  CASE
+    WHEN series_id = 'DGS10'    AND current_value > 4.0   THEN 'high_rates'
+    WHEN series_id = 'DGS10'    AND current_value < 2.0   THEN 'low_rates'
+    WHEN series_id = 'DTWEXBGS' AND change_30d_pct > 2.0  THEN 'usd_strengthening'
+    WHEN series_id = 'DTWEXBGS' AND change_30d_pct < -2.0 THEN 'usd_weakening'
+    WHEN series_id = 'CPIAUCSL' AND change_30d_pct > 0.3  THEN 'inflation_rising'
+    WHEN series_id = 'M2SL'     AND change_30d_pct > 1.0  THEN 'liquidity_expanding'
+    WHEN series_id = 'M2SL'     AND change_30d_pct < -1.0 THEN 'liquidity_contracting'
+    ELSE 'neutral'
+  END AS regime_label,
+  enriched_at,
+  'tier_c'                  AS freshness_tier,
+  1440                       AS freshness_target_minutes,
+  'silver_macro_context'     AS lineage_source,
+  'pass'                     AS quality_status
+FROM cgadev.market_silver.silver_macro_context;

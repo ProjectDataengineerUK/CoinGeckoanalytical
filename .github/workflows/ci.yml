@@ -56,6 +56,9 @@ jobs:
       - name: Run market overview chain validation
         run: python3 databricks/tools/validate_market_overview_chain.py
 
+      - name: Run enrichment chain validation
+        run: python3 databricks/tools/validate_enrichment_chain.py
+
       - name: Run Databricks helper tests
         run: |
           python3 -m unittest databricks.tests.test_validate_bundle
@@ -72,6 +75,12 @@ jobs:
           python3 -m unittest databricks.tests.test_bronze_market_table_migration_job
           python3 -m unittest databricks.tests.test_silver_market_pipeline_job
           python3 -m unittest databricks.tests.test_silver_market_migration_job
+          python3 -m unittest databricks.tests.test_defillama_ingestion_job
+          python3 -m unittest databricks.tests.test_github_activity_ingestion_job
+          python3 -m unittest databricks.tests.test_fred_macro_ingestion_job
+          python3 -m unittest databricks.tests.test_bronze_enrichment_migration_job
+          python3 -m unittest databricks.tests.test_silver_enrichment_migration_job
+          python3 -m unittest databricks.tests.test_validate_enrichment_chain
 
       - name: Run workflow contract tests
         run: python3 -m unittest discover -s repo_tests -p 'test_*.py'
@@ -140,6 +149,12 @@ jobs:
           databricks bundle run ops_bundle_run_ingestion_job -t dev
           databricks bundle run ops_sentinela_alert_ingestion_job -t dev
           databricks bundle run ops_readiness_refresh_job -t dev
+          databricks bundle run bronze_enrichment_migration_job -t dev
+          databricks bundle run silver_enrichment_migration_job -t dev
+          databricks bundle run defillama_ingestion_job -t dev
+          databricks bundle run github_activity_ingestion_job -t dev
+          databricks bundle run fred_macro_ingestion_job -t dev -- --skip-live
+          databricks bundle run silver_enrichment_pipeline_job -t dev
 
       - name: Run live SQL validation
         if: steps.prereq.outputs.deploy_ready == 'true'

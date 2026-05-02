@@ -15,6 +15,12 @@ REQUIRED_JOB_KEYS = {
     "ops_readiness_refresh_job",
     "ops_bundle_run_ingestion_job",
     "ops_sentinela_alert_ingestion_job",
+    "bronze_enrichment_migration_job",
+    "silver_enrichment_migration_job",
+    "defillama_ingestion_job",
+    "github_activity_ingestion_job",
+    "fred_macro_ingestion_job",
+    "silver_enrichment_pipeline_job",
 }
 
 REQUIRED_NOTEBOOKS = {
@@ -52,6 +58,8 @@ def validate_bundle(bundle: dict[str, Any], root_dir: str | Path | None = None) 
         if job_name not in {
             "bronze_market_table_migration_job",
             "silver_market_table_migration_job",
+            "bronze_enrichment_migration_job",
+            "silver_enrichment_migration_job",
             "ops_bundle_run_ingestion_job",
             "ops_sentinela_alert_ingestion_job",
         }:

@@ -146,3 +146,103 @@ resources:
           spec:
             environment_version: "2"
             dependencies: []
+
+    bronze_enrichment_migration_job:
+      name: bronze_enrichment_migration_job
+      description: Provision Phase 2 Bronze enrichment tables (DefiLlama, GitHub, FRED).
+      tasks:
+        - task_key: migrate_bronze_enrichment
+          spark_python_task:
+            python_file: ./jobs/bronze_enrichment_migration_job.py
+          environment_key: default
+      environments:
+        - environment_key: default
+          spec:
+            environment_version: "2"
+            dependencies: []
+
+    silver_enrichment_migration_job:
+      name: silver_enrichment_migration_job
+      description: Provision Phase 2 Silver enrichment tables (asset_enriched, macro_context).
+      tasks:
+        - task_key: migrate_silver_enrichment
+          spark_python_task:
+            python_file: ./jobs/silver_enrichment_migration_job.py
+          environment_key: default
+      environments:
+        - environment_key: default
+          spec:
+            environment_version: "2"
+            dependencies: []
+
+    defillama_ingestion_job:
+      name: defillama_ingestion_job
+      description: Fetch DefiLlama protocols and append to bronze_defillama_protocols.
+      tasks:
+        - task_key: ingest_defillama
+          spark_python_task:
+            python_file: ./jobs/defillama_ingestion_job.py
+          environment_key: default
+      schedule:
+        quartz_cron_expression: "0 0 */6 * * ?"
+        timezone_id: America/Sao_Paulo
+        pause_status: UNPAUSED
+      environments:
+        - environment_key: default
+          spec:
+            environment_version: "2"
+            dependencies: []
+
+    github_activity_ingestion_job:
+      name: github_activity_ingestion_job
+      description: Fetch GitHub repo metrics for tracked assets and append to bronze_github_activity.
+      tasks:
+        - task_key: ingest_github_activity
+          spark_python_task:
+            python_file: ./jobs/github_activity_ingestion_job.py
+          environment_key: default
+      schedule:
+        quartz_cron_expression: "0 30 */6 * * ?"
+        timezone_id: America/Sao_Paulo
+        pause_status: UNPAUSED
+      environments:
+        - environment_key: default
+          spec:
+            environment_version: "2"
+            dependencies: []
+
+    fred_macro_ingestion_job:
+      name: fred_macro_ingestion_job
+      description: Fetch FRED macro series and append to bronze_fred_macro.
+      tasks:
+        - task_key: ingest_fred_macro
+          spark_python_task:
+            python_file: ./jobs/fred_macro_ingestion_job.py
+          environment_key: default
+      schedule:
+        quartz_cron_expression: "0 0 7 * * ?"
+        timezone_id: America/Sao_Paulo
+        pause_status: UNPAUSED
+      environments:
+        - environment_key: default
+          spec:
+            environment_version: "2"
+            dependencies: []
+
+    silver_enrichment_pipeline_job:
+      name: silver_enrichment_pipeline_job
+      description: Materialise silver_asset_enriched and silver_macro_context from Bronze enrichment sources.
+      tasks:
+        - task_key: run_silver_enrichment
+          spark_python_task:
+            python_file: ./jobs/silver_enrichment_pipeline_job.py
+          environment_key: default
+      schedule:
+        quartz_cron_expression: "0 45 */6 * * ?"
+        timezone_id: America/Sao_Paulo
+        pause_status: UNPAUSED
+      environments:
+        - environment_key: default
+          spec:
+            environment_version: "2"
+            dependencies: []

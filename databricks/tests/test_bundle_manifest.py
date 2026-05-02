@@ -23,6 +23,12 @@ class BundleManifestTests(unittest.TestCase):
                 "ops_bundle_run_ingestion_job",
                 "ops_sentinela_alert_ingestion_job",
                 "ops_readiness_refresh_job",
+                "bronze_enrichment_migration_job",
+                "silver_enrichment_migration_job",
+                "defillama_ingestion_job",
+                "github_activity_ingestion_job",
+                "fred_macro_ingestion_job",
+                "silver_enrichment_pipeline_job",
             },
         )
         self.assertNotIn("schedule", jobs["bronze_market_table_migration_job"])
