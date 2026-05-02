@@ -59,7 +59,7 @@ jobs:
         if: steps.prereq.outputs.migration_ready == 'true'
         run: |
           cd databricks
-          python3 validate_bundle.py
+          python3 tools/validate_bundle.py
           databricks bundle validate
 
       - name: Deploy bundle

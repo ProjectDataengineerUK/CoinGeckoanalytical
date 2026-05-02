@@ -33,17 +33,17 @@ EXPECTED_METRIC_VIEWS = {
 
 
 def validate_market_overview_chain(root_dir: str | Path | None = None) -> list[str]:
-    base_dir = Path(root_dir) if root_dir is not None else Path(__file__).resolve().parent
+    base_dir = Path(root_dir) if root_dir is not None else Path(__file__).resolve().parent.parent
     errors: list[str] = []
 
-    bronze_migration_sql = _read(base_dir / "bronze_market_table_migration.sql")
-    bronze_silver_sql = _read(base_dir / "bronze_silver_market_foundation.sql")
-    silver_migration_sql = _read(base_dir / "silver_market_migration.sql")
-    gold_sql = _read(base_dir / "gold_market_views.sql")
-    metric_sql = _read(base_dir / "genie_metric_views.sql")
+    bronze_migration_sql = _read(base_dir / "sql/migrations/bronze_market_table_migration.sql")
+    bronze_silver_sql = _read(base_dir / "sql/layers/bronze_silver_market_foundation.sql")
+    silver_migration_sql = _read(base_dir / "sql/migrations/silver_market_migration.sql")
+    gold_sql = _read(base_dir / "sql/layers/gold_market_views.sql")
+    metric_sql = _read(base_dir / "sql/layers/genie_metric_views.sql")
     lineage_map = _read(base_dir / "unity-catalog-lineage-map.md")
-    market_job = _read(base_dir / "market_source_ingestion_job.py")
-    silver_pipeline_job = _read(base_dir / "silver_market_pipeline_job.py")
+    market_job = _read(base_dir / "jobs/market_source_ingestion_job.py")
+    silver_pipeline_job = _read(base_dir / "jobs/silver_market_pipeline_job.py")
 
     for object_name, signature in EXPECTED_BRONZE_OBJECTS.items():
         if signature not in bronze_migration_sql:

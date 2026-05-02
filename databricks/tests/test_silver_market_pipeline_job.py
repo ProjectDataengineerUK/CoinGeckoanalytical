@@ -6,7 +6,7 @@ from pathlib import Path
 import unittest
 
 
-MODULE_PATH = Path(__file__).resolve().parent / "silver_market_pipeline_job.py"
+MODULE_PATH = Path(__file__).resolve().parent.parent / "jobs/silver_market_pipeline_job.py"
 SPEC = importlib.util.spec_from_file_location("silver_market_pipeline_job", MODULE_PATH)
 silver_market_pipeline_job = importlib.util.module_from_spec(SPEC)
 assert SPEC is not None and SPEC.loader is not None

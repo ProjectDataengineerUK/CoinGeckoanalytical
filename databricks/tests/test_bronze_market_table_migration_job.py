@@ -7,7 +7,7 @@ import tempfile
 import unittest
 
 
-MODULE_PATH = Path(__file__).resolve().parent / "bronze_market_table_migration_job.py"
+MODULE_PATH = Path(__file__).resolve().parent.parent / "jobs/bronze_market_table_migration_job.py"
 SPEC = importlib.util.spec_from_file_location("bronze_market_table_migration_job", MODULE_PATH)
 bronze_market_table_migration_job = importlib.util.module_from_spec(SPEC)
 assert SPEC is not None and SPEC.loader is not None

@@ -6,7 +6,7 @@ import unittest
 
 class SentinelaAlertObservabilityTests(unittest.TestCase):
     def test_sql_surface_exists(self) -> None:
-        sql_path = Path(__file__).resolve().parent / "sentinela_alert_observability.sql"
+        sql_path = Path(__file__).resolve().parent.parent / "sql/observability/sentinela_alert_observability.sql"
         text = sql_path.read_text(encoding="utf-8")
 
         self.assertIn("ops_sentinela_alerts", text)

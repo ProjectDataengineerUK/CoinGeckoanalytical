@@ -5,7 +5,7 @@ from pathlib import Path
 from typing import Any
 
 
-DEFAULT_SQL_FILE = "bronze_market_table_migration.sql"
+DEFAULT_SQL_FILE = "../sql/migrations/bronze_market_table_migration.sql"
 
 
 def _has_executable_sql(statement: str) -> bool:

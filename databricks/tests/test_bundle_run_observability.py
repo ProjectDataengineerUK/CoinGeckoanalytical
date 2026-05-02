@@ -6,7 +6,7 @@ import unittest
 
 class BundleRunObservabilityTests(unittest.TestCase):
     def test_sql_surface_exists(self) -> None:
-        sql_path = Path(__file__).resolve().parent / "bundle_run_observability.sql"
+        sql_path = Path(__file__).resolve().parent.parent / "sql/observability/bundle_run_observability.sql"
         text = sql_path.read_text(encoding="utf-8")
 
         self.assertIn("ops_bundle_runs", text)

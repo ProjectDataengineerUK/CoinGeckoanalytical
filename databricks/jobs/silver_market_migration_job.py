@@ -5,7 +5,7 @@ from pathlib import Path
 from typing import Any
 
 
-DEFAULT_SQL_FILE = "silver_market_migration.sql"
+DEFAULT_SQL_FILE = "../sql/migrations/silver_market_migration.sql"
 
 SILVER_TABLE_NAMES = (
     "cgadev.market_silver.silver_market_changes",

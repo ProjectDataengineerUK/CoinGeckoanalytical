@@ -7,7 +7,7 @@ import unittest
 from unittest.mock import patch
 
 
-MODULE_PATH = Path(__file__).resolve().parent / "preflight_databricks_deploy.py"
+MODULE_PATH = Path(__file__).resolve().parent.parent / "tools/preflight_databricks_deploy.py"
 SPEC = importlib.util.spec_from_file_location("preflight_databricks_deploy", MODULE_PATH)
 preflight_databricks_deploy = importlib.util.module_from_spec(SPEC)
 assert SPEC is not None and SPEC.loader is not None

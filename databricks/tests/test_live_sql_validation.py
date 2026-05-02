@@ -10,7 +10,7 @@ import unittest
 from unittest.mock import patch
 
 
-MODULE_PATH = Path(__file__).resolve().parent / "live_sql_validation.py"
+MODULE_PATH = Path(__file__).resolve().parent.parent / "tools/live_sql_validation.py"
 SPEC = importlib.util.spec_from_file_location("live_sql_validation", MODULE_PATH)
 live_sql_validation = importlib.util.module_from_spec(SPEC)
 assert SPEC is not None and SPEC.loader is not None

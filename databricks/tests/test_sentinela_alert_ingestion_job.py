@@ -6,7 +6,7 @@ from pathlib import Path
 import unittest
 
 
-MODULE_PATH = Path(__file__).resolve().parent / "sentinela_alert_ingestion_job.py"
+MODULE_PATH = Path(__file__).resolve().parent.parent / "jobs/sentinela_alert_ingestion_job.py"
 SPEC = importlib.util.spec_from_file_location("sentinela_alert_ingestion_job", MODULE_PATH)
 sentinela_alert_ingestion_job = importlib.util.module_from_spec(SPEC)
 assert SPEC is not None and SPEC.loader is not None

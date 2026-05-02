@@ -6,14 +6,14 @@ from typing import Any
 
 
 DEFAULT_SQL_FILES = (
-    "unity_catalog_runtime_foundation.sql",
-    "bronze_silver_market_foundation.sql",
-    "gold_market_views.sql",
-    "freshness_quality_baseline.sql",
-    "telemetry-observability.sql",
-    "bundle_run_observability.sql",
-    "sentinela_alert_observability.sql",
-    "ops_readiness_dashboard.sql",
+    "../sql/migrations/unity_catalog_runtime_foundation.sql",
+    "../sql/layers/bronze_silver_market_foundation.sql",
+    "../sql/layers/gold_market_views.sql",
+    "../sql/observability/freshness_quality_baseline.sql",
+    "../sql/observability/telemetry-observability.sql",
+    "../sql/observability/bundle_run_observability.sql",
+    "../sql/observability/sentinela_alert_observability.sql",
+    "../sql/observability/ops_readiness_dashboard.sql",
 )
 
 

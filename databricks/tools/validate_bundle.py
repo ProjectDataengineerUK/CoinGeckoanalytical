@@ -27,7 +27,7 @@ REQUIRED_NOTEBOOKS = {
 def load_bundle(path: str | Path = "databricks.yml") -> dict[str, Any]:
     bundle_path = Path(path)
     if not bundle_path.is_absolute():
-        bundle_path = Path(__file__).resolve().parent / bundle_path
+        bundle_path = Path(__file__).resolve().parent.parent / bundle_path
     return yaml.safe_load(bundle_path.read_text(encoding="utf-8"))
 
 
@@ -89,7 +89,7 @@ def validate_bundle(bundle: dict[str, Any], root_dir: str | Path | None = None) 
 
 def main() -> int:
     bundle = load_bundle()
-    errors = validate_bundle(bundle, root_dir=Path(__file__).resolve().parent)
+    errors = validate_bundle(bundle, root_dir=Path(__file__).resolve().parent.parent)
     if errors:
         for error in errors:
             print(f"ERROR: {error}")

@@ -51,27 +51,27 @@ jobs:
         run: python3 -m unittest discover -s backend/tests -p 'test_*.py'
 
       - name: Run Databricks bundle validation helper
-        run: python3 databricks/validate_bundle.py
+        run: python3 databricks/tools/validate_bundle.py
 
       - name: Run market overview chain validation
-        run: python3 databricks/validate_market_overview_chain.py
+        run: python3 databricks/tools/validate_market_overview_chain.py
 
       - name: Run Databricks helper tests
         run: |
-          python3 -m unittest databricks.test_validate_bundle
-          python3 -m unittest databricks.test_validate_market_overview_chain
-          python3 -m unittest databricks.test_live_sql_validation
-          python3 -m unittest databricks.test_market_source_ingestion_job
-          python3 -m unittest databricks.test_bundle_run_observability
-          python3 -m unittest databricks.test_ops_usage_ingestion_job
-          python3 -m unittest databricks.test_ops_readiness_refresh_job
-          python3 -m unittest databricks.test_bundle_run_ingestion_job
-          python3 -m unittest databricks.test_sentinela_alert_ingestion_job
-          python3 -m unittest databricks.test_sentinela_alert_observability
-          python3 -m unittest databricks.test_ops_readiness_refresh_job
-          python3 -m unittest databricks.test_bronze_market_table_migration_job
-          python3 -m unittest databricks.test_silver_market_pipeline_job
-          python3 -m unittest databricks.test_silver_market_migration_job
+          python3 -m unittest databricks.tests.test_validate_bundle
+          python3 -m unittest databricks.tests.test_validate_market_overview_chain
+          python3 -m unittest databricks.tests.test_live_sql_validation
+          python3 -m unittest databricks.tests.test_market_source_ingestion_job
+          python3 -m unittest databricks.tests.test_bundle_run_observability
+          python3 -m unittest databricks.tests.test_ops_usage_ingestion_job
+          python3 -m unittest databricks.tests.test_ops_readiness_refresh_job
+          python3 -m unittest databricks.tests.test_bundle_run_ingestion_job
+          python3 -m unittest databricks.tests.test_sentinela_alert_ingestion_job
+          python3 -m unittest databricks.tests.test_sentinela_alert_observability
+          python3 -m unittest databricks.tests.test_ops_readiness_refresh_job
+          python3 -m unittest databricks.tests.test_bronze_market_table_migration_job
+          python3 -m unittest databricks.tests.test_silver_market_pipeline_job
+          python3 -m unittest databricks.tests.test_silver_market_migration_job
 
       - name: Run workflow contract tests
         run: python3 -m unittest discover -s repo_tests -p 'test_*.py'
@@ -123,7 +123,7 @@ jobs:
         if: steps.prereq.outputs.deploy_ready == 'true'
         run: |
           cd databricks
-          python3 validate_bundle.py
+          python3 tools/validate_bundle.py
           databricks bundle validate
 
       - name: Deploy bundle
@@ -143,7 +143,7 @@ jobs:
 
       - name: Run live SQL validation
         if: steps.prereq.outputs.deploy_ready == 'true'
-        run: python3 databricks/live_sql_validation.py
+        run: python3 databricks/tools/live_sql_validation.py
 
       - name: Upload live SQL validation artifact
         if: steps.prereq.outputs.deploy_ready == 'true' && env.DATABRICKS_SQL_WAREHOUSE_ID != ''

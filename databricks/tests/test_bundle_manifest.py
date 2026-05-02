@@ -8,7 +8,7 @@ import yaml
 
 class BundleManifestTests(unittest.TestCase):
     def test_bundle_defines_expected_jobs(self) -> None:
-        bundle_path = Path(__file__).resolve().parent / "databricks.yml"
+        bundle_path = Path(__file__).resolve().parent.parent / "databricks.yml"
         bundle = yaml.safe_load(bundle_path.read_text(encoding="utf-8"))
 
         jobs = bundle["resources"]["jobs"]
@@ -16,6 +16,8 @@ class BundleManifestTests(unittest.TestCase):
             set(jobs.keys()),
             {
                 "bronze_market_table_migration_job",
+                "silver_market_table_migration_job",
+                "silver_market_pipeline_job",
                 "market_source_ingestion_job",
                 "ops_usage_ingestion_job",
                 "ops_bundle_run_ingestion_job",

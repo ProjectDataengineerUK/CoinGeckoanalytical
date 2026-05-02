@@ -25,7 +25,7 @@ resources:
       tasks:
         - task_key: ingest_market_source
           spark_python_task:
-            python_file: ./market_source_ingestion_job.py
+            python_file: ./jobs/market_source_ingestion_job.py
           environment_key: default
       schedule:
         quartz_cron_expression: "0 */5 * * * ?"
@@ -43,7 +43,7 @@ resources:
       tasks:
         - task_key: migrate_silver_market_tables
           spark_python_task:
-            python_file: ./silver_market_migration_job.py
+            python_file: ./jobs/silver_market_migration_job.py
           environment_key: default
       environments:
         - environment_key: default
@@ -57,7 +57,7 @@ resources:
       tasks:
         - task_key: run_silver_pipeline
           spark_python_task:
-            python_file: ./silver_market_pipeline_job.py
+            python_file: ./jobs/silver_market_pipeline_job.py
           environment_key: default
       schedule:
         quartz_cron_expression: "0 */10 * * * ?"
@@ -75,7 +75,7 @@ resources:
       tasks:
         - task_key: migrate_bronze_market_table
           spark_python_task:
-            python_file: ./bronze_market_table_migration_job.py
+            python_file: ./jobs/bronze_market_table_migration_job.py
           environment_key: default
       environments:
         - environment_key: default
@@ -89,7 +89,7 @@ resources:
       tasks:
         - task_key: ingest_usage_events
           spark_python_task:
-            python_file: ./ops_usage_ingestion_job.py
+            python_file: ./jobs/ops_usage_ingestion_job.py
           environment_key: default
       schedule:
         quartz_cron_expression: "0 */5 * * * ?"
@@ -107,7 +107,7 @@ resources:
       tasks:
         - task_key: ingest_bundle_runs
           spark_python_task:
-            python_file: ./bundle_run_ingestion_job.py
+            python_file: ./jobs/bundle_run_ingestion_job.py
           environment_key: default
       environments:
         - environment_key: default
@@ -121,7 +121,7 @@ resources:
       tasks:
         - task_key: ingest_sentinela_alerts
           spark_python_task:
-            python_file: ./sentinela_alert_ingestion_job.py
+            python_file: ./jobs/sentinela_alert_ingestion_job.py
           environment_key: default
       environments:
         - environment_key: default
@@ -135,7 +135,7 @@ resources:
       tasks:
         - task_key: refresh_readiness_views
           spark_python_task:
-            python_file: ./ops_readiness_refresh_job.py
+            python_file: ./jobs/ops_readiness_refresh_job.py
           environment_key: default
       schedule:
         quartz_cron_expression: "0 */15 * * * ?"

@@ -8,7 +8,7 @@ import unittest
 from unittest import mock
 
 
-MODULE_PATH = Path(__file__).resolve().parent / "ops_readiness_refresh_job.py"
+MODULE_PATH = Path(__file__).resolve().parent.parent / "jobs/ops_readiness_refresh_job.py"
 SPEC = importlib.util.spec_from_file_location("ops_readiness_refresh_job", MODULE_PATH)
 ops_readiness_refresh_job = importlib.util.module_from_spec(SPEC)
 assert SPEC is not None and SPEC.loader is not None
@@ -83,18 +83,18 @@ class OpsReadinessRefreshJobTests(unittest.TestCase):
         fake_spark = FakeSpark()
         result = ops_readiness_refresh_job.refresh_views(
             fake_spark,
-            sql_files=("ops_readiness_dashboard.sql",),
-            base_dir=Path(__file__).resolve().parent,
+            sql_files=("../sql/observability/ops_readiness_dashboard.sql",),
+            base_dir=Path(__file__).resolve().parent.parent / "jobs",
         )
 
-        self.assertEqual(result["files"], ["ops_readiness_dashboard.sql"])
+        self.assertEqual(result["files"], ["../sql/observability/ops_readiness_dashboard.sql"])
         self.assertGreater(result["statements_executed"], 0)
         self.assertGreater(len(fake_spark.statements), 0)
 
     def test_default_sql_file_order_includes_unity_catalog_first(self) -> None:
         self.assertEqual(
             ops_readiness_refresh_job.DEFAULT_SQL_FILES[0],
-            "unity_catalog_runtime_foundation.sql",
+            "../sql/migrations/unity_catalog_runtime_foundation.sql",
         )
 
     def test_refresh_views_works_without_module___file__(self) -> None:
@@ -111,17 +111,17 @@ class OpsReadinessRefreshJobTests(unittest.TestCase):
             with mock.patch.object(
                 ops_readiness_refresh_job.inspect,
                 "getsourcefile",
-                return_value=str(Path(__file__).resolve().parent / "ops_readiness_refresh_job.py"),
+                return_value=str(Path(__file__).resolve().parent.parent / "jobs/ops_readiness_refresh_job.py"),
             ):
                 result = ops_readiness_refresh_job.refresh_views(
                     fake_spark,
-                    sql_files=("ops_readiness_dashboard.sql",),
+                    sql_files=("../sql/observability/ops_readiness_dashboard.sql",),
                 )
         finally:
             if original_file is not None:
                 ops_readiness_refresh_job.__dict__["__file__"] = original_file
 
-        self.assertEqual(result["files"], ["ops_readiness_dashboard.sql"])
+        self.assertEqual(result["files"], ["../sql/observability/ops_readiness_dashboard.sql"])
         self.assertGreater(result["statements_executed"], 0)
         self.assertGreater(len(fake_spark.statements), 0)
 
