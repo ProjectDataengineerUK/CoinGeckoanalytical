@@ -74,9 +74,6 @@ jobs:
             exit 0
           fi
 
-          # Prefer warehouse from secret, fall back to workflow input
-          WAREHOUSE_ID="${DATABRICKS_SQL_WAREHOUSE_ID:-$INPUT_WAREHOUSE_ID}"
-
           EXISTING_ID=$(python3 -c "
           import sys, json, os
           try:
@@ -94,18 +91,19 @@ jobs:
             SPACE_ID="$EXISTING_ID"
           else
             echo "Creating new Genie Space..."
+            # warehouse_id is required by the API; prefer the secret, then the workflow input
             PAYLOAD=$(python3 -c "
           import json, os
           p = {
               'title': os.environ.get('SPACE_TITLE', ''),
               'description': os.environ.get('SPACE_DESCRIPTION', ''),
           }
-          wh = os.environ.get('WAREHOUSE_ID', '')
+          wh = os.environ.get('DATABRICKS_SQL_WAREHOUSE_ID') or os.environ.get('INPUT_WAREHOUSE_ID', '')
           if wh:
               p['warehouse_id'] = wh
           print(json.dumps(p))
           ")
-            echo "Payload: $PAYLOAD"
+            echo "Creating with payload (warehouse masked): $(echo "$PAYLOAD" | python3 -c "import sys,json; d=json.load(sys.stdin); d['warehouse_id']='***' if 'warehouse_id' in d else None; print(json.dumps(d))" 2>/dev/null || echo "$PAYLOAD")"
 
             CREATE_RESPONSE=$(curl -s -w "\nHTTP_STATUS:%{http_code}" \
               -X POST \
@@ -127,12 +125,9 @@ jobs:
 
             SPACE_ID=$(python3 -c "
           import sys, json
-          try:
-              data = json.loads('$CREATE_BODY')
-              print(data.get('space_id') or data.get('id') or '')
-          except Exception:
-              print('')
-          ")
+          data = json.loads('''$CREATE_BODY''')
+          print(data.get('space_id') or data.get('id') or '')
+          " 2>/dev/null || echo "")
             echo "Genie Space created: $SPACE_ID"
           fi
 
