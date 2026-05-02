@@ -1,0 +1,122 @@
+name: setup-genie-space
+
+on:
+  workflow_dispatch:
+    inputs:
+      space_title:
+        description: "Genie Space display title"
+        required: false
+        default: "CoinGecko Market Intelligence"
+      space_description:
+        description: "Genie Space description"
+        required: false
+        default: "Governed analytical Q&A over CoinGeckoAnalytical market data"
+
+permissions:
+  id-token: write
+  contents: read
+
+jobs:
+  provision-genie-space:
+    runs-on: ubuntu-latest
+    env:
+      DATABRICKS_HOST: ${{ secrets.DATABRICKS_HOST }}
+      DATABRICKS_TOKEN: ${{ secrets.DATABRICKS_TOKEN }}
+    steps:
+      - name: Check prerequisites
+        run: |
+          if [ -z "$DATABRICKS_HOST" ]; then
+            echo "Missing DATABRICKS_HOST" && exit 1
+          fi
+          if [ -z "$DATABRICKS_TOKEN" ]; then
+            echo "Missing DATABRICKS_TOKEN" && exit 1
+          fi
+
+      - name: Create or retrieve Genie Space
+        id: genie
+        env:
+          SPACE_TITLE: ${{ inputs.space_title }}
+          SPACE_DESCRIPTION: ${{ inputs.space_description }}
+        run: |
+          HOST="${DATABRICKS_HOST%/}"
+
+          # List existing spaces to check if one with this title already exists
+          LIST_RESPONSE=$(curl -sf \
+            -H "Authorization: Bearer $DATABRICKS_TOKEN" \
+            -H "Content-Type: application/json" \
+            "$HOST/api/2.0/genie/spaces" 2>/dev/null || echo '{"spaces":[]}')
+
+          EXISTING_ID=$(echo "$LIST_RESPONSE" \
+            | python3 -c "
+          import sys, json
+          data = json.load(sys.stdin)
+          spaces = data.get('spaces') or data.get('items') or []
+          title = '$SPACE_TITLE'
+          match = next((s for s in spaces if s.get('title') == title), None)
+          print(match['space_id'] if match else '')
+          " 2>/dev/null || echo "")
+
+          if [ -n "$EXISTING_ID" ]; then
+            echo "Space already exists: $EXISTING_ID"
+            SPACE_ID="$EXISTING_ID"
+          else
+            echo "Creating new Genie Space..."
+            CREATE_RESPONSE=$(curl -sf \
+              -X POST \
+              -H "Authorization: Bearer $DATABRICKS_TOKEN" \
+              -H "Content-Type: application/json" \
+              -d "{\"title\": \"$SPACE_TITLE\", \"description\": \"$SPACE_DESCRIPTION\"}" \
+              "$HOST/api/2.0/genie/spaces")
+
+            SPACE_ID=$(echo "$CREATE_RESPONSE" \
+              | python3 -c "import sys, json; print(json.load(sys.stdin).get('space_id',''))")
+            echo "Genie Space created: $SPACE_ID"
+          fi
+
+          echo "space_id=$SPACE_ID" >> "$GITHUB_OUTPUT"
+
+      - name: Register metric views in Genie Space
+        if: steps.genie.outputs.space_id != ''
+        env:
+          SPACE_ID: ${{ steps.genie.outputs.space_id }}
+        run: |
+          HOST="${DATABRICKS_HOST%/}"
+
+          TABLES=(
+            "cgadev.ai_serving.mv_market_rankings"
+            "cgadev.ai_serving.mv_top_movers"
+            "cgadev.ai_serving.mv_market_dominance"
+            "cgadev.ai_serving.mv_cross_asset_compare"
+          )
+
+          for TABLE_FQN in "${TABLES[@]}"; do
+            IFS='.' read -r catalog schema table <<< "$TABLE_FQN"
+            echo "Registering table: $TABLE_FQN"
+            curl -sf \
+              -X POST \
+              -H "Authorization: Bearer $DATABRICKS_TOKEN" \
+              -H "Content-Type: application/json" \
+              -d "{\"table_name\": \"$TABLE_FQN\"}" \
+              "$HOST/api/2.0/genie/spaces/$SPACE_ID/tables" \
+              > /dev/null 2>&1 \
+              && echo "  registered $TABLE_FQN" \
+              || echo "  skipped $TABLE_FQN (may already be registered or not supported via API)"
+          done
+
+      - name: Print space_id for secret registration
+        if: steps.genie.outputs.space_id != ''
+        env:
+          SPACE_ID: ${{ steps.genie.outputs.space_id }}
+        run: |
+          echo ""
+          echo "============================================="
+          echo "  Genie Space provisioned successfully"
+          echo "  space_id: $SPACE_ID"
+          echo "============================================="
+          echo ""
+          echo "Next step: register this value as a GitHub secret:"
+          echo "  Secret name : DATABRICKS_GENIE_SPACE_ID"
+          echo "  Secret value: $SPACE_ID"
+          echo ""
+          echo "Then dispatch ci.yml with confirm_deploy=true to wire"
+          echo "the backend genie_client.py to this space."
