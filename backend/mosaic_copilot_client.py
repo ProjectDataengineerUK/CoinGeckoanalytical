@@ -25,21 +25,26 @@ class MosaicConfig:
     endpoint_name_complex: str = ""
 
 
+# Unity AI Gateway FMAPI endpoints available in every Databricks workspace by default.
+_DEFAULT_ENDPOINT_STANDARD = "databricks-gpt-oss-120b"
+_DEFAULT_ENDPOINT_LIGHT = "databricks-gemma-3-12b"
+_DEFAULT_ENDPOINT_COMPLEX = "databricks-qwen3-next-80b-a3b-instruct"
+
+
 def load_config_from_env(env: dict[str, str] | None = None) -> MosaicConfig | None:
     source = env if env is not None else os.environ
     host = source.get("DATABRICKS_HOST", "").rstrip("/")
-    endpoint_name = source.get("DATABRICKS_MOSAIC_ENDPOINT_NAME", "")
-    if not host or not endpoint_name:
+    if not host:
         return None
+    endpoint_name = source.get("DATABRICKS_MOSAIC_ENDPOINT_NAME", _DEFAULT_ENDPOINT_STANDARD)
     return MosaicConfig(
         host=host,
         endpoint_name=endpoint_name,
         token=source.get("DATABRICKS_TOKEN") or None,
         client_id=source.get("DATABRICKS_CLIENT_ID", ""),
         client_secret=source.get("DATABRICKS_CLIENT_SECRET", ""),
-        # Fall back to well-known bundle-deployed endpoint names when not overridden.
-        endpoint_name_light=source.get("DATABRICKS_MOSAIC_ENDPOINT_LIGHT", "coingecko-copilot-light"),
-        endpoint_name_complex=source.get("DATABRICKS_MOSAIC_ENDPOINT_COMPLEX", "coingecko-copilot-complex"),
+        endpoint_name_light=source.get("DATABRICKS_MOSAIC_ENDPOINT_LIGHT", _DEFAULT_ENDPOINT_LIGHT),
+        endpoint_name_complex=source.get("DATABRICKS_MOSAIC_ENDPOINT_COMPLEX", _DEFAULT_ENDPOINT_COMPLEX),
     )
 
 

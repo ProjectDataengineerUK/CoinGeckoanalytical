@@ -99,9 +99,9 @@ class ModelTierRouterTests(unittest.TestCase):
 
     def test_default_endpoints_by_tier(self):
         endpoints = model_tier_router.DEFAULT_ENDPOINT_BY_TIER
-        self.assertIn("haiku", endpoints[model_tier_router.ModelTier.LIGHT])
-        self.assertIn("sonnet", endpoints[model_tier_router.ModelTier.STANDARD])
-        self.assertIn("opus", endpoints[model_tier_router.ModelTier.COMPLEX])
+        self.assertIn("gemma", endpoints[model_tier_router.ModelTier.LIGHT])
+        self.assertIn("120b", endpoints[model_tier_router.ModelTier.STANDARD])
+        self.assertIn("qwen", endpoints[model_tier_router.ModelTier.COMPLEX])
 
     def test_portfolio_analysis_signal_is_complex(self):
         result = model_tier_router.classify_model_tier("Give me a portfolio analysis for my holdings")

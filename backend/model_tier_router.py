@@ -18,11 +18,12 @@ class TierClassification:
     estimated_prompt_tokens: int
 
 
-# Databricks Foundation Model API endpoint names (external model proxies)
+# Unity AI Gateway endpoints — Foundation Models hosted natively by Databricks.
+# No external API keys required; billed via Databricks credits.
 DEFAULT_ENDPOINT_BY_TIER: dict[ModelTier, str] = {
-    ModelTier.LIGHT: "databricks-claude-haiku-3-5",
-    ModelTier.STANDARD: "databricks-claude-sonnet-4",
-    ModelTier.COMPLEX: "databricks-claude-opus-4",
+    ModelTier.LIGHT: "databricks-gemma-3-12b",           # 12B — fast, low cost
+    ModelTier.STANDARD: "databricks-gpt-oss-120b",       # 120B — balanced quality
+    ModelTier.COMPLEX: "databricks-qwen3-next-80b-a3b-instruct",  # MoE — best reasoning
 }
 
 # Blended input+output cost estimate per 1K tokens (USD, approximate 2026 pricing)
