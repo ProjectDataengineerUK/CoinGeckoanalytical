@@ -146,20 +146,24 @@ jobs:
           MARKET_PAYLOAD_JSON=$(python3 -c 'import json, pathlib; print(json.dumps(json.loads(pathlib.Path("databricks/fixtures/market_source_sample.json").read_text(encoding="utf-8")), separators=(",", ":")))')
           cd databricks
           databricks bundle deploy -t dev
+          # 1. All DDL migrations — tables must exist before views are created
           databricks bundle run bronze_market_table_migration_job -t dev
-          databricks bundle run market_source_ingestion_job -t dev -- --payload-json "$MARKET_PAYLOAD_JSON"
+          databricks bundle run bronze_enrichment_migration_job -t dev
           databricks bundle run silver_market_table_migration_job -t dev
+          databricks bundle run silver_enrichment_migration_job -t dev
+          # 2. Bronze ingestion — populate raw data
+          databricks bundle run market_source_ingestion_job -t dev -- --payload-json "$MARKET_PAYLOAD_JSON"
+          databricks bundle run defillama_ingestion_job -t dev
+          databricks bundle run github_activity_ingestion_job -t dev
+          FRED_API_KEY="$FRED_API_KEY" databricks bundle run fred_macro_ingestion_job -t dev
+          # 3. Silver pipelines — materialise from Bronze
           databricks bundle run silver_market_pipeline_job -t dev
+          databricks bundle run silver_enrichment_pipeline_job -t dev
+          # 4. Ops/observability — all tables and views are ready
           databricks bundle run ops_usage_ingestion_job -t dev
           databricks bundle run ops_bundle_run_ingestion_job -t dev
           databricks bundle run ops_sentinela_alert_ingestion_job -t dev
           databricks bundle run ops_readiness_refresh_job -t dev
-          databricks bundle run bronze_enrichment_migration_job -t dev
-          databricks bundle run silver_enrichment_migration_job -t dev
-          databricks bundle run defillama_ingestion_job -t dev
-          databricks bundle run github_activity_ingestion_job -t dev
-          FRED_API_KEY="$FRED_API_KEY" databricks bundle run fred_macro_ingestion_job -t dev
-          databricks bundle run silver_enrichment_pipeline_job -t dev
 
       - name: Run live SQL validation
         if: steps.prereq.outputs.deploy_ready == 'true'
