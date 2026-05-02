@@ -11,6 +11,7 @@ class NotebookAssetTests(unittest.TestCase):
             "01_ingest_coingecko_market.py",
             "02_validate_market_layers.py",
             "03_ops_readiness_review.py",
+            "04_ai_ops_analysis.py",
         }
 
         self.assertEqual(expected, {path.name for path in notebooks_dir.glob("*.py")})

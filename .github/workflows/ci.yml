@@ -153,8 +153,8 @@ jobs:
           databricks bundle run silver_enrichment_migration_job -t dev
           # 2. Bronze ingestion — populate raw data
           databricks bundle run market_source_ingestion_job -t dev -- --payload-json "$MARKET_PAYLOAD_JSON"
-          databricks bundle run defillama_ingestion_job -t dev
-          databricks bundle run github_activity_ingestion_job -t dev
+          databricks bundle run defillama_ingestion_job -t dev -- --skip-live
+          databricks bundle run github_activity_ingestion_job -t dev -- --skip-live
           FRED_API_KEY="$FRED_API_KEY" databricks bundle run fred_macro_ingestion_job -t dev
           # 3. Silver pipelines — materialise from Bronze
           databricks bundle run silver_market_pipeline_job -t dev

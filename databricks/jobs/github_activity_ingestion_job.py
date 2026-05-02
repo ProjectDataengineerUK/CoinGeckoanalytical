@@ -153,19 +153,27 @@ def main(
     target_table: str = DEFAULT_TARGET_TABLE,
     repo_map_path: str = DEFAULT_REPO_MAP_PATH,
     github_token: str | None = None,
+    skip_live: bool = False,
 ) -> IngestionResult:
+    if skip_live:
+        print("Skipping GitHub fetch: --skip-live flag active.")
+        return IngestionResult(rows_written=0, target_table=target_table)
     repo_map = load_repo_map(repo_map_path)
     rows = fetch_all_activity(repo_map, token=github_token)
     return write_activity_rows(spark, rows, target_table=target_table)
 
 
-def parse_runtime_args(argv: list[str]) -> dict[str, str | None]:
-    parsed: dict[str, str | None] = {"target_table": None}
+def parse_runtime_args(argv: list[str]) -> dict[str, Any]:
+    parsed: dict[str, Any] = {"target_table": None, "skip_live": False}
     index = 0
     while index < len(argv):
         if argv[index] == "--target-table" and index + 1 < len(argv):
             parsed["target_table"] = argv[index + 1]
             index += 2
+            continue
+        if argv[index] == "--skip-live":
+            parsed["skip_live"] = True
+            index += 1
             continue
         index += 1
     return parsed
@@ -197,5 +205,5 @@ if __name__ == "__main__":
         except Exception:
             github_token = None
 
-    result = main(spark_session, target_table=target, github_token=github_token)
+    result = main(spark_session, target_table=target, github_token=github_token, skip_live=runtime_args["skip_live"])
     print(json.dumps({"rows_written": result.rows_written, "target_table": result.target_table}))

@@ -87,6 +87,16 @@ class GitHubActivityIngestionJobTests(unittest.TestCase):
             "cgadev.market_bronze.bronze_github_activity",
         )
 
+    def test_main_returns_zero_rows_when_skip_live(self):
+        class FakeSpark:
+            pass
+        result = github_activity_ingestion_job.main(FakeSpark(), skip_live=True)
+        self.assertEqual(result.rows_written, 0)
+
+    def test_parse_runtime_args_recognises_skip_live(self):
+        args = github_activity_ingestion_job.parse_runtime_args(["--skip-live"])
+        self.assertTrue(args["skip_live"])
+
 
 if __name__ == "__main__":
     unittest.main()

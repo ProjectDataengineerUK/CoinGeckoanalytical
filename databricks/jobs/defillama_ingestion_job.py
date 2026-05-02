@@ -117,18 +117,26 @@ def main(
     spark: Any,
     target_table: str = DEFAULT_TARGET_TABLE,
     protocols_url: str = DEFAULT_DEFILLAMA_PROTOCOLS_URL,
+    skip_live: bool = False,
 ) -> IngestionResult:
+    if skip_live:
+        print("Skipping DefiLlama fetch: --skip-live flag active.")
+        return IngestionResult(rows_written=0, target_table=target_table)
     rows = fetch_protocols(protocols_url)
     return write_protocol_rows(spark, rows, target_table=target_table)
 
 
-def parse_runtime_args(argv: list[str]) -> dict[str, str | None]:
-    parsed: dict[str, str | None] = {"target_table": None}
+def parse_runtime_args(argv: list[str]) -> dict[str, Any]:
+    parsed: dict[str, Any] = {"target_table": None, "skip_live": False}
     index = 0
     while index < len(argv):
         if argv[index] == "--target-table" and index + 1 < len(argv):
             parsed["target_table"] = argv[index + 1]
             index += 2
+            continue
+        if argv[index] == "--skip-live":
+            parsed["skip_live"] = True
+            index += 1
             continue
         index += 1
     return parsed
@@ -162,5 +170,5 @@ if __name__ == "__main__":
     runtime_args = parse_runtime_args(sys.argv[1:])
     target = widgets["target_table"] or runtime_args["target_table"] or DEFAULT_TARGET_TABLE
 
-    result = main(spark_session, target_table=target)
+    result = main(spark_session, target_table=target, skip_live=runtime_args["skip_live"])
     print(json.dumps({"rows_written": result.rows_written, "target_table": result.target_table}))
