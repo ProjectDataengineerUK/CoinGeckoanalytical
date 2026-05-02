@@ -24,7 +24,7 @@
 
 When dispatched, the workflow runs in this order:
 1. `lint` — compile all Python
-2. `contract` — unit tests + bundle validation + chain validation
+2. `contract` — unit tests + bundle validation + chain validation (Phase 1 + Phase 2)
 3. `deploy` (manual gate):
    - `databricks bundle deploy -t dev`
    - `bronze_market_table_migration_job` (schema DDL)
@@ -35,4 +35,18 @@ When dispatched, the workflow runs in this order:
    - `ops_bundle_run_ingestion_job`
    - `ops_sentinela_alert_ingestion_job`
    - `ops_readiness_refresh_job`
+   - `bronze_enrichment_migration_job` (Phase 2 Bronze DDL)
+   - `defillama_ingestion_job` (DefiLlama protocols)
+   - `github_activity_ingestion_job` (GitHub dev activity)
+   - `fred_macro_ingestion_job --skip-live` (FRED macro — CI safe mode)
+   - `silver_enrichment_migration_job` (Phase 2 Silver DDL)
+   - `silver_enrichment_pipeline_job` (materialise Silver enriched)
    - live SQL validation artifact upload
+
+## Pending Approvals — Phase 2 Deploy
+
+| Gate | Status | Notes |
+|------|--------|-------|
+| Phase 2 deploy dispatch | `pending` | requires `FRED_API_KEY` GitHub secret + operator approval |
+| `FRED_API_KEY` secret registration | `pending` | obtain from fred.stlouisfed.org |
+| `GITHUB_TOKEN` secret (optional) | `pending` | higher GitHub API rate limits |

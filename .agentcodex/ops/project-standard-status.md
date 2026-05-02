@@ -8,9 +8,9 @@ Provide one durable manifest for the AgentCodex Project Standard blocks required
 
 - project: `CoinGeckoAnalytical`
 - workflow_phase: `build`
-- phase_group: `Phase 1 Base`
-- status_date: `2026-05-01`
-- last_update: `2026-05-01 sessão 2 — WS2+WS4 concluídos, 147 testes passando`
+- phase_group: `Phase 2 Enrichment`
+- status_date: `2026-05-02`
+- last_update: `2026-05-02 sessão 3 — Phase 2 enrichment pipeline construído (DefiLlama + GitHub + FRED), 138 testes passando, commit 0009024`
 
 ## Status Matrix
 
@@ -18,7 +18,7 @@ Provide one durable manifest for the AgentCodex Project Standard blocks required
 |---|---|---|---|
 | `contexto` | `implemented` | `README.md`, `.agentcodex/history/CONTEXT-HISTORY.md`, `BRAINSTORM_`, `DEFINE_` | keep the manifest current as the build evolves |
 | `arquitetura` | `implemented` | `docs/architecture.md`, `DESIGN_coingeckoanalytical.md` | none for Phase 1 |
-| `dados` | `implemented` | `databricks/silver_market_pipeline_job.py` (novo), `bronze_silver_market_foundation.sql`, `gold_market_views.sql`, `genie_metric_views.sql` — cadeia Bronze→Silver→Gold agora tem pipeline completo | bind to live Databricks execution evidence |
+| `dados` | `implemented` | Phase 1: Bronze→Silver→Gold pipeline com 3 rows live. Phase 2: `defillama_ingestion_job`, `github_activity_ingestion_job`, `fred_macro_ingestion_job`, `silver_enrichment_pipeline_job` — cadeia enrichment Bronze→Silver→Gold completa com 3+3 Gold views + 3 ai_serving metric views | bind live Phase 2 Databricks execution evidence |
 | `governanca` | `implemented` | `.agentcodex/ops/governance-and-ownership.md`, `databricks/unity-catalog-foundation.md`, `databricks/terraform/main.tf` | live workspace grants and owners still need evidence |
 | `lineage` | `implemented` | `databricks/unity-catalog-lineage-map.md`, `databricks/gold-data-contracts.md` | add live Catalog Explorer validation evidence |
 | `execucao` | `implemented` | `backend/databricks_sql_client.py` (OAuth M2M, SQL Statements API, polling), `backend/genie_client.py` (ask_genie, polling, GenieAnswer), `backend/mosaic_copilot_client.py` (Model Serving, MosaicAnswer com token telemetry). BFF encadeia live→demo fallback para DBSQL e live→stub fallback para Genie/Mosaic | live warehouse + endpoint evidence pendente |
