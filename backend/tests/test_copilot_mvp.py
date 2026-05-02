@@ -114,6 +114,7 @@ class CopilotMvpTests(unittest.TestCase):
                 "user_id",
                 "route_selected",
                 "model_or_engine",
+                "model_tier",
                 "prompt_tokens",
                 "completion_tokens",
                 "total_tokens",

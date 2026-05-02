@@ -20,6 +20,9 @@ class MosaicConfig:
     client_id: str = ""
     client_secret: str = ""
     timeout_seconds: int = 30
+    # Per-tier endpoint overrides. Falls back to endpoint_name when empty.
+    endpoint_name_light: str = ""
+    endpoint_name_complex: str = ""
 
 
 def load_config_from_env(env: dict[str, str] | None = None) -> MosaicConfig | None:
@@ -34,7 +37,17 @@ def load_config_from_env(env: dict[str, str] | None = None) -> MosaicConfig | No
         token=source.get("DATABRICKS_TOKEN") or None,
         client_id=source.get("DATABRICKS_CLIENT_ID", ""),
         client_secret=source.get("DATABRICKS_CLIENT_SECRET", ""),
+        endpoint_name_light=source.get("DATABRICKS_MOSAIC_ENDPOINT_LIGHT", ""),
+        endpoint_name_complex=source.get("DATABRICKS_MOSAIC_ENDPOINT_COMPLEX", ""),
     )
+
+
+def _resolve_endpoint(config: MosaicConfig, tier: str) -> str:
+    if tier == "light" and config.endpoint_name_light:
+        return config.endpoint_name_light
+    if tier == "complex" and config.endpoint_name_complex:
+        return config.endpoint_name_complex
+    return config.endpoint_name
 
 
 def _get_bearer_token(config: MosaicConfig) -> str:
@@ -80,6 +93,7 @@ def ask_mosaic(
     config: MosaicConfig,
     question: str,
     conversation_history: list[dict[str, str]] | None = None,
+    tier: str = "standard",
 ) -> MosaicAnswer:
     started_at = time.monotonic()
     token = _get_bearer_token(config)
@@ -87,7 +101,8 @@ def ask_mosaic(
     messages: list[dict[str, str]] = list(conversation_history or [])
     messages.append({"role": "user", "content": question})
 
-    url = f"{config.host}/serving-endpoints/{config.endpoint_name}/invocations"
+    endpoint = _resolve_endpoint(config, tier)
+    url = f"{config.host}/serving-endpoints/{endpoint}/invocations"
     payload = json.dumps({"messages": messages}).encode()
     req = urllib.request.Request(
         url,

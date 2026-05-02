@@ -50,6 +50,9 @@ jobs:
       - name: Run backend tests
         run: python3 -m unittest discover -s backend/tests -p 'test_*.py'
 
+      - name: Run model tier router tests
+        run: python3 -m unittest backend.tests.test_model_tier_router
+
       - name: Run Databricks bundle validation helper
         run: python3 databricks/tools/validate_bundle.py
 
@@ -95,6 +98,8 @@ jobs:
       DATABRICKS_CLIENT_ID: ${{ secrets.DATABRICKS_CLIENT_ID }}
       DATABRICKS_CLIENT_SECRET: ${{ secrets.DATABRICKS_CLIENT_SECRET }}
       DATABRICKS_SQL_WAREHOUSE_ID: ${{ secrets.DATABRICKS_SQL_WAREHOUSE_ID }}
+      FRED_API_KEY: ${{ secrets.FRED_API_KEY }}
+      GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4

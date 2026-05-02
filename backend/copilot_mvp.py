@@ -24,6 +24,22 @@ def _load_mosaic_client() -> Any | None:
     return mod
 
 
+def _load_tier_router() -> Any | None:
+    name = "model_tier_router"
+    if name in sys.modules:
+        return sys.modules[name]
+    candidate = Path(__file__).resolve().parent / "model_tier_router.py"
+    if not candidate.exists():
+        return None
+    spec = importlib.util.spec_from_file_location(name, candidate)
+    if spec is None or spec.loader is None:
+        return None
+    mod = importlib.util.module_from_spec(spec)
+    sys.modules[name] = mod
+    spec.loader.exec_module(mod)
+    return mod
+
+
 @dataclass(frozen=True)
 class RouteDecision:
     surface: str
@@ -69,6 +85,7 @@ class TelemetryEnvelope:
     user_id: str | None
     route_selected: str
     model_or_engine: str
+    model_tier: str
     prompt_tokens: int | None
     completion_tokens: int | None
     total_tokens: int | None
@@ -190,11 +207,29 @@ def build_copilot_response(request: CopilotRequest) -> dict[str, Any]:
         )
 
     _mosaic = _load_mosaic_client()
+    _tier_router = _load_tier_router()
     mosaic_config = _mosaic.load_config_from_env() if _mosaic is not None else None
+
+    tier_classification = None
+    if _tier_router is not None:
+        tier_classification = _tier_router.classify_model_tier(
+            request.message_text,
+            asset_count=len(request.selected_assets),
+        )
+
+    tier = tier_classification.tier.value if tier_classification is not None else "standard"
+
     if mosaic_config is not None:
         try:
-            answer = _mosaic.ask_mosaic(mosaic_config, request.message_text)
+            answer = _mosaic.ask_mosaic(
+                mosaic_config, request.message_text, tier=tier
+            )
             if answer.execution_status == "completed":
+                cost = None
+                if _tier_router is not None and answer.token_count_hint:
+                    cost = _tier_router.estimate_cost_usd(
+                        tier_classification.tier, answer.token_count_hint
+                    )
                 return serialize_response_envelope(
                     ResponseEnvelope(
                         request_id=request.request_id,
@@ -213,6 +248,9 @@ def build_copilot_response(request: CopilotRequest) -> dict[str, Any]:
                             "latency_ms": answer.latency_ms,
                             "model_id": answer.model_id,
                             "token_count_hint": answer.token_count_hint,
+                            "model_tier": tier,
+                            "tier_reason": tier_classification.reason if tier_classification else "standard_market_analysis",
+                            "cost_estimate": cost,
                         },
                     )
                 )
@@ -244,18 +282,20 @@ def build_copilot_response(request: CopilotRequest) -> dict[str, Any]:
 
 
 def build_usage_event(request: CopilotRequest, response: dict[str, Any], latency_ms: int = 120) -> dict[str, Any]:
+    routing = response.get("routing") or {}
     telemetry = TelemetryEnvelope(
         event_time=dt.datetime.now(dt.UTC).isoformat(),
         request_id=request.request_id,
         tenant_id=request.tenant_id,
         user_id=request.user_id,
         route_selected=route_request(request.message_text),
-        model_or_engine="mosaic-ai-agent-framework",
+        model_or_engine=routing.get("model_id") or "mosaic-ai-agent-framework",
+        model_tier=routing.get("model_tier") or "standard",
         prompt_tokens=None,
         completion_tokens=None,
         total_tokens=None,
         latency_ms=latency_ms,
-        cost_estimate=None,
+        cost_estimate=routing.get("cost_estimate"),
         freshness_watermark=response["freshness"]["watermark"],
         response_status="success",
         response_surface_type=response["surface_type"],
@@ -281,6 +321,7 @@ def build_databricks_usage_row(
         "user_id": telemetry["user_id"],
         "route_selected": telemetry["route_selected"],
         "model_or_engine": telemetry["model_or_engine"],
+        "model_tier": telemetry["model_tier"],
         "prompt_tokens": prompt_tokens,
         "completion_tokens": completion_tokens,
         "total_tokens": total_tokens,
