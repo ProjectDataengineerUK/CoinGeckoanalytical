@@ -37,8 +37,9 @@ def load_config_from_env(env: dict[str, str] | None = None) -> MosaicConfig | No
         token=source.get("DATABRICKS_TOKEN") or None,
         client_id=source.get("DATABRICKS_CLIENT_ID", ""),
         client_secret=source.get("DATABRICKS_CLIENT_SECRET", ""),
-        endpoint_name_light=source.get("DATABRICKS_MOSAIC_ENDPOINT_LIGHT", ""),
-        endpoint_name_complex=source.get("DATABRICKS_MOSAIC_ENDPOINT_COMPLEX", ""),
+        # Fall back to well-known bundle-deployed endpoint names when not overridden.
+        endpoint_name_light=source.get("DATABRICKS_MOSAIC_ENDPOINT_LIGHT", "coingecko-copilot-light"),
+        endpoint_name_complex=source.get("DATABRICKS_MOSAIC_ENDPOINT_COMPLEX", "coingecko-copilot-complex"),
     )
 
 

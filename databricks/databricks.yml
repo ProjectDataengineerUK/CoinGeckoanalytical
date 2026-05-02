@@ -246,3 +246,58 @@ resources:
           spec:
             environment_version: "2"
             dependencies: []
+
+  model_serving_endpoints:
+    # Light tier: Haiku — for simple factual lookups (price queries, single metrics)
+    coingecko_copilot_light:
+      name: coingecko-copilot-light
+      config:
+        served_entities:
+          - name: copilot-light
+            external_model:
+              name: claude-haiku-4-5-20251001
+              provider: anthropic
+              task: llm/v1/chat
+              anthropic_config:
+                anthropic_api_key: "{{secrets/anthropic/api_key}}"
+        auto_capture_config:
+          catalog_name: cgadev
+          schema_name: ai_serving
+          table_name_prefix: copilot_light_inference
+          enabled: true
+
+    # Standard tier: Sonnet — default for narrative market analysis
+    coingecko_copilot_standard:
+      name: coingecko-copilot-standard
+      config:
+        served_entities:
+          - name: copilot-standard
+            external_model:
+              name: claude-sonnet-4-6
+              provider: anthropic
+              task: llm/v1/chat
+              anthropic_config:
+                anthropic_api_key: "{{secrets/anthropic/api_key}}"
+        auto_capture_config:
+          catalog_name: cgadev
+          schema_name: ai_serving
+          table_name_prefix: copilot_standard_inference
+          enabled: true
+
+    # Complex tier: Opus — only for 4+ assets, deep cross-domain reasoning
+    coingecko_copilot_complex:
+      name: coingecko-copilot-complex
+      config:
+        served_entities:
+          - name: copilot-complex
+            external_model:
+              name: claude-opus-4-7
+              provider: anthropic
+              task: llm/v1/chat
+              anthropic_config:
+                anthropic_api_key: "{{secrets/anthropic/api_key}}"
+        auto_capture_config:
+          catalog_name: cgadev
+          schema_name: ai_serving
+          table_name_prefix: copilot_complex_inference
+          enabled: true
