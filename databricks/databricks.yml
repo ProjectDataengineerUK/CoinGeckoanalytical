@@ -27,6 +27,8 @@ resources:
           spark_python_task:
             python_file: ./jobs/market_source_ingestion_job.py
           environment_key: default
+          environment_variables:
+            COINGECKO_API_KEY: "{{secrets/coingecko/api_key}}"
       schedule:
         quartz_cron_expression: "0 */5 * * * ?"
         timezone_id: America/Sao_Paulo
