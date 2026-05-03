@@ -40,6 +40,38 @@ def _load_tier_router() -> Any | None:
     return mod
 
 
+def _load_orchestrator() -> Any | None:
+    name = "copilot_orchestrator"
+    if name in sys.modules:
+        return sys.modules[name]
+    candidate = Path(__file__).resolve().parent / "copilot_orchestrator.py"
+    if not candidate.exists():
+        return None
+    spec = importlib.util.spec_from_file_location(name, candidate)
+    if spec is None or spec.loader is None:
+        return None
+    mod = importlib.util.module_from_spec(spec)
+    sys.modules[name] = mod
+    spec.loader.exec_module(mod)
+    return mod
+
+
+def _load_dbsql_client() -> Any | None:
+    name = "databricks_sql_client"
+    if name in sys.modules:
+        return sys.modules[name]
+    candidate = Path(__file__).resolve().parent / "databricks_sql_client.py"
+    if not candidate.exists():
+        return None
+    spec = importlib.util.spec_from_file_location(name, candidate)
+    if spec is None or spec.loader is None:
+        return None
+    mod = importlib.util.module_from_spec(spec)
+    sys.modules[name] = mod
+    spec.loader.exec_module(mod)
+    return mod
+
+
 @dataclass(frozen=True)
 class RouteDecision:
     surface: str
@@ -182,6 +214,17 @@ def serialize_telemetry_envelope(
     return payload
 
 
+class _DbsqlAdapter:
+    """Adapts (module, config) pair to the run_query() interface expected by the orchestrator."""
+
+    def __init__(self, mod: Any, config: Any) -> None:
+        self._mod = mod
+        self._config = config
+
+    def run_query(self, sql: str) -> list[dict[str, Any]]:
+        return self._mod.execute_statement(self._config, sql)
+
+
 def build_copilot_response(request: CopilotRequest) -> dict[str, Any]:
     decision = classify_route(request)
     if decision.surface == "genie":
@@ -218,6 +261,60 @@ def build_copilot_response(request: CopilotRequest) -> dict[str, Any]:
         )
 
     tier = tier_classification.tier.value if tier_classification is not None else "standard"
+
+    # Multi-agent orchestrator path for complex cross-domain questions
+    if tier == "complex" and _mosaic is not None and mosaic_config is not None:
+        _orchestrator = _load_orchestrator()
+        if _orchestrator is not None:
+            _dbsql_mod = _load_dbsql_client()
+            dbsql_adapter = None
+            dbsql_catalog = "cgadev"
+            if _dbsql_mod is not None:
+                _dbsql_config = _dbsql_mod.load_config_from_env()
+                if _dbsql_config is not None:
+                    dbsql_adapter = _DbsqlAdapter(_dbsql_mod, _dbsql_config)
+                    dbsql_catalog = _dbsql_config.catalog
+            try:
+                orch_result = _orchestrator.orchestrate(
+                    request.message_text,
+                    _mosaic,
+                    mosaic_config,
+                    dbsql_client=dbsql_adapter,
+                    catalog=dbsql_catalog,
+                    selected_assets=request.selected_assets or [],
+                )
+                if orch_result.execution_status == "completed":
+                    cost = None
+                    if _tier_router is not None and tier_classification is not None and orch_result.total_tokens:
+                        cost = _tier_router.estimate_cost_usd(
+                            tier_classification.tier, orch_result.total_tokens
+                        )
+                    return serialize_response_envelope(
+                        ResponseEnvelope(
+                            request_id=request.request_id,
+                            surface_type="copilot_answer",
+                            title="Copilot de mercado — analise multi-agente",
+                            body=orch_result.answer_text,
+                            citations=list(orch_result.sources),
+                            freshness={"watermark": "live", "status": "fresh"},
+                            confidence={"label": "multi_agent_grounded", "score": 0.92},
+                            actions=["follow_up_question", "open_analytics_view"],
+                            warnings=[],
+                            routing={
+                                "surface": decision.surface,
+                                "reason": decision.reason,
+                                "signals": list(decision.signals),
+                                "latency_ms": orch_result.total_latency_ms,
+                                "model_tier": tier,
+                                "tier_reason": tier_classification.reason if tier_classification else "complex_orchestrated",
+                                "cost_estimate": cost,
+                                "agent_count": len(orch_result.agent_results),
+                                "orchestrated": True,
+                            },
+                        )
+                    )
+            except Exception:
+                pass
 
     if mosaic_config is not None:
         try:
