@@ -21,6 +21,10 @@ REQUIRED_JOB_KEYS = {
     "github_activity_ingestion_job",
     "fred_macro_ingestion_job",
     "silver_enrichment_pipeline_job",
+    "feature_engineering_job",
+    "train_market_model_job",
+    "score_market_assets_job",
+    "sentinela_evaluation_job",
 }
 
 REQUIRED_NOTEBOOKS = {
@@ -62,6 +66,7 @@ def validate_bundle(bundle: dict[str, Any], root_dir: str | Path | None = None) 
             "silver_enrichment_migration_job",
             "ops_bundle_run_ingestion_job",
             "ops_sentinela_alert_ingestion_job",
+            "train_market_model_job",
         }:
             schedule = schedule or {}
             if schedule.get("pause_status") != "UNPAUSED":

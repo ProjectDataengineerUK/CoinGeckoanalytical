@@ -1,9 +1,17 @@
 from __future__ import annotations
 
 import json
+import os
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
+
+DEFAULT_OPS_SCHEMA = "ops_observability"
+
+
+def _qual(name: str) -> str:
+    cat = os.environ.get("COINGECKO_OPS_CATALOG") or os.environ.get("COINGECKO_CATALOG", "cgadev")
+    return f"{cat}.{DEFAULT_OPS_SCHEMA}.{name}"
 
 
 REQUIRED_FIELDS = ("job_name", "status")
@@ -57,8 +65,10 @@ def normalize_bundle_run_rows(rows: list[dict[str, Any]]) -> list[dict[str, Any]
 def write_bundle_run_rows(
     spark: Any,
     rows: list[dict[str, Any]],
-    target_table: str = "ops_bundle_runs",
+    target_table: str | None = None,
 ) -> IngestionResult:
+    if target_table is None:
+        target_table = _qual("ops_bundle_runs")
     normalized_rows = normalize_bundle_run_rows(rows)
     if not normalized_rows:
         return IngestionResult(rows_written=0, target_table=target_table)
@@ -72,7 +82,7 @@ def main(
     spark: Any,
     payload_json: str | None = None,
     payload_path: str | None = None,
-    target_table: str = "ops_bundle_runs",
+    target_table: str | None = None,
 ) -> IngestionResult:
     rows = parse_payload(payload_json, payload_path=payload_path)
     return write_bundle_run_rows(spark, rows, target_table=target_table)
@@ -102,12 +112,12 @@ if __name__ == "__main__":
     try:
         widgets["target_table"] = dbutils.widgets.get("target_table")  # type: ignore[name-defined]
     except Exception:  # pragma: no cover - Databricks widget fallback
-        widgets["target_table"] = "ops_bundle_runs"
+        widgets["target_table"] = None
 
     result = main(
         spark_session,
         payload_json=widgets["payload_json"],
         payload_path=widgets["payload_path"],
-        target_table=widgets["target_table"] or "ops_bundle_runs",
+        target_table=widgets["target_table"] or None,
     )
     print(json.dumps({"rows_written": result.rows_written, "target_table": result.target_table}))

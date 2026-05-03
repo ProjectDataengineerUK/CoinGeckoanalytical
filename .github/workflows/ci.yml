@@ -89,6 +89,10 @@ jobs:
           python3 -m unittest databricks.tests.test_bronze_enrichment_migration_job
           python3 -m unittest databricks.tests.test_silver_enrichment_migration_job
           python3 -m unittest databricks.tests.test_validate_enrichment_chain
+          python3 -m unittest databricks.tests.test_feature_engineering_job
+          python3 -m unittest databricks.tests.test_train_market_model_job
+          python3 -m unittest databricks.tests.test_score_market_assets_job
+          python3 -m unittest databricks.tests.test_sentinela_evaluation_job
 
       - name: Run workflow contract tests
         run: python3 -m unittest discover -s repo_tests -p 'test_*.py'
@@ -169,6 +173,11 @@ jobs:
           databricks bundle run ops_bundle_run_ingestion_job -t dev
           databricks bundle run ops_sentinela_alert_ingestion_job -t dev
           databricks bundle run ops_readiness_refresh_job -t dev
+          # 5. MLOps — feature engineering then scoring (training is on-demand only)
+          databricks bundle run feature_engineering_job -t dev
+          databricks bundle run score_market_assets_job -t dev
+          # 6. Sentinela live evaluation
+          databricks bundle run sentinela_evaluation_job -t dev
 
       - name: Run live SQL validation
         if: steps.prereq.outputs.deploy_ready == 'true'

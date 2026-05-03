@@ -262,3 +262,17 @@ SELECT
   'silver_macro_context'     AS lineage_source,
   'pass'                     AS quality_status
 FROM cgadev.market_silver.silver_macro_context;
+
+-- ML scoring output table (written by score_market_assets_job)
+CREATE TABLE IF NOT EXISTS cgadev.market_gold.gold_ml_scores (
+  asset_id          STRING,
+  symbol            STRING,
+  scored_at         TIMESTAMP,
+  predicted_regime  STRING,
+  anomaly_score     INT,
+  momentum_score    DOUBLE,
+  regime_confidence DOUBLE,
+  model_version     STRING
+)
+USING DELTA
+TBLPROPERTIES (delta.autoOptimize.optimizeWrite = true, delta.autoOptimize.autoCompact = true);

@@ -71,49 +71,60 @@ Record verification artifacts under `.agentcodex/reports/`.
 
 ## Project Standard Blocks
 
-Do not consider the project complete until these are implemented or explicitly marked not applicable:
+Status as of 2026-05-03:
 
-- `contexto`
-- `arquitetura`
-- `dados`
-- `governanca`
-- `lineage`
-- `execucao`
-- `validacao`
-- `observabilidade`
-- `access control`
-- `data contracts`
-- `operacao`
-- `deploy`
-- `custo`
-- `compliance`
+- `contexto` — DONE
+- `arquitetura` — DONE
+- `dados` — DONE (Bronze → Silver → Gold, 14 ingestion/migration jobs)
+- `governanca` — DONE (UC foundation SQL written; grants require manual execution in workspace)
+- `lineage` — DONE (`unity-catalog-lineage-map.md`, automated lineage via UC System Tables optional)
+- `execucao` — DONE (all jobs scheduled in DABs, CI gate)
+- `validacao` — DONE (314+ tests, validate_bundle, validate chains, live_sql_validation)
+- `observabilidade` — DONE (`sentinela_evaluation_job` scheduled every 15 min, ops views, cga-admin surfaces)
+- `access control` — PARTIAL (UC grants SQL written, not yet applied to workspace groups)
+- `data contracts` — DONE (7 JSON schema contracts + Gold data contracts doc + contract CI step)
+- `operacao` — DONE (`sentinela_evaluation_job` live runtime + `ops_readiness_refresh_job` + cga-admin ops surface)
+- `deploy` — DONE (DABs full pipeline, two CI gates, app.yaml manifests)
+- `custo` — DONE (model tier routing, cost_estimate on every response, cga-admin cost monitor)
+- `compliance` — PARTIAL (audit trail in cga-admin; no RLS/column masking yet)
+- `mlops` — DONE (feature engineering + regime classifier + anomaly detector + batch scoring + MLflow registry)
 
 ## Current Repository State
 
-Build phase in progress — backend contracts and data pipeline complete, apps not yet built:
+All six build sequences complete:
 
-- Medallion pipeline (Bronze → Silver → Gold) deployed and running in Databricks
-- `backend/copilot_orchestrator.py` — multi-agent orchestrator (market + macro + defi + synth), coded Python
-- `backend/copilot_mvp.py` — routing BFF with tier classification and orchestrator integration
-- `backend/mosaic_copilot_client.py` — Unity AI Gateway client (3-tier: light / standard / complex)
-- `backend/model_tier_router.py` — token cost optimizer
-- `backend/databricks_sql_client.py` and `backend/genie_client.py` — Databricks SQL and Genie REST clients
-- Design documents updated to reflect two-app Databricks surface
+**Data Pipeline**
+- Bronze → Silver → Gold medallion, 17 jobs (market + enrichment + ops + MLOps)
+- `ops_readiness_refresh_job` creates Gold views and Genie metric views on schedule
 
-Not yet built:
-- `cga-analytics` Databricks App (Genie-driven BI + Copilot + charts)
-- `cga-admin` Databricks App (Sentinela + access management + ops telemetry)
-- Sentinela live runtime
-- Unity Catalog access control implementation
-- DataOps / LLMOps operating stack
+**Backend**
+- `copilot_orchestrator.py` — 3 domain agents + SynthAgent, coded Python
+- `copilot_mvp.py` — routing BFF, tier classification, orchestrator integration
+- `mosaic_copilot_client.py`, `model_tier_router.py`, `databricks_sql_client.py`, `genie_client.py`
+
+**Apps**
+- `apps/cga-analytics/` — Genie panel + chart dashboard + copilot panel, registered in DABs
+- `apps/cga-admin/` — 5-page admin surface (Sentinela, Pipeline Health, Cost, Access, Audit), registered in DABs
+
+**MLOps**
+- `feature_engineering_job.py` — Silver feature table with momentum/dominance features
+- `train_market_model_job.py` — Regime Classifier + Anomaly Detector → MLflow Model Registry
+- `score_market_assets_job.py` — batch scoring → `gold_ml_scores`
+
+**Operational**
+- `sentinela_evaluation_job.py` — scheduled batch Sentinela runtime (every 15 min)
+- Ops schema aligned: all jobs write to `{catalog}.ops_observability.*`
+
+**Remaining for production readiness**
+- Execute UC grants in target workspace (run `unity_catalog_foundation.sql` manually)
+- Train initial models (`train_market_model_job` on-demand after first Silver data batch)
+- Configure Genie Space to point at `cgadev.ai_serving.*` views (already done per user)
 
 ## Expected Next Steps
 
-1. Design and build `cga-analytics` app skeleton (layout + Genie state controller + chart components)
-2. Wire copilot orchestrator into analytics app chat panel
-3. Design and build `cga-admin` app (Sentinela dashboard + access management + telemetry views)
-4. Sentinela live monitoring runtime
-5. Unity Catalog access control and tenant isolation
+1. Execute UC grants in workspace (manual SQL)
+2. Run `train_market_model_job` after first full Silver data batch
+3. Review and close compliance gaps (RLS, column masking for PII if applicable)
 
 ## Avoid
 

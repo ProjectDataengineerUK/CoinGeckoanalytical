@@ -54,7 +54,7 @@ def fetch_usage_events(limit: int = 200) -> list[dict[str, Any]]:
     return run(
         f"SELECT event_time, tenant_id, user_id, route_selected, model_or_engine, "
         f"model_tier, total_tokens, latency_ms, cost_estimate, response_status "
-        f"FROM {cat}.ops.ops_usage_events "
+        f"FROM {cat}.ops_observability.ops_usage_events "
         f"ORDER BY event_time DESC LIMIT {limit}"
     )
 
@@ -67,7 +67,7 @@ def fetch_cost_by_tier() -> list[dict[str, Any]]:
         f"SUM(total_tokens) AS total_tokens, "
         f"SUM(cost_estimate) AS total_cost_usd, "
         f"AVG(latency_ms) AS avg_latency_ms "
-        f"FROM {cat}.ops.ops_usage_events "
+        f"FROM {cat}.ops_observability.ops_usage_events "
         f"GROUP BY model_tier ORDER BY total_cost_usd DESC"
     )
 
@@ -77,7 +77,7 @@ def fetch_daily_spend(days: int = 14) -> list[dict[str, Any]]:
     return run(
         f"SELECT DATE(event_time) AS day, model_tier, "
         f"SUM(cost_estimate) AS cost_usd, SUM(total_tokens) AS tokens "
-        f"FROM {cat}.ops.ops_usage_events "
+        f"FROM {cat}.ops_observability.ops_usage_events "
         f"WHERE event_time >= CURRENT_DATE - INTERVAL {days} DAYS "
         f"GROUP BY day, model_tier ORDER BY day ASC"
     )
@@ -88,7 +88,7 @@ def fetch_cost_by_tenant() -> list[dict[str, Any]]:
     return run(
         f"SELECT tenant_id, model_tier, COUNT(*) AS requests, "
         f"SUM(cost_estimate) AS total_cost_usd, SUM(total_tokens) AS total_tokens "
-        f"FROM {cat}.ops.ops_usage_events "
+        f"FROM {cat}.ops_observability.ops_usage_events "
         f"GROUP BY tenant_id, model_tier ORDER BY total_cost_usd DESC LIMIT 20"
     )
 
@@ -102,7 +102,7 @@ def fetch_alerts(limit: int = 100) -> list[dict[str, Any]]:
     return run(
         f"SELECT alert_time, kind, severity, route_selected, message, "
         f"tenant_id, request_id "
-        f"FROM {cat}.ops.ops_sentinela_alerts "
+        f"FROM {cat}.ops_observability.ops_sentinela_alerts "
         f"ORDER BY alert_time DESC LIMIT {limit}"
     )
 
@@ -111,7 +111,7 @@ def fetch_alert_counts() -> list[dict[str, Any]]:
     cat = _ops_catalog()
     return run(
         f"SELECT severity, COUNT(*) AS count "
-        f"FROM {cat}.ops.ops_sentinela_alerts "
+        f"FROM {cat}.ops_observability.ops_sentinela_alerts "
         f"WHERE alert_time >= CURRENT_DATE - INTERVAL 7 DAYS "
         f"GROUP BY severity"
     )
@@ -125,7 +125,7 @@ def fetch_bundle_runs(limit: int = 50) -> list[dict[str, Any]]:
     cat = _ops_catalog()
     return run(
         f"SELECT ingested_at, job_name, status, run_id, rows_written, error_message "
-        f"FROM {cat}.ops.ops_bundle_runs "
+        f"FROM {cat}.ops_observability.ops_bundle_runs "
         f"ORDER BY ingested_at DESC LIMIT {limit}"
     )
 
@@ -138,7 +138,7 @@ def fetch_pipeline_summary() -> list[dict[str, Any]]:
         f"COUNT(*) AS total_runs, "
         f"SUM(CASE WHEN status = 'SUCCESS' THEN 1 ELSE 0 END) AS success_count, "
         f"SUM(CASE WHEN status != 'SUCCESS' THEN 1 ELSE 0 END) AS failure_count "
-        f"FROM {cat}.ops.ops_bundle_runs "
+        f"FROM {cat}.ops_observability.ops_bundle_runs "
         f"GROUP BY job_name ORDER BY last_run DESC"
     )
 
@@ -176,6 +176,6 @@ def fetch_audit_trail(limit: int = 100) -> list[dict[str, Any]]:
         f"SELECT event_time, request_id, tenant_id, user_id, route_selected, "
         f"model_or_engine, model_tier, total_tokens, latency_ms, cost_estimate, "
         f"response_status, freshness_watermark "
-        f"FROM {cat}.ops.ops_usage_events "
+        f"FROM {cat}.ops_observability.ops_usage_events "
         f"ORDER BY event_time DESC LIMIT {limit}"
     )

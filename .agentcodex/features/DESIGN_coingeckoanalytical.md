@@ -389,29 +389,40 @@ Design obligations:
 - `databricks_sql_client.py` and `genie_client.py`: DBSQL + Genie REST clients
 - 133 backend tests passing
 
-### Sequence 3. Analytics App — NEXT
+### Sequence 3. Analytics App — COMPLETE
 
-- `cga-analytics` Databricks App scaffold (Dash or Streamlit)
-- Layout: Genie panel + chart dashboard + copilot panel
-- Genie state controller: `ask_genie()` → `generated_query` → execute → broadcast to charts
-- Chart components: market rankings, DeFi TVL, macro indicators, movers
-- Copilot panel wired to `copilot_orchestrator.orchestrate()`
-- Freshness and provenance badges on all AI answers
-- Portuguese-first UI copy
+- `cga-analytics` Databricks App built: 3-column layout (Genie panel + chart dashboard + copilot panel)
+- Genie state controller: `ask_genie()` → `generated_query` stored in `dcc.Store` → all charts re-render
+- Chart components: market rankings, DeFi TVL, macro regime, top movers
+- Copilot panel wired to `copilot_orchestrator.orchestrate()` with tier badge + cost display
+- Freshness watermark and provenance on all AI answers
+- Graceful degradation with mock data when DATABRICKS_* env vars absent
+- Registered in `databricks.yml` as `cga-analytics` Databricks App
 
-### Sequence 4. Admin App — NEXT
+### Sequence 4. Admin App — COMPLETE
 
-- `cga-admin` Databricks App scaffold
-- Sentinela dashboard: pipeline health, freshness alerts, quality scores
-- Cost/token monitor: spend by tier, by tenant, daily trends
-- Access management: Unity Catalog group provisioning
-- Audit trail: request traces, generated queries, answer provenance
+- `cga-admin` Databricks App built: 5-page sidebar layout
+- Sentinela dashboard: pipeline health, freshness per source, alert counts by severity
+- Cost/token monitor: KPI cards + daily spend by tier + per-tenant breakdown
+- Access management: UC group provisioning + tenant GRANT SQL generator
+- Audit trail: full request log + latency box plots + status distribution
+- Registered in `databricks.yml` as `cga-admin` Databricks App
 
-### Sequence 5. Operational Completion
+### Sequence 5. Operational Completion — COMPLETE
 
-- Sentinela live runtime (continuous monitoring loop)
-- Unity Catalog fine-grained access control and tenant isolation
-- Runbooks, release gates, compliance review surfaces
+- `sentinela_evaluation_job.py`: scheduled batch evaluation (every 15 min) — reads ops tables, writes Sentinela alerts
+- Ops schema alignment: all jobs write to `{catalog}.ops_observability.*`; all services read from same
+- Unity Catalog foundation SQL in place (`unity_catalog_foundation.sql`, `unity_catalog_runtime_foundation.sql`)
+- Gold views and Genie metric views created by `ops_readiness_refresh_job`
+- Deploy CI gate: `confirm_apps_deploy` wires `databricks apps start` for both apps
+
+### Sequence 6. MLOps — COMPLETE
+
+- `feature_engineering_job.py`: builds `market_silver.silver_market_features` — price/volume/dominance/momentum features
+- `train_market_model_job.py`: trains Regime Classifier (RandomForest) + Anomaly Detector (IsolationForest); registers champion models in MLflow Model Registry
+- `score_market_assets_job.py`: batch scoring → `market_gold.gold_ml_scores` with `predicted_regime`, `anomaly_score`, `regime_confidence`
+- MLOps deploy sequence: feature engineering → scoring (training is on-demand)
+- 31 MLOps tests + 11 Sentinela evaluation tests covering pure-Python logic
 
 ## Build Gating Rules
 

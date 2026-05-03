@@ -258,3 +258,71 @@ resources:
             environment_version: "2"
             dependencies: []
 
+    feature_engineering_job:
+      name: feature_engineering_job
+      description: Build Silver market feature table for ML training and scoring.
+      tasks:
+        - task_key: run_feature_engineering
+          spark_python_task:
+            python_file: ./jobs/feature_engineering_job.py
+          environment_key: default
+      schedule:
+        quartz_cron_expression: "0 0 */3 * * ?"
+        timezone_id: America/Sao_Paulo
+        pause_status: UNPAUSED
+      environments:
+        - environment_key: default
+          spec:
+            environment_version: "2"
+            dependencies: []
+
+    train_market_model_job:
+      name: train_market_model_job
+      description: Train regime classifier and anomaly detector; register champion models in MLflow.
+      tasks:
+        - task_key: train_models
+          spark_python_task:
+            python_file: ./jobs/train_market_model_job.py
+          environment_key: default
+      environments:
+        - environment_key: default
+          spec:
+            environment_version: "2"
+            dependencies: []
+
+    score_market_assets_job:
+      name: score_market_assets_job
+      description: Batch score assets with champion regime and anomaly models; write to gold_ml_scores.
+      tasks:
+        - task_key: score_assets
+          spark_python_task:
+            python_file: ./jobs/score_market_assets_job.py
+          environment_key: default
+      schedule:
+        quartz_cron_expression: "0 30 */3 * * ?"
+        timezone_id: America/Sao_Paulo
+        pause_status: UNPAUSED
+      environments:
+        - environment_key: default
+          spec:
+            environment_version: "2"
+            dependencies: []
+
+    sentinela_evaluation_job:
+      name: sentinela_evaluation_job
+      description: Evaluate ops telemetry and bundle runs; write Sentinela alerts to ops_observability.
+      tasks:
+        - task_key: evaluate_sentinela
+          spark_python_task:
+            python_file: ./jobs/sentinela_evaluation_job.py
+          environment_key: default
+      schedule:
+        quartz_cron_expression: "0 */15 * * * ?"
+        timezone_id: America/Sao_Paulo
+        pause_status: UNPAUSED
+      environments:
+        - environment_key: default
+          spec:
+            environment_version: "2"
+            dependencies: []
+

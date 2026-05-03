@@ -11,7 +11,7 @@ class CIWorkflowTests(unittest.TestCase):
         workflow_path = Path(__file__).resolve().parent.parent / ".github" / "workflows" / "ci.yml"
         workflow = yaml.safe_load(workflow_path.read_text(encoding="utf-8"))
         jobs = workflow["jobs"]
-        self.assertEqual(set(jobs.keys()), {"lint", "contract", "deploy"})
+        self.assertEqual(set(jobs.keys()), {"lint", "contract", "deploy", "deploy_apps"})
         triggers = workflow.get("on")
         if triggers is None:
             triggers = workflow.get(True)
