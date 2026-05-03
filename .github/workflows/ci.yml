@@ -17,6 +17,16 @@ on:
         required: false
         type: boolean
         default: false
+      confirm_uc_grants:
+        description: "Run UC grants (catalog/schema/GRANT) against dev workspace."
+        required: false
+        type: boolean
+        default: false
+      confirm_train:
+        description: "Run train_market_model_job after Silver data is ready."
+        required: false
+        type: boolean
+        default: false
 
 permissions:
   id-token: write
@@ -93,6 +103,8 @@ jobs:
           python3 -m unittest databricks.tests.test_train_market_model_job
           python3 -m unittest databricks.tests.test_score_market_assets_job
           python3 -m unittest databricks.tests.test_sentinela_evaluation_job
+          python3 -m unittest databricks.tests.test_uc_grants_job
+          python3 -m unittest databricks.tests.test_rls_migration_job
 
       - name: Run workflow contract tests
         run: python3 -m unittest discover -s repo_tests -p 'test_*.py'
@@ -254,3 +266,35 @@ jobs:
           databricks apps get cga-analytics --host "$DATABRICKS_HOST" 2>/dev/null || echo "App not found — first deploy may still be initializing."
           echo "=== cga-admin ==="
           databricks apps get cga-admin --host "$DATABRICKS_HOST" 2>/dev/null || echo "App not found — first deploy may still be initializing."
+
+  uc_grants:
+    runs-on: ubuntu-latest
+    needs: contract
+    if: github.event_name == 'workflow_dispatch' && inputs.confirm_uc_grants
+    env:
+      DATABRICKS_HOST: ${{ secrets.DATABRICKS_HOST }}
+      DATABRICKS_TOKEN: ${{ secrets.DATABRICKS_TOKEN }}
+      DATABRICKS_CLIENT_ID: ${{ secrets.DATABRICKS_CLIENT_ID }}
+      DATABRICKS_CLIENT_SECRET: ${{ secrets.DATABRICKS_CLIENT_SECRET }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install Databricks CLI
+        run: curl -fsSL https://raw.githubusercontent.com/databricks/setup-cli/main/install.sh | sh
+      - name: Run UC grants job
+        run: databricks bundle run uc_grants_job -t dev
+
+  train_models:
+    runs-on: ubuntu-latest
+    needs: deploy
+    if: github.event_name == 'workflow_dispatch' && inputs.confirm_train
+    env:
+      DATABRICKS_HOST: ${{ secrets.DATABRICKS_HOST }}
+      DATABRICKS_TOKEN: ${{ secrets.DATABRICKS_TOKEN }}
+      DATABRICKS_CLIENT_ID: ${{ secrets.DATABRICKS_CLIENT_ID }}
+      DATABRICKS_CLIENT_SECRET: ${{ secrets.DATABRICKS_CLIENT_SECRET }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install Databricks CLI
+        run: curl -fsSL https://raw.githubusercontent.com/databricks/setup-cli/main/install.sh | sh
+      - name: Train models
+        run: databricks bundle run train_market_model_job -t dev

@@ -325,3 +325,31 @@ resources:
           spec:
             environment_version: "2"
             dependencies: []
+
+    uc_grants_job:
+      name: uc_grants_job
+      description: Execute Unity Catalog foundation SQL (CREATE CATALOG, GRANT, ownership) against target workspace.
+      tasks:
+        - task_key: run_uc_grants
+          spark_python_task:
+            python_file: ./databricks/jobs/uc_grants_job.py
+          environment_key: default
+      environments:
+        - environment_key: default
+          spec:
+            environment_version: "2"
+            dependencies: []
+
+    rls_migration_job:
+      name: rls_migration_job
+      description: Apply Unity Catalog row filters and column masks for ops_observability tables.
+      tasks:
+        - task_key: apply_rls
+          spark_python_task:
+            python_file: ./databricks/jobs/rls_migration_job.py
+          environment_key: default
+      environments:
+        - environment_key: default
+          spec:
+            environment_version: "2"
+            dependencies: []

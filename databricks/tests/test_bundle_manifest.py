@@ -33,6 +33,8 @@ class BundleManifestTests(unittest.TestCase):
                 "train_market_model_job",
                 "score_market_assets_job",
                 "sentinela_evaluation_job",
+                "uc_grants_job",
+                "rls_migration_job",
             },
         )
         self.assertNotIn("schedule", jobs["bronze_market_table_migration_job"])
