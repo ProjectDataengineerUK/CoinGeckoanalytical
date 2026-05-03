@@ -18,6 +18,17 @@ targets:
       root_path: /Workspace/Users/${workspace.current_user.userName}/.bundle/${bundle.name}/prod
 
 resources:
+  apps:
+    cga_analytics:
+      name: cga-analytics
+      description: "CoinGeckoAnalytical — main product surface (Genie + copilot + dynamic charts)"
+      source_code_path: ../apps/cga-analytics
+
+    cga_admin:
+      name: cga-admin
+      description: "CoinGeckoAnalytical — ops and admin surface (Sentinela + access + telemetry)"
+      source_code_path: ../apps/cga-admin
+
   jobs:
     market_source_ingestion_job:
       name: market_source_ingestion_job

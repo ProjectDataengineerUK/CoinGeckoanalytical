@@ -12,6 +12,11 @@ on:
         required: false
         type: boolean
         default: false
+      confirm_apps_deploy:
+        description: "Set to true to deploy cga-analytics and cga-admin Databricks Apps."
+        required: false
+        type: boolean
+        default: false
 
 permissions:
   id-token: write
@@ -30,7 +35,7 @@ jobs:
           python-version: "3.12"
 
       - name: Compile repository Python
-        run: python3 -m compileall backend databricks repo_tests
+        run: python3 -m compileall backend databricks repo_tests apps
 
   contract:
     runs-on: ubuntu-latest
@@ -175,3 +180,74 @@ jobs:
         with:
           name: databricks-live-sql-validation
           path: databricks/live_sql_validation_results.json
+
+  deploy_apps:
+    runs-on: ubuntu-latest
+    needs: contract
+    if: github.event_name == 'workflow_dispatch' && inputs.confirm_apps_deploy
+    env:
+      DATABRICKS_HOST: ${{ secrets.DATABRICKS_HOST }}
+      DATABRICKS_TOKEN: ${{ secrets.DATABRICKS_TOKEN }}
+      DATABRICKS_CLIENT_ID: ${{ secrets.DATABRICKS_CLIENT_ID }}
+      DATABRICKS_CLIENT_SECRET: ${{ secrets.DATABRICKS_CLIENT_SECRET }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install deploy dependencies
+        run: python3 -m pip install --upgrade pip pyyaml
+
+      - name: Install Databricks CLI
+        run: |
+          curl -fsSL https://raw.githubusercontent.com/databricks/setup-cli/main/install.sh | sh
+          databricks version
+
+      - name: Check apps deploy prerequisites
+        id: apps_prereq
+        run: |
+          ready=true
+          if [ -z "$DATABRICKS_HOST" ]; then
+            echo "Missing DATABRICKS_HOST; skipping apps deploy."
+            ready=false
+          elif [ -z "$DATABRICKS_TOKEN" ] && { [ -z "$DATABRICKS_CLIENT_ID" ] || [ -z "$DATABRICKS_CLIENT_SECRET" ]; }; then
+            echo "Missing auth credentials; skipping apps deploy."
+            ready=false
+          fi
+          echo "apps_ready=$ready" >> "$GITHUB_OUTPUT"
+
+      - name: Validate bundle (apps section)
+        if: steps.apps_prereq.outputs.apps_ready == 'true'
+        run: |
+          cd databricks
+          databricks bundle validate -t dev
+
+      - name: Deploy bundle (syncs app source code)
+        if: steps.apps_prereq.outputs.apps_ready == 'true'
+        run: |
+          cd databricks
+          databricks bundle deploy -t dev
+
+      - name: Start cga-analytics app
+        if: steps.apps_prereq.outputs.apps_ready == 'true'
+        run: |
+          databricks apps start cga-analytics --host "$DATABRICKS_HOST" || \
+          echo "App cga-analytics already running or start not required."
+
+      - name: Start cga-admin app
+        if: steps.apps_prereq.outputs.apps_ready == 'true'
+        run: |
+          databricks apps start cga-admin --host "$DATABRICKS_HOST" || \
+          echo "App cga-admin already running or start not required."
+
+      - name: Verify apps are running
+        if: steps.apps_prereq.outputs.apps_ready == 'true'
+        run: |
+          echo "=== cga-analytics ==="
+          databricks apps get cga-analytics --host "$DATABRICKS_HOST" 2>/dev/null || echo "App not found — first deploy may still be initializing."
+          echo "=== cga-admin ==="
+          databricks apps get cga-admin --host "$DATABRICKS_HOST" 2>/dev/null || echo "App not found — first deploy may still be initializing."
