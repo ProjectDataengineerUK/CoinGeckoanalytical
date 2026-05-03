@@ -8,7 +8,7 @@ import yaml
 
 class BundleManifestTests(unittest.TestCase):
     def test_bundle_defines_expected_jobs(self) -> None:
-        bundle_path = Path(__file__).resolve().parent.parent / "databricks.yml"
+        bundle_path = Path(__file__).resolve().parents[2] / "databricks.yml"
         bundle = yaml.safe_load(bundle_path.read_text(encoding="utf-8"))
 
         jobs = bundle["resources"]["jobs"]
@@ -43,7 +43,7 @@ class BundleManifestTests(unittest.TestCase):
         self.assertNotIn("schedule", jobs["ops_sentinela_alert_ingestion_job"])
 
     def test_bundle_has_no_external_model_endpoints(self) -> None:
-        bundle_path = Path(__file__).resolve().parent.parent / "databricks.yml"
+        bundle_path = Path(__file__).resolve().parents[2] / "databricks.yml"
         bundle = yaml.safe_load(bundle_path.read_text(encoding="utf-8"))
 
         endpoints = bundle.get("resources", {}).get("model_serving_endpoints", {})

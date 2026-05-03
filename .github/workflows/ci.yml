@@ -145,15 +145,13 @@ jobs:
       - name: Validate bundle
         if: steps.prereq.outputs.deploy_ready == 'true'
         run: |
-          cd databricks
-          python3 tools/validate_bundle.py
+          python3 databricks/tools/validate_bundle.py
           databricks bundle validate
 
       - name: Deploy bundle
         if: steps.prereq.outputs.deploy_ready == 'true'
         run: |
           MARKET_PAYLOAD_JSON=$(python3 -c 'import json, pathlib; print(json.dumps(json.loads(pathlib.Path("databricks/fixtures/market_source_sample.json").read_text(encoding="utf-8")), separators=(",", ":")))')
-          cd databricks
           databricks bundle deploy -t dev
           # 1. All DDL migrations — tables must exist before views are created
           databricks bundle run bronze_market_table_migration_job -t dev
@@ -231,15 +229,11 @@ jobs:
 
       - name: Validate bundle (apps section)
         if: steps.apps_prereq.outputs.apps_ready == 'true'
-        run: |
-          cd databricks
-          databricks bundle validate -t dev
+        run: databricks bundle validate -t dev
 
       - name: Deploy bundle (syncs app source code)
         if: steps.apps_prereq.outputs.apps_ready == 'true'
-        run: |
-          cd databricks
-          databricks bundle deploy -t dev
+        run: databricks bundle deploy -t dev
 
       - name: Start cga-analytics app
         if: steps.apps_prereq.outputs.apps_ready == 'true'

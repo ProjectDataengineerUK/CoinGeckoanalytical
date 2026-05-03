@@ -1,0 +1,327 @@
+bundle:
+  name: coingeckoanalytical-databricks
+
+sync:
+  exclude:
+    - databricks/notebooks/**
+
+targets:
+  dev:
+    default: true
+    workspace:
+      root_path: /Workspace/Users/${workspace.current_user.userName}/.bundle/${bundle.name}/dev
+  staging:
+    workspace:
+      root_path: /Workspace/Users/${workspace.current_user.userName}/.bundle/${bundle.name}/staging
+  prod:
+    workspace:
+      root_path: /Workspace/Users/${workspace.current_user.userName}/.bundle/${bundle.name}/prod
+
+resources:
+  apps:
+    cga_analytics:
+      name: cga-analytics
+      description: "CoinGeckoAnalytical — main product surface (Genie + copilot + dynamic charts)"
+      source_code_path: ./apps/cga-analytics
+
+    cga_admin:
+      name: cga-admin
+      description: "CoinGeckoAnalytical — ops and admin surface (Sentinela + access + telemetry)"
+      source_code_path: ./apps/cga-admin
+
+  jobs:
+    market_source_ingestion_job:
+      name: market_source_ingestion_job
+      description: Append normalized CoinGecko market rows into bronze_market_snapshots.
+      tasks:
+        - task_key: ingest_market_source
+          spark_python_task:
+            python_file: ./databricks/jobs/market_source_ingestion_job.py
+          environment_key: default
+      schedule:
+        quartz_cron_expression: "0 */5 * * * ?"
+        timezone_id: America/Sao_Paulo
+        pause_status: UNPAUSED
+      environments:
+        - environment_key: default
+          spec:
+            environment_version: "2"
+            dependencies: []
+
+    silver_market_table_migration_job:
+      name: silver_market_table_migration_job
+      description: Provision Silver Delta tables; drops legacy views if present.
+      tasks:
+        - task_key: migrate_silver_market_tables
+          spark_python_task:
+            python_file: ./databricks/jobs/silver_market_migration_job.py
+          environment_key: default
+      environments:
+        - environment_key: default
+          spec:
+            environment_version: "2"
+            dependencies: []
+
+    silver_market_pipeline_job:
+      name: silver_market_pipeline_job
+      description: Materialise Silver Delta tables (changes, dominance, cross-asset comparison) from Bronze snapshots.
+      tasks:
+        - task_key: run_silver_pipeline
+          spark_python_task:
+            python_file: ./databricks/jobs/silver_market_pipeline_job.py
+          environment_key: default
+      schedule:
+        quartz_cron_expression: "0 */10 * * * ?"
+        timezone_id: America/Sao_Paulo
+        pause_status: UNPAUSED
+      environments:
+        - environment_key: default
+          spec:
+            environment_version: "2"
+            dependencies: []
+
+    bronze_market_table_migration_job:
+      name: bronze_market_table_migration_job
+      description: Recreate the Bronze landing table with the canonical schema when legacy numeric types exist.
+      tasks:
+        - task_key: migrate_bronze_market_table
+          spark_python_task:
+            python_file: ./databricks/jobs/bronze_market_table_migration_job.py
+          environment_key: default
+      environments:
+        - environment_key: default
+          spec:
+            environment_version: "2"
+            dependencies: []
+
+    ops_usage_ingestion_job:
+      name: ops_usage_ingestion_job
+      description: Append normalized usage telemetry into ops_usage_events.
+      tasks:
+        - task_key: ingest_usage_events
+          spark_python_task:
+            python_file: ./databricks/jobs/ops_usage_ingestion_job.py
+          environment_key: default
+      schedule:
+        quartz_cron_expression: "0 */5 * * * ?"
+        timezone_id: America/Sao_Paulo
+        pause_status: UNPAUSED
+      environments:
+        - environment_key: default
+          spec:
+            environment_version: "2"
+            dependencies: []
+
+    ops_bundle_run_ingestion_job:
+      name: ops_bundle_run_ingestion_job
+      description: Append normalized Databricks bundle/job run results into ops_bundle_runs.
+      tasks:
+        - task_key: ingest_bundle_runs
+          spark_python_task:
+            python_file: ./databricks/jobs/bundle_run_ingestion_job.py
+          environment_key: default
+      environments:
+        - environment_key: default
+          spec:
+            environment_version: "2"
+            dependencies: []
+
+    ops_sentinela_alert_ingestion_job:
+      name: ops_sentinela_alert_ingestion_job
+      description: Append normalized Sentinela alerts into ops_sentinela_alerts.
+      tasks:
+        - task_key: ingest_sentinela_alerts
+          spark_python_task:
+            python_file: ./databricks/jobs/sentinela_alert_ingestion_job.py
+          environment_key: default
+      environments:
+        - environment_key: default
+          spec:
+            environment_version: "2"
+            dependencies: []
+
+    ops_readiness_refresh_job:
+      name: ops_readiness_refresh_job
+      description: Refresh telemetry observability and readiness views.
+      tasks:
+        - task_key: refresh_readiness_views
+          spark_python_task:
+            python_file: ./databricks/jobs/ops_readiness_refresh_job.py
+          environment_key: default
+      schedule:
+        quartz_cron_expression: "0 */15 * * * ?"
+        timezone_id: America/Sao_Paulo
+        pause_status: UNPAUSED
+      environments:
+        - environment_key: default
+          spec:
+            environment_version: "2"
+            dependencies: []
+
+    bronze_enrichment_migration_job:
+      name: bronze_enrichment_migration_job
+      description: Provision Phase 2 Bronze enrichment tables (DefiLlama, GitHub, FRED).
+      tasks:
+        - task_key: migrate_bronze_enrichment
+          spark_python_task:
+            python_file: ./databricks/jobs/bronze_enrichment_migration_job.py
+          environment_key: default
+      environments:
+        - environment_key: default
+          spec:
+            environment_version: "2"
+            dependencies: []
+
+    silver_enrichment_migration_job:
+      name: silver_enrichment_migration_job
+      description: Provision Phase 2 Silver enrichment tables (asset_enriched, macro_context).
+      tasks:
+        - task_key: migrate_silver_enrichment
+          spark_python_task:
+            python_file: ./databricks/jobs/silver_enrichment_migration_job.py
+          environment_key: default
+      environments:
+        - environment_key: default
+          spec:
+            environment_version: "2"
+            dependencies: []
+
+    defillama_ingestion_job:
+      name: defillama_ingestion_job
+      description: Fetch DefiLlama protocols and append to bronze_defillama_protocols.
+      tasks:
+        - task_key: ingest_defillama
+          spark_python_task:
+            python_file: ./databricks/jobs/defillama_ingestion_job.py
+          environment_key: default
+      schedule:
+        quartz_cron_expression: "0 0 */6 * * ?"
+        timezone_id: America/Sao_Paulo
+        pause_status: UNPAUSED
+      environments:
+        - environment_key: default
+          spec:
+            environment_version: "2"
+            dependencies: []
+
+    github_activity_ingestion_job:
+      name: github_activity_ingestion_job
+      description: Fetch GitHub repo metrics for tracked assets and append to bronze_github_activity.
+      tasks:
+        - task_key: ingest_github_activity
+          spark_python_task:
+            python_file: ./databricks/jobs/github_activity_ingestion_job.py
+          environment_key: default
+      schedule:
+        quartz_cron_expression: "0 30 */6 * * ?"
+        timezone_id: America/Sao_Paulo
+        pause_status: UNPAUSED
+      environments:
+        - environment_key: default
+          spec:
+            environment_version: "2"
+            dependencies: []
+
+    fred_macro_ingestion_job:
+      name: fred_macro_ingestion_job
+      description: Fetch FRED macro series and append to bronze_fred_macro.
+      tasks:
+        - task_key: ingest_fred_macro
+          spark_python_task:
+            python_file: ./databricks/jobs/fred_macro_ingestion_job.py
+          environment_key: default
+      schedule:
+        quartz_cron_expression: "0 0 7 * * ?"
+        timezone_id: America/Sao_Paulo
+        pause_status: UNPAUSED
+      environments:
+        - environment_key: default
+          spec:
+            environment_version: "2"
+            dependencies: []
+
+    silver_enrichment_pipeline_job:
+      name: silver_enrichment_pipeline_job
+      description: Materialise silver_asset_enriched and silver_macro_context from Bronze enrichment sources.
+      tasks:
+        - task_key: run_silver_enrichment
+          spark_python_task:
+            python_file: ./databricks/jobs/silver_enrichment_pipeline_job.py
+          environment_key: default
+      schedule:
+        quartz_cron_expression: "0 45 */6 * * ?"
+        timezone_id: America/Sao_Paulo
+        pause_status: UNPAUSED
+      environments:
+        - environment_key: default
+          spec:
+            environment_version: "2"
+            dependencies: []
+
+    feature_engineering_job:
+      name: feature_engineering_job
+      description: Build Silver market feature table for ML training and scoring.
+      tasks:
+        - task_key: run_feature_engineering
+          spark_python_task:
+            python_file: ./databricks/jobs/feature_engineering_job.py
+          environment_key: default
+      schedule:
+        quartz_cron_expression: "0 0 */3 * * ?"
+        timezone_id: America/Sao_Paulo
+        pause_status: UNPAUSED
+      environments:
+        - environment_key: default
+          spec:
+            environment_version: "2"
+            dependencies: []
+
+    train_market_model_job:
+      name: train_market_model_job
+      description: Train regime classifier and anomaly detector; register champion models in MLflow.
+      tasks:
+        - task_key: train_models
+          spark_python_task:
+            python_file: ./databricks/jobs/train_market_model_job.py
+          environment_key: default
+      environments:
+        - environment_key: default
+          spec:
+            environment_version: "2"
+            dependencies: []
+
+    score_market_assets_job:
+      name: score_market_assets_job
+      description: Batch score assets with champion regime and anomaly models; write to gold_ml_scores.
+      tasks:
+        - task_key: score_assets
+          spark_python_task:
+            python_file: ./databricks/jobs/score_market_assets_job.py
+          environment_key: default
+      schedule:
+        quartz_cron_expression: "0 30 */3 * * ?"
+        timezone_id: America/Sao_Paulo
+        pause_status: UNPAUSED
+      environments:
+        - environment_key: default
+          spec:
+            environment_version: "2"
+            dependencies: []
+
+    sentinela_evaluation_job:
+      name: sentinela_evaluation_job
+      description: Evaluate ops telemetry and bundle runs; write Sentinela alerts to ops_observability.
+      tasks:
+        - task_key: evaluate_sentinela
+          spark_python_task:
+            python_file: ./databricks/jobs/sentinela_evaluation_job.py
+          environment_key: default
+      schedule:
+        quartz_cron_expression: "0 */15 * * * ?"
+        timezone_id: America/Sao_Paulo
+        pause_status: UNPAUSED
+      environments:
+        - environment_key: default
+          spec:
+            environment_version: "2"
+            dependencies: []

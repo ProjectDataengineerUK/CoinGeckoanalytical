@@ -28,28 +28,39 @@ REQUIRED_JOB_KEYS = {
 }
 
 REQUIRED_NOTEBOOKS = {
-    "notebooks/01_ingest_coingecko_market.py",
-    "notebooks/02_validate_market_layers.py",
-    "notebooks/03_ops_readiness_review.py",
+    "databricks/notebooks/01_ingest_coingecko_market.py",
+    "databricks/notebooks/02_validate_market_layers.py",
+    "databricks/notebooks/03_ops_readiness_review.py",
 }
 
 
 def load_bundle(path: str | Path = "databricks.yml") -> dict[str, Any]:
     bundle_path = Path(path)
     if not bundle_path.is_absolute():
-        bundle_path = Path(__file__).resolve().parent.parent / bundle_path
+        # Check repo root first (new canonical location), then databricks/ subdirectory
+        repo_root = Path(__file__).resolve().parents[2]
+        root_candidate = repo_root / bundle_path
+        if root_candidate.exists():
+            bundle_path = root_candidate
+        else:
+            bundle_path = Path(__file__).resolve().parent.parent / bundle_path
     return yaml.safe_load(bundle_path.read_text(encoding="utf-8"))
 
 
 def validate_bundle(bundle: dict[str, Any], root_dir: str | Path | None = None) -> list[str]:
     errors: list[str] = []
-    base_dir = Path(root_dir) if root_dir is not None else Path.cwd()
+    # Default to repo root so ./databricks/jobs/* paths resolve correctly
+    if root_dir is not None:
+        base_dir = Path(root_dir)
+    else:
+        repo_root = Path(__file__).resolve().parents[2]
+        base_dir = repo_root
 
     if bundle.get("bundle", {}).get("name") != "coingeckoanalytical-databricks":
         errors.append("bundle name must be coingeckoanalytical-databricks")
 
     sync_excludes = set(bundle.get("sync", {}).get("exclude", []))
-    if "notebooks/**" not in sync_excludes:
+    if not any("notebooks/**" in e for e in sync_excludes):
         errors.append("Databricks notebooks must be excluded from job bundle file sync")
 
     jobs = bundle.get("resources", {}).get("jobs", {})
