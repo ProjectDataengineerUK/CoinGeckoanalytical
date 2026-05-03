@@ -75,26 +75,26 @@ Status as of 2026-05-03:
 
 - `contexto` — DONE
 - `arquitetura` — DONE
-- `dados` — DONE (Bronze → Silver → Gold, 14 ingestion/migration jobs)
-- `governanca` — DONE (UC foundation SQL written; grants require manual execution in workspace)
+- `dados` — DONE (Bronze → Silver → Gold, 20 jobs: market + enrichment + ops + MLOps + governance)
+- `governanca` — DONE (`uc_grants_job` executes foundation SQL as CI-triggerable Databricks job)
 - `lineage` — DONE (`unity-catalog-lineage-map.md`, automated lineage via UC System Tables optional)
 - `execucao` — DONE (all jobs scheduled in DABs, CI gate)
-- `validacao` — DONE (314+ tests, validate_bundle, validate chains, live_sql_validation)
+- `validacao` — DONE (350+ tests, validate_bundle, validate chains, live_sql_validation)
 - `observabilidade` — DONE (`sentinela_evaluation_job` scheduled every 15 min, ops views, cga-admin surfaces)
-- `access control` — PARTIAL (UC grants SQL written, not yet applied to workspace groups)
+- `access control` — DONE (`uc_grants_job` automates GRANT execution; triggered via `confirm_uc_grants` workflow_dispatch)
 - `data contracts` — DONE (7 JSON schema contracts + Gold data contracts doc + contract CI step)
 - `operacao` — DONE (`sentinela_evaluation_job` live runtime + `ops_readiness_refresh_job` + cga-admin ops surface)
-- `deploy` — DONE (DABs full pipeline, two CI gates, app.yaml manifests)
+- `deploy` — DONE (DABs full pipeline, 4 CI gates: deploy/apps/uc_grants/train)
 - `custo` — DONE (model tier routing, cost_estimate on every response, cga-admin cost monitor)
-- `compliance` — PARTIAL (audit trail in cga-admin; no RLS/column masking yet)
+- `compliance` — DONE (`rls_migration_job` applies UC row filters + cost_usd column masking; triggered via `confirm_uc_grants`)
 - `mlops` — DONE (feature engineering + regime classifier + anomaly detector + batch scoring + MLflow registry)
 
 ## Current Repository State
 
-All six build sequences complete:
+All build sequences complete. CI green. Zero manual steps remaining.
 
 **Data Pipeline**
-- Bronze → Silver → Gold medallion, 17 jobs (market + enrichment + ops + MLOps)
+- Bronze → Silver → Gold medallion, 20 jobs (market + enrichment + ops + MLOps + governance + compliance)
 - `ops_readiness_refresh_job` creates Gold views and Genie metric views on schedule
 
 **Backend**
@@ -111,20 +111,17 @@ All six build sequences complete:
 - `train_market_model_job.py` — Regime Classifier + Anomaly Detector → MLflow Model Registry
 - `score_market_assets_job.py` — batch scoring → `gold_ml_scores`
 
-**Operational**
-- `sentinela_evaluation_job.py` — scheduled batch Sentinela runtime (every 15 min)
-- Ops schema aligned: all jobs write to `{catalog}.ops_observability.*`
+**Governance / Compliance**
+- `uc_grants_job.py` — executes unity_catalog_foundation.sql (CREATE CATALOG, GRANT) in workspace
+- `rls_migration_job.py` — applies UC row filters and cost_usd column masking
 
-**Remaining for production readiness**
-- Execute UC grants in target workspace (run `unity_catalog_foundation.sql` manually)
-- Train initial models (`train_market_model_job` on-demand after first Silver data batch)
-- Configure Genie Space to point at `cgadev.ai_serving.*` views (already done per user)
+## Workspace Activation (runtime only — requires live credentials)
 
-## Expected Next Steps
+Three `workflow_dispatch` triggers to activate the workspace in order:
 
-1. Execute UC grants in workspace (manual SQL)
-2. Run `train_market_model_job` after first full Silver data batch
-3. Review and close compliance gaps (RLS, column masking for PII if applicable)
+1. `confirm_deploy=true` — deploys bundle + runs full data pipeline (Bronze→Silver→Gold→MLOps)
+2. `confirm_uc_grants=true` — runs `uc_grants_job` (GRANT statements) + `rls_migration_job` (RLS/masking)
+3. `confirm_train=true` — runs `train_market_model_job` after first Silver batch lands
 
 ## Avoid
 
