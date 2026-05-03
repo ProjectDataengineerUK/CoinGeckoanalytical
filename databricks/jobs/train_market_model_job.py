@@ -1,13 +1,9 @@
 from __future__ import annotations
 
+import json
 import os
 from dataclasses import dataclass
 from typing import Any
-
-import mlflow
-import mlflow.sklearn
-import pandas as pd
-from sklearn.ensemble import IsolationForest, RandomForestClassifier
 
 DEFAULT_CATALOG = os.environ.get("COINGECKO_CATALOG", "cgadev")
 DEFAULT_SILVER_SCHEMA = "market_silver"
@@ -27,27 +23,33 @@ class TrainingResult:
     anomaly_run_id: str
 
 
-def build_regime_labels(df: pd.DataFrame) -> pd.Series:
-    avg_7d = df["avg_price_change_pct_7d"]
-    labels = avg_7d.apply(
-        lambda v: "bull" if v > 5 else ("risk_off" if v < -5 else "bear")
-    )
+def build_regime_labels(avg_pct_7d: list[float]) -> list[str]:
+    labels = []
+    for v in avg_pct_7d:
+        if v > 5:
+            labels.append("bull")
+        elif v < -5:
+            labels.append("risk_off")
+        else:
+            labels.append("bear")
     return labels
 
 
-def train_regime_model(X: pd.DataFrame, y: pd.Series) -> RandomForestClassifier:
+def train_regime_model(X: Any, y: Any) -> Any:
+    from sklearn.ensemble import RandomForestClassifier
     model = RandomForestClassifier(n_estimators=50, random_state=42)
     model.fit(X, y)
     return model
 
 
-def train_anomaly_model(X: pd.DataFrame) -> IsolationForest:
+def train_anomaly_model(X: Any) -> Any:
+    from sklearn.ensemble import IsolationForest
     model = IsolationForest(contamination=0.05, random_state=42)
     model.fit(X)
     return model
 
 
-def _aggregate_regime_features(features_df: pd.DataFrame) -> pd.DataFrame:
+def _aggregate_regime_features(features_df: Any) -> Any:
     agg = (
         features_df.groupby("feature_date")
         .agg(
@@ -62,7 +64,7 @@ def _aggregate_regime_features(features_df: pd.DataFrame) -> pd.DataFrame:
     return agg
 
 
-def _latest_asset_features(features_df: pd.DataFrame) -> pd.DataFrame:
+def _latest_asset_features(features_df: Any) -> Any:
     latest_date = features_df["feature_date"].max()
     snapshot = features_df[features_df["feature_date"] == latest_date].copy()
     cols = ["vol_to_cap_ratio", "price_change_pct_24h", "market_cap_usd"]
@@ -70,8 +72,11 @@ def _latest_asset_features(features_df: pd.DataFrame) -> pd.DataFrame:
 
 
 def main(spark: Any, catalog: str = DEFAULT_CATALOG, lookback_days: int = DEFAULT_LOOKBACK_DAYS) -> TrainingResult:
+    import mlflow
+    import mlflow.sklearn
+
     features_table = f"{catalog}.{DEFAULT_SILVER_SCHEMA}.{FEATURES_TABLE}"
-    features_df: pd.DataFrame = spark.table(features_table).toPandas()
+    features_df = spark.table(features_table).toPandas()
 
     agg_df = _aggregate_regime_features(features_df)
     regime_feature_cols = [
@@ -80,13 +85,13 @@ def main(spark: Any, catalog: str = DEFAULT_CATALOG, lookback_days: int = DEFAUL
         "avg_dominance_pct_btc",
         "avg_vol_to_cap_ratio",
     ]
-    X_regime = agg_df[regime_feature_cols]
-    y_regime = build_regime_labels(agg_df)
+    X_regime = agg_df[regime_feature_cols].values
+    y_regime = build_regime_labels(agg_df["avg_price_change_pct_7d"].tolist())
 
     with mlflow.start_run(run_name=f"{REGIME_MODEL_NAME}_training") as regime_run:
         regime_model = train_regime_model(X_regime, y_regime)
         train_preds = regime_model.predict(X_regime)
-        regime_accuracy = float((train_preds == y_regime.values).mean())
+        regime_accuracy = float(sum(p == t for p, t in zip(train_preds, y_regime)) / len(y_regime))
 
         mlflow.log_param("n_estimators", 50)
         mlflow.log_param("lookback_days", lookback_days)
@@ -101,8 +106,7 @@ def main(spark: Any, catalog: str = DEFAULT_CATALOG, lookback_days: int = DEFAUL
         client.set_registered_model_alias(REGIME_MODEL_NAME, CHAMPION_ALIAS, mv.version)
         regime_run_id = regime_run.info.run_id
 
-    asset_df = _latest_asset_features(features_df)
-    X_anomaly = asset_df
+    X_anomaly = _latest_asset_features(features_df).values
 
     with mlflow.start_run(run_name=f"{ANOMALY_MODEL_NAME}_training") as anomaly_run:
         anomaly_model = train_anomaly_model(X_anomaly)
@@ -129,30 +133,24 @@ def main(spark: Any, catalog: str = DEFAULT_CATALOG, lookback_days: int = DEFAUL
 if __name__ == "__main__":
     try:
         spark_session = spark  # type: ignore[name-defined]
-    except NameError as exc:
+    except NameError as exc:  # pragma: no cover
         raise RuntimeError("This job is meant to run inside Databricks with a Spark session.") from exc
 
     _catalog = os.environ.get("COINGECKO_CATALOG", DEFAULT_CATALOG)
     _lookback_days = DEFAULT_LOOKBACK_DAYS
     try:
         _catalog = dbutils.widgets.get("catalog") or _catalog  # type: ignore[name-defined]
-    except Exception:
+    except Exception:  # pragma: no cover
         pass
     try:
         _lookback_days = int(dbutils.widgets.get("lookback_days"))  # type: ignore[name-defined]
-    except Exception:
+    except Exception:  # pragma: no cover
         pass
 
     _result = main(spark_session, catalog=_catalog, lookback_days=_lookback_days)
-
-    import json
-    print(
-        json.dumps(
-            {
-                "regime_accuracy": _result.regime_accuracy,
-                "anomaly_contamination": _result.anomaly_contamination,
-                "regime_run_id": _result.regime_run_id,
-                "anomaly_run_id": _result.anomaly_run_id,
-            }
-        )
-    )
+    print(json.dumps({
+        "regime_accuracy": _result.regime_accuracy,
+        "anomaly_contamination": _result.anomaly_contamination,
+        "regime_run_id": _result.regime_run_id,
+        "anomaly_run_id": _result.anomaly_run_id,
+    }))

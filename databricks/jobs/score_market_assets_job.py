@@ -5,9 +5,6 @@ from dataclasses import dataclass
 from datetime import datetime, timezone
 from typing import Any
 
-import mlflow
-import mlflow.sklearn
-
 DEFAULT_CATALOG = os.environ.get("COINGECKO_CATALOG", "cgadev")
 DEFAULT_SILVER_SCHEMA = "market_silver"
 DEFAULT_GOLD_SCHEMA = "market_gold"
@@ -48,7 +45,8 @@ def build_score_row(
 
 
 def main(spark: Any, catalog: str = DEFAULT_CATALOG) -> ScoringResult:
-    import pandas as pd
+    import mlflow
+    import mlflow.sklearn
 
     features_table = f"{catalog}.{DEFAULT_SILVER_SCHEMA}.{FEATURES_TABLE}"
     scores_table = f"{catalog}.{DEFAULT_GOLD_SCHEMA}.{SCORES_TABLE}"
