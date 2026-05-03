@@ -313,8 +313,9 @@ def build_copilot_response(request: CopilotRequest) -> dict[str, Any]:
                             },
                         )
                     )
-            except Exception:
-                pass
+            except Exception as _orch_exc:
+                import logging as _log
+                _log.getLogger(__name__).warning("Orchestration failed: %s", _orch_exc, exc_info=True)
 
     if mosaic_config is not None:
         try:
@@ -351,8 +352,9 @@ def build_copilot_response(request: CopilotRequest) -> dict[str, Any]:
                         },
                     )
                 )
-        except Exception:
-            pass
+        except Exception as _mosaic_exc:
+            import logging as _log
+            _log.getLogger(__name__).warning("Mosaic fallback failed: %s", _mosaic_exc, exc_info=True)
 
     response_text = (
         "Resposta de copilot MVP: use o agente para analise narrativa, com "

@@ -91,7 +91,7 @@ def build_features_dataframe(spark: Any, catalog: str, lookback_days: int) -> An
                 observed_at,
                 dominance_pct AS dominance_pct_btc
             FROM {dominance_table}
-            WHERE dominance_group = 'bitcoin'
+            WHERE dominance_group = 'btc'
         ),
         joined AS (
             SELECT

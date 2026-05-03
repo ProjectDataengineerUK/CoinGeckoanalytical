@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import json
 import os
+import re
 import time
 import urllib.error
 import urllib.parse
@@ -10,6 +11,9 @@ from dataclasses import dataclass
 from typing import Any
 
 _TOKEN_CACHE: dict[str, tuple[str, float]] = {}
+
+# Allowlist for asset_id values supplied by users to prevent SQL injection.
+_SAFE_ASSET_ID_RE = re.compile(r"^[a-z0-9][a-z0-9\-_]{0,63}$")
 
 MAX_POLL_ATTEMPTS = 30
 POLL_INTERVAL_SECONDS = 1.0
@@ -203,7 +207,10 @@ def fetch_cross_asset_comparison(
         f"AND observed_at = (SELECT MAX(observed_at) FROM {config.catalog}.market_gold.gold_cross_asset_comparison WHERE quality_status = 'pass')"
     )
     if asset_ids:
-        ids_literal = ", ".join(f"'{a}'" for a in asset_ids)
+        clean = [a for a in asset_ids if _SAFE_ASSET_ID_RE.match(a)]
+        if len(clean) != len(asset_ids):
+            raise ValueError("asset_id contains invalid characters")
+        ids_literal = ", ".join(f"'{a}'" for a in clean)
         base += f" AND asset_id IN ({ids_literal})"
     sql = base + f" ORDER BY market_cap_usd DESC LIMIT {limit}"
     return execute_statement(config, sql)

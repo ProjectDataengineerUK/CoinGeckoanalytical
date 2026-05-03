@@ -47,13 +47,15 @@ def build_score_row(
 def main(spark: Any, catalog: str = DEFAULT_CATALOG) -> ScoringResult:
     import mlflow
     import mlflow.sklearn
+    import pandas as pd
 
     features_table = f"{catalog}.{DEFAULT_SILVER_SCHEMA}.{FEATURES_TABLE}"
     scores_table = f"{catalog}.{DEFAULT_GOLD_SCHEMA}.{SCORES_TABLE}"
 
+    max_date = spark.sql(f"SELECT MAX(feature_date) FROM {features_table}").collect()[0][0]
     features_df: pd.DataFrame = (
         spark.table(features_table)
-        .filter("feature_date = (SELECT MAX(feature_date) FROM {table})".replace("{table}", features_table))
+        .filter(f"feature_date = '{max_date}'")
         .toPandas()
     )
 
