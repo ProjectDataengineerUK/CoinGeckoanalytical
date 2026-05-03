@@ -113,7 +113,7 @@ def validate_bundle(bundle: dict[str, Any], root_dir: str | Path | None = None) 
 
 def main() -> int:
     bundle = load_bundle()
-    errors = validate_bundle(bundle, root_dir=Path(__file__).resolve().parent.parent)
+    errors = validate_bundle(bundle, root_dir=Path(__file__).resolve().parents[2])
     if errors:
         for error in errors:
             print(f"ERROR: {error}")
