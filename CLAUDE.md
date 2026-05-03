@@ -8,13 +8,14 @@
 
 ## Current Product Direction
 
-CoinGeckoAnalytical is being designed as a public SaaS crypto market intelligence platform with:
+CoinGeckoAnalytical is a crypto market intelligence platform built entirely on Databricks with two product surfaces:
 
-- `external web frontend` as the public product surface
-- `Databricks` as the backend data and AI platform
-- `AI/BI Genie` for structured analytical NLQ over governed Gold data
-- `Mosaic AI Agent Framework` for the main market copilot
-- `Databricks Apps` only for internal tools, admin surfaces, and operational workflows
+- `cga-analytics` Databricks App: main user-facing product — Genie conversational BI + coded copilot + dynamic charts
+- `cga-admin` Databricks App: internal ops surface — Sentinela monitoring + access management + cost/token telemetry
+- `Databricks` as the data, AI, governance, and serving platform
+- `AI/BI Genie` as the analytical query controller — Genie SQL output drives chart state updates across the analytics app
+- `Mosaic AI Agent Framework` (coded Python orchestrator, not Agent Bricks) for the narrative market copilot
+- External web frontend is not in scope for V1 — Databricks Apps is the chosen primary surface
 
 ## Source Of Truth
 
@@ -39,12 +40,13 @@ Record verification artifacts under `.agentcodex/reports/`.
 
 ## Architecture Rules
 
-- Do not make `Databricks Apps` the primary public product frontend.
-- Optimize public serving cost with an external frontend and keep Databricks focused on specialized backend capabilities.
+- `Databricks Apps` is the chosen primary product surface — two apps: `cga-analytics` (user) and `cga-admin` (ops).
+- `Genie` is the analytical query controller inside `cga-analytics` — its generated SQL drives chart re-rendering.
+- Keep `Genie` scoped to structured analytics over governed Gold assets only.
+- Keep the copilot in coded Python orchestration — do not use Agent Bricks as the primary agent mechanism.
+- The coded multi-agent orchestrator (`copilot_orchestrator.py`) is the only approved copilot execution path.
 - Keep all governed analytical assets under `Unity Catalog`.
-- Keep `Genie` scoped to structured analytics, not broad freeform market reasoning.
-- Keep the main copilot in coded orchestration, not hidden in opaque prompt-only flows.
-- Treat `Agent Bricks` as optional and non-foundational.
+- `cga-admin` is the only surface for Sentinela, access management, cost telemetry, and audit review.
 
 ## Data And AI Rules
 
@@ -88,34 +90,35 @@ Do not consider the project complete until these are implemented or explicitly m
 
 ## Current Repository State
 
-Current state is design-heavy and pre-build:
+Build phase in progress — backend contracts and data pipeline complete, apps not yet built:
 
-- `.agentcodex/features/BRAINSTORM_coingeckoanalytical.md`
-- `.agentcodex/features/DEFINE_coingeckoanalytical.md`
-- `.agentcodex/features/DESIGN_coingeckoanalytical.md`
-- `docs/assets/coingeckoanalytical-architecture.png`
-- `README.md`
+- Medallion pipeline (Bronze → Silver → Gold) deployed and running in Databricks
+- `backend/copilot_orchestrator.py` — multi-agent orchestrator (market + macro + defi + synth), coded Python
+- `backend/copilot_mvp.py` — routing BFF with tier classification and orchestrator integration
+- `backend/mosaic_copilot_client.py` — Unity AI Gateway client (3-tier: light / standard / complex)
+- `backend/model_tier_router.py` — token cost optimizer
+- `backend/databricks_sql_client.py` and `backend/genie_client.py` — Databricks SQL and Genie REST clients
+- Design documents updated to reflect two-app Databricks surface
 
-There is not yet an implementation of:
-
-- production code
-- sentinela runtime
-- maturity 5 operational baseline
+Not yet built:
+- `cga-analytics` Databricks App (Genie-driven BI + Copilot + charts)
+- `cga-admin` Databricks App (Sentinela + access management + ops telemetry)
+- Sentinela live runtime
+- Unity Catalog access control implementation
 - DataOps / LLMOps operating stack
 
 ## Expected Next Steps
 
-When continuing from the current repo state, prioritize:
-
-1. build planning
-2. project-standard materialization
-3. DataOps + LLMOps operating model
-4. sentinela and observability baseline
-5. interface payload schemas and backend contracts
+1. Design and build `cga-analytics` app skeleton (layout + Genie state controller + chart components)
+2. Wire copilot orchestrator into analytics app chat panel
+3. Design and build `cga-admin` app (Sentinela dashboard + access management + telemetry views)
+4. Sentinela live monitoring runtime
+5. Unity Catalog access control and tenant isolation
 
 ## Avoid
 
-- Do not collapse the architecture into a single Databricks-hosted UI layer for the public product.
+- Do not build a third app surface — all product UI goes into `cga-analytics` or `cga-admin`.
+- Do not bypass Genie as the chart controller — Genie SQL output must drive state, not hardcoded queries.
 - Do not assume the public API source mix is solved permanently by one provider.
 - Do not skip telemetry, cost controls, or auditability for AI features.
 - Do not treat design artifacts as implementation completion.

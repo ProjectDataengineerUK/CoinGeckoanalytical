@@ -186,19 +186,22 @@ Assumptions that could invalidate the design if wrong:
 
 The feature proceeds with the following product direction:
 
-- `External web frontend` as the main public product surface
+- `Databricks Apps` as the primary product surface — two apps:
+  - `cga-analytics`: user-facing — Genie conversational BI controller + multi-agent copilot + dynamic charts
+  - `cga-admin`: ops-facing — Sentinela monitoring + access management + cost/token telemetry
 - `Databricks` as the mandatory data, analytics, AI, governance, and model-lifecycle platform
-- `AI/BI Genie` for governed structured analytical NLQ
-- `Mosaic AI Agent Framework` for the main coded market copilot
-- `Sentinela` for observability and multi-agent operational interpretation
-- `Databricks Apps` reserved for internal/admin or platform-adjacent operational workflows
+- `AI/BI Genie` as the analytical chart controller — generated SQL from Genie drives all dashboard state
+- `Mosaic AI Agent Framework` (coded Python orchestrator only, not Agent Bricks) for narrative copilot
+- `Sentinela` for observability, surfaced in `cga-admin` only
+- External web frontend is not in scope for V1
 
 ### Rationale
 
-- This keeps the public product cost posture separate from the Databricks workspace runtime.
-- It preserves the earlier product ambition while upgrading maturity and governance.
-- It aligns the product to a trustworthy split between governed analytics and coded AI assistance.
-- It keeps operational review and observability strong enough for the chosen V1 posture.
+- Databricks Apps eliminates the need for external web infrastructure, reducing operational surface.
+- Genie-as-chart-controller enables conversational BI without hardcoded filter logic.
+- The coded multi-agent orchestrator is already built, tested, and deployed — no Agent Bricks needed.
+- Two-app separation enforces a clean boundary between product experience and operational review.
+- All data, AI, auth, and governance stay in a single workspace — reducing integration complexity.
 
 ## Revision History
 

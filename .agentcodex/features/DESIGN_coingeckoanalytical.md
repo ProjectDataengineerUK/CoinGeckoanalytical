@@ -15,14 +15,15 @@
 
 ## Design Decision
 
-The product uses a three-plane architecture designed to support a broad V1 without pretending that every subsystem must be implemented simultaneously:
+The product uses a two-app Databricks-native architecture:
 
-- `External web frontend` is the public tenant-facing product surface.
+- `cga-analytics` (Databricks App): the primary user-facing product surface — Genie conversational BI controller + coded multi-agent copilot + dynamic chart dashboard.
+- `cga-admin` (Databricks App): internal ops surface — Sentinela monitoring, access management, cost/token telemetry, and audit review.
 - `Databricks data/AI plane` is the mandatory backbone for ingestion, transformation, governance, analytical serving, AI support, and model lifecycle.
-- `Sentinela operations plane` is the operational trust layer for freshness, quality, cost, token, lineage, alert, and audit interpretation.
-- `AI/BI Genie` is the primary path for governed structured analytical natural-language querying.
-- `Mosaic AI Agent Framework` is the primary coded market copilot path for narrative reasoning, comparisons, and guided analysis.
-- `Databricks Apps` are reserved for internal/admin and low-volume operational surfaces.
+- `Sentinela operations plane` is the operational trust layer surfaced inside `cga-admin`.
+- `AI/BI Genie` is the primary analytical query controller — its generated SQL drives all chart state inside `cga-analytics`.
+- `Mosaic AI Agent Framework` (coded Python orchestrator, not Agent Bricks) handles narrative copilot reasoning.
+- External web frontend is not in scope for V1.
 
 ## Core Design Principle
 
@@ -38,58 +39,67 @@ This is not a reduced-scope MVP design. It is a full-product design with explici
 
 ## Why This Design
 
-- The product must preserve the ambition of the prior concept while upgrading maturity and control surfaces.
-- Databricks remains the right control plane for medallion data, governed analytics, AI support, model lifecycle, and operational review.
-- A public external frontend preserves cost efficiency and keeps the product surface decoupled from workspace-bound runtime costs.
-- `Genie` is the lowest-friction path for governed analytical NLQ over structured Gold assets.
-- The flagship market copilot still requires coded orchestration, retrieval, provenance, policy handling, and answer shaping that should remain in code.
-- Sentinela must remain off the public request path so it can observe, interpret, and coordinate operations without becoming a latency dependency.
+- Databricks Apps eliminates the need to build and operate an external web frontend for V1, collapsing the infrastructure surface.
+- Genie as the chart controller creates a conversational BI experience where a single natural-language query updates the entire dashboard — no hardcoded filters or dropdowns needed.
+- The coded multi-agent orchestrator (`copilot_orchestrator.py`) is already built and tested — Agent Bricks adds complexity without additional value.
+- Two separate apps enforce a clean boundary between product experience (`cga-analytics`) and operational review (`cga-admin`).
+- Sentinela remains off the user request path by living exclusively in `cga-admin`.
+- All data, AI, governance, and auth remain in a single Databricks workspace — reducing integration surface and operational overhead.
 
 ## System Overview
 
 ```text
-External market APIs and reference sources
-  -> Bronze ingestion and raw landing
-  -> Silver normalization, enrichment, validation, and source harmonization
-  -> Gold analytical models, evidence views, and governed metric views
-  -> Unity Catalog governance, permissions, lineage, discovery, and model lifecycle
-  -> Two serving paths:
-     1. Genie for structured governed analytical Q&A
-     2. Agent Framework + retrieval + model serving for the coded copilot
-  -> Backend-for-frontend / governed serving APIs
-  -> External web frontend for dashboard and chat experiences
-  -> Sentinela operations plane for observability, readiness, and audit interpretation
-  -> Databricks Apps only for internal/admin workflows
+External market APIs (CoinGecko, DefiLlama, GitHub, FRED)
+  -> Bronze ingestion and raw landing (Delta Lake)
+  -> Silver normalization, enrichment, validation, source harmonization
+  -> Gold analytical models, evidence views, metric views
+  -> Unity Catalog: governance, permissions, lineage, model lifecycle
+  -> Two AI serving paths:
+     1. Genie: structured NLQ -> generated SQL -> chart state controller
+     2. Coded orchestrator: market + macro + defi agents -> synthesis (complex tier)
+  -> cga-analytics Databricks App (primary product surface):
+       [Genie Chat Panel] -> SQL result -> [Chart Dashboard re-renders]
+       [Copilot Panel]    -> narrative answer with provenance + freshness
+  -> cga-admin Databricks App (ops surface):
+       Sentinela alerts + pipeline health
+       Access management + tenant controls
+       Cost/token telemetry + audit review
 ```
 
 ## Product Planes
 
-### 1. Experience Plane
+### 1. Analytics App Plane — `cga-analytics`
 
-- Public external web frontend
-- Authenticated multi-tenant access
-- Portuguese-first navigation and copy
-- Dashboard exploration
-- AI chat and guided research
-- Freshness, provenance, and confidence surfaced to the user
+- Databricks App serving authenticated users (analysts, traders, institutional teams)
+- **Genie Panel** (left): conversational NLQ input → `genie_client.ask_genie()` → `generated_query` SQL → executes on warehouse → updates shared `active_dataset` state → all charts re-render
+- **Chart Dashboard** (center): subscribes to `active_dataset` state — market rankings, DeFi TVL, macro indicators, movers
+- **Copilot Panel** (right/bottom): narrative chat → tier classification (light/standard/complex) → orchestrator (complex) or direct Mosaic (standard/light) → answer with provenance + freshness badge
+- **State architecture**:
+  - `genie_active_sql`: SQL string from last Genie response — chart controller
+  - `genie_answer_text`: narrative explanation from Genie
+  - `copilot_conversation`: message history + tier routing log
+  - `selected_assets`: propagates to both Genie context and copilot orchestrator
+- Portuguese-first navigation and AI responses
+- Freshness watermark and confidence label visible on every answer
 
-### 2. Data And AI Plane
+### 2. Admin App Plane — `cga-admin`
 
-- Multi-source ingestion with CoinGecko included from day one
-- Medallion architecture: Bronze, Silver, Gold
-- Unity Catalog governance and lineage
-- Gold analytical views for dashboard and Genie
-- Evidence views and retrieval surfaces for the coded copilot
-- Model serving, route policy, and usage telemetry
+- Databricks App serving operators and admins only
+- **Sentinela Dashboard**: live pipeline alerts, freshness status per source, quality score trend, error backlog
+- **Pipeline Health**: ingestion job status (CoinGecko, DefiLlama, GitHub, FRED), last run time, rows ingested
+- **Cost & Token Monitor**: spend by model tier (light/standard/complex), by tenant, daily/weekly trends
+- **Access Management**: user/tenant provisioning, permission assignments, Unity Catalog group management
+- **Audit Trail**: request traces, AI answer provenance, generated queries, source watermarks at answer time
+- **Ops Readiness View**: gate status, readiness score, runbook links
 
-### 3. Operations Plane
+### 3. Data And AI Plane
 
-- Sentinela signal interpretation
-- Freshness, quality, and completeness monitoring
-- Cost and token monitoring
-- Readiness and release gate interpretation
-- Audit and review surfaces
-- Internal/admin-only operational UX
+- Multi-source ingestion: CoinGecko, DefiLlama, GitHub Activity, FRED Macro
+- Medallion architecture: Bronze → Silver → Gold
+- Unity Catalog governance, lineage, and permissions
+- Gold metric views for Genie
+- Gold evidence views for copilot retrieval
+- Unity AI Gateway endpoints: `databricks-gemma-3-12b` (light), `databricks-gpt-oss-120b` (standard), `databricks-qwen3-next-80b-a3b-instruct` (complex)
 
 ## Major Components
 
@@ -160,12 +170,13 @@ External market APIs and reference sources
 
 ## Request Routing
 
-| Request Type | Primary Path | Reason |
-|--------------|--------------|--------|
-| dashboard browse, ranking, comparison, market filters | `frontend + backend + Gold APIs/views` | deterministic rendering and cost-efficient public serving |
-| governed structured analytical NLQ | `Genie` | best fit for repeatable analytics on governed Gold assets |
-| narrative market interpretation and guided research | `Agent Framework` | requires coded orchestration, evidence handling, and answer policy |
-| internal audit and operator review | `Databricks Apps` + ops plane | good fit for low-volume internal workflows |
+| Request Type | Surface | Primary Path | Reason |
+|--------------|---------|--------------|--------|
+| KPI lookup, ranking, comparison, filtering | `cga-analytics` | Genie Panel → SQL → chart re-render | governed analytical NLQ over Gold assets; SQL result drives state |
+| narrative market interpretation, trend explanation | `cga-analytics` | Copilot Panel → tier router → direct Mosaic (standard/light) | concise reasoning without full orchestration |
+| cross-domain deep analysis (multi-asset, macro + DeFi) | `cga-analytics` | Copilot Panel → tier router → multi-agent orchestrator (complex) | requires market + macro + defi domain agents + synthesis |
+| pipeline status, alerts, freshness review | `cga-admin` | Sentinela Dashboard | operational trust layer, not on user request path |
+| cost/token audit, access management | `cga-admin` | Admin panels | low-volume, ops-only |
 
 ## Interface Contracts
 
@@ -363,43 +374,44 @@ Design obligations:
 
 ## Internal Sequencing Inside The Same V1
 
-Because no meaningful scope cuts were accepted, the design must define execution order without redefining the product.
+### Sequence 1. Foundational Backbone — COMPLETE
 
-### Sequence 1. Foundational Backbone
+- medallion pipeline: CoinGecko + DefiLlama + GitHub + FRED ingested to Bronze/Silver/Gold
+- Unity Catalog governance and lineage active
+- Databricks Asset Bundles CI/CD deployed
+- Telemetry baseline (ops landing table, token/cost tracking)
 
-- source strategy
-- medallion contracts
-- auth and tenant model
-- governance and access control baseline
-- telemetry baseline
+### Sequence 2. Coded Copilot Backend — COMPLETE
 
-### Sequence 2. Public Analytical Surface
+- `copilot_orchestrator.py`: market + macro + defi domain agents + synthesis agent
+- `model_tier_router.py`: light/standard/complex classification
+- `mosaic_copilot_client.py`: Unity AI Gateway 3-tier endpoint resolution
+- `databricks_sql_client.py` and `genie_client.py`: DBSQL + Genie REST clients
+- 133 backend tests passing
 
-- dashboard-serving Gold views
-- frontend shell
-- backend retrieval APIs
-- user-facing freshness posture
+### Sequence 3. Analytics App — NEXT
 
-### Sequence 3. Governed Analytical NLQ
+- `cga-analytics` Databricks App scaffold (Dash or Streamlit)
+- Layout: Genie panel + chart dashboard + copilot panel
+- Genie state controller: `ask_genie()` → `generated_query` → execute → broadcast to charts
+- Chart components: market rankings, DeFi TVL, macro indicators, movers
+- Copilot panel wired to `copilot_orchestrator.orchestrate()`
+- Freshness and provenance badges on all AI answers
+- Portuguese-first UI copy
 
-- Genie metric views
-- governed analytical routing
-- NLQ response labeling and evidence posture
+### Sequence 4. Admin App — NEXT
 
-### Sequence 4. Coded Copilot
-
-- evidence views
-- retrieval scope
-- narrative copilot orchestration
-- provenance and trust metadata
+- `cga-admin` Databricks App scaffold
+- Sentinela dashboard: pipeline health, freshness alerts, quality scores
+- Cost/token monitor: spend by tier, by tenant, daily trends
+- Access management: Unity Catalog group provisioning
+- Audit trail: request traces, generated queries, answer provenance
 
 ### Sequence 5. Operational Completion
 
-- Sentinela readiness surfaces
-- admin/audit review flows
-- runbooks, alerts, and release interpretation
-
-This sequencing preserves the chosen full-product V1 while still preventing random build activity.
+- Sentinela live runtime (continuous monitoring loop)
+- Unity Catalog fine-grained access control and tenant isolation
+- Runbooks, release gates, compliance review surfaces
 
 ## Build Gating Rules
 
