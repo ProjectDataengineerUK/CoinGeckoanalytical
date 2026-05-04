@@ -1,10 +1,9 @@
 command: ["python3", "app.py"]
 
 env:
-  - name: DATABRICKS_HOST
-  - name: DATABRICKS_TOKEN
-  - name: DATABRICKS_CLIENT_ID
-  - name: DATABRICKS_CLIENT_SECRET
   - name: DATABRICKS_SQL_WAREHOUSE_ID
+    value: "5907fb5622adb03e"
   - name: DATABRICKS_GENIE_SPACE_ID
+    value: "01f14632855010e6a2ab0d78e3235036"
   - name: COINGECKO_CATALOG
+    value: "cgadev"
