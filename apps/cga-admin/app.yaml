@@ -1,10 +1,6 @@
 command: ["python3", "app.py"]
 
 env:
-  - name: DATABRICKS_SQL_WAREHOUSE_ID
-    valueFrom:
-      secretRef:
-        name: "cga-app-config/sql_warehouse_id"
   - name: COINGECKO_CATALOG
     value: "cgadev"
   - name: COINGECKO_OPS_CATALOG

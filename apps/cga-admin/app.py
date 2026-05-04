@@ -4,6 +4,44 @@ import os
 import sys
 from pathlib import Path
 
+
+def _load_app_secrets() -> None:
+    """Load warehouse ID from Databricks secret scope into env vars.
+
+    Runs at startup using the OAuth M2M credentials injected by the
+    Databricks Apps runtime. Fails silently so the app still starts
+    even if secrets are unavailable.
+    """
+    host = os.environ.get("DATABRICKS_HOST", "")
+    client_id = os.environ.get("DATABRICKS_CLIENT_ID", "")
+    client_secret = os.environ.get("DATABRICKS_CLIENT_SECRET", "")
+    if not (host and client_id and client_secret):
+        return
+    needed = {
+        k: v
+        for k, v in {
+            "DATABRICKS_SQL_WAREHOUSE_ID": ("cga-app-config", "sql_warehouse_id"),
+        }.items()
+        if not os.environ.get(k)
+    }
+    if not needed:
+        return
+    try:
+        from databricks.sdk import WorkspaceClient
+        w = WorkspaceClient(host=host, client_id=client_id, client_secret=client_secret)
+        for env_var, (scope, key) in needed.items():
+            try:
+                val = w.secrets.get_secret(scope=scope, key=key).value
+                if val:
+                    os.environ[env_var] = val
+            except Exception:
+                pass
+    except Exception:
+        pass
+
+
+_load_app_secrets()
+
 import dash
 import dash_bootstrap_components as dbc
 from dash import Input, Output, callback, dcc, html
