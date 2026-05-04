@@ -121,11 +121,19 @@ def ask_mosaic(
         method="POST",
     )
 
+    import logging as _logging
+    _log = _logging.getLogger(__name__)
     try:
         with urllib.request.urlopen(req, timeout=config.timeout_seconds) as resp:
             data: dict[str, Any] = json.loads(resp.read())
     except urllib.error.HTTPError as exc:
         latency_ms = int((time.monotonic() - started_at) * 1000)
+        body = ""
+        try:
+            body = exc.read().decode("utf-8", errors="replace")
+        except Exception:
+            pass
+        _log.error("Mosaic HTTP %s for endpoint %s: %s", exc.code, endpoint, body)
         return MosaicAnswer(
             answer_text="",
             model_id="",
@@ -135,6 +143,7 @@ def ask_mosaic(
         )
     except urllib.error.URLError as exc:
         latency_ms = int((time.monotonic() - started_at) * 1000)
+        _log.error("Mosaic URLError for endpoint %s: %s", endpoint, exc.reason)
         return MosaicAnswer(
             answer_text="",
             model_id="",

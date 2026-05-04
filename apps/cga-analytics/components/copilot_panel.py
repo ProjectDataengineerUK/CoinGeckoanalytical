@@ -131,15 +131,15 @@ def send_copilot_message(n_clicks: int, message: str, history: list, assets_stat
     new_history.append({
         "role": "assistant",
         "text": result.body,
-        "tier": result.tier,
+        "tier": result.model_tier,
         "ts": ts,
         "citations": result.citations,
         "orchestrated": result.orchestrated,
         "cost": result.cost_estimate,
     })
 
-    tier_label = _TIER_LABELS.get(result.tier, result.tier)
-    tier_color = _TIER_COLORS.get(result.tier, "secondary")
+    tier_label = _TIER_LABELS.get(result.model_tier, result.model_tier)
+    tier_color = _TIER_COLORS.get(result.model_tier, "secondary")
     tier_badge = [
         dbc.Badge(tier_label, color=tier_color, pill=True, className="me-1"),
         dbc.Badge(f"{result.latency_ms} ms", color="light", text_color="dark", pill=True),
