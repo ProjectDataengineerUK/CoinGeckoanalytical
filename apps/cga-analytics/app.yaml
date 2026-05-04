@@ -1,4 +1,4 @@
-command: ["python3", "app.py"]
+command: [".venv/bin/python3_apps", "app.py"]
 
 env:
   - name: COINGECKO_CATALOG
