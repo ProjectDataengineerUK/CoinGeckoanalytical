@@ -89,6 +89,19 @@ def main(spark: Any, catalog: str = DEFAULT_CATALOG, lookback_days: int = DEFAUL
         "avg_dominance_pct_btc",
         "avg_vol_to_cap_ratio",
     ]
+
+    if len(agg_df) < 2:
+        print(
+            f"WARN: insufficient aggregated feature rows ({len(agg_df)}) after dropna; "
+            "training skipped — run feature_engineering_job first and ensure Silver data is populated."
+        )
+        return TrainingResult(
+            regime_cv_accuracy=0.0,
+            anomaly_contamination=0.0,
+            regime_run_id="skipped",
+            anomaly_run_id="skipped",
+        )
+
     X_regime = agg_df[regime_feature_cols].values
     y_regime = build_regime_labels(agg_df["avg_price_change_pct_7d"].tolist())
 
