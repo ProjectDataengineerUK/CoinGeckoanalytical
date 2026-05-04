@@ -1,0 +1,380 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>CoinGeckoAnalytical — Project Metrics Dashboard</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  :root {
+    --bg:      #0f172a;
+    --panel:   #1e293b;
+    --border:  #334155;
+    --text:    #f1f5f9;
+    --dim:     #94a3b8;
+    --cyan:    #06b6d4;
+    --green:   #22c55e;
+    --amber:   #f59e0b;
+    --violet:  #a78bfa;
+    --red:     #f87171;
+    --teal:    #5eead4;
+  }
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Segoe UI', system-ui, sans-serif;
+    padding: 24px;
+    min-height: 100vh;
+  }
+  header {
+    text-align: center;
+    margin-bottom: 28px;
+  }
+  header h1 { font-size: 1.8rem; font-weight: 700; }
+  header p  { color: var(--amber); font-size: 0.85rem; margin-top: 4px; }
+
+  /* ── grid ── */
+  .grid-4 { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; margin-bottom: 20px; }
+  .grid-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin-bottom: 20px; }
+  .grid-2 { display: grid; grid-template-columns: 1fr 1fr;        gap: 16px; margin-bottom: 20px; }
+
+  .card {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 18px 20px;
+  }
+  .card h2 { font-size: 0.75rem; color: var(--dim); text-transform: uppercase; letter-spacing: .05em; margin-bottom: 10px; }
+
+  /* ── KPI ── */
+  .kpi-value  { font-size: 2.4rem; font-weight: 800; line-height: 1; }
+  .kpi-label  { font-size: 0.78rem; color: var(--dim); margin-top: 4px; }
+  .kpi-badge  {
+    display: inline-block;
+    font-size: 0.7rem; font-weight: 600;
+    padding: 2px 8px; border-radius: 999px;
+    margin-top: 8px;
+  }
+  .badge-green  { background: rgba(34,197,94,.15);  color: var(--green);  }
+  .badge-amber  { background: rgba(245,158,11,.15); color: var(--amber);  }
+  .badge-violet { background: rgba(167,139,250,.15);color: var(--violet); }
+  .badge-cyan   { background: rgba(6,182,212,.15);  color: var(--cyan);   }
+
+  /* ── bar chart ── */
+  .bar-chart { display: flex; flex-direction: column; gap: 8px; margin-top: 6px; }
+  .bar-row   { display: flex; align-items: center; gap: 8px; }
+  .bar-label { width: 130px; font-size: 0.78rem; color: var(--dim); flex-shrink: 0; }
+  .bar-track { flex: 1; background: #0f172a; border-radius: 4px; height: 8px; overflow: hidden; }
+  .bar-fill  { height: 100%; border-radius: 4px; transition: width .8s ease; }
+  .bar-val   { width: 36px; text-align: right; font-size: 0.75rem; color: var(--text); }
+
+  /* ── job table ── */
+  table { width: 100%; border-collapse: collapse; font-size: 0.8rem; }
+  th    { color: var(--dim); font-weight: 600; text-align: left; padding: 6px 0; border-bottom: 1px solid var(--border); }
+  td    { padding: 6px 0; border-bottom: 1px solid #1e293b; vertical-align: middle; }
+  tr:last-child td { border-bottom: none; }
+  .dot  { display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-right: 6px; }
+  .dot-green  { background: var(--green); }
+  .dot-amber  { background: var(--amber); }
+  .dot-violet { background: var(--violet); }
+
+  /* ── maturity rings ── */
+  .rings { display: flex; justify-content: space-around; align-items: center; padding: 10px 0; }
+  .ring-wrap { text-align: center; }
+  .ring-wrap svg { display: block; margin: 0 auto 6px; }
+  .ring-label { font-size: 0.78rem; color: var(--dim); }
+  .ring-val   { font-size: 1.2rem; font-weight: 700; }
+
+  /* ── timeline ── */
+  .timeline { position: relative; padding-left: 20px; }
+  .timeline::before {
+    content: '';
+    position: absolute; left: 6px; top: 0; bottom: 0;
+    width: 2px; background: var(--border);
+  }
+  .tl-item { position: relative; margin-bottom: 14px; }
+  .tl-dot  {
+    position: absolute; left: -18px; top: 3px;
+    width: 10px; height: 10px; border-radius: 50%;
+    border: 2px solid var(--panel);
+  }
+  .tl-date { font-size: 0.7rem; color: var(--dim); }
+  .tl-text { font-size: 0.8rem; color: var(--text); }
+
+  /* ── cost ── */
+  .cost-row { display: flex; justify-content: space-between; align-items: center;
+              padding: 7px 0; border-bottom: 1px solid #1e293b; font-size: 0.82rem; }
+  .cost-row:last-child { border-bottom: none; }
+  .cost-tier  { color: var(--dim); }
+  .cost-val   { font-weight: 600; }
+
+  /* ── footer ── */
+  footer { text-align: center; margin-top: 24px; font-size: 0.72rem; color: var(--dim); }
+
+  @media (max-width: 1000px) {
+    .grid-4 { grid-template-columns: repeat(2, 1fr); }
+    .grid-3 { grid-template-columns: repeat(2, 1fr); }
+  }
+  @media (max-width: 620px) {
+    .grid-4, .grid-3, .grid-2 { grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>CoinGeckoAnalytical — Project Metrics Dashboard</h1>
+  <p>DataOps · MLOps · LLMOps · Governance — as of 2026-05-04</p>
+</header>
+
+<!-- ── Row 1: top KPIs ─────────────────────────────────────────────────────── -->
+<div class="grid-4">
+  <div class="card">
+    <h2>Pipeline Jobs</h2>
+    <div class="kpi-value" style="color:var(--cyan)">22</div>
+    <div class="kpi-label">registered in DABs</div>
+    <span class="kpi-badge badge-green">All DONE</span>
+  </div>
+  <div class="card">
+    <h2>Test Suite</h2>
+    <div class="kpi-value" style="color:var(--green)">350+</div>
+    <div class="kpi-label">unit + contract tests</div>
+    <span class="kpi-badge badge-green">CI green</span>
+  </div>
+  <div class="card">
+    <h2>CI Gates</h2>
+    <div class="kpi-value" style="color:var(--amber)">4</div>
+    <div class="kpi-label">workflow_dispatch confirms</div>
+    <span class="kpi-badge badge-amber">Manual approval</span>
+  </div>
+  <div class="card">
+    <h2>Platform Blocks</h2>
+    <div class="kpi-value" style="color:var(--violet)">15</div>
+    <div class="kpi-label">all blocks DONE</div>
+    <span class="kpi-badge badge-violet">Level 5</span>
+  </div>
+</div>
+
+<!-- ── Row 2: job categories + maturity ────────────────────────────────────── -->
+<div class="grid-2">
+  <div class="card">
+    <h2>Jobs by Category</h2>
+    <div class="bar-chart">
+      <div class="bar-row">
+        <span class="bar-label">Bronze ingestion</span>
+        <div class="bar-track"><div class="bar-fill" style="width:25%;background:var(--amber)"></div></div>
+        <span class="bar-val">5</span>
+      </div>
+      <div class="bar-row">
+        <span class="bar-label">Silver pipeline</span>
+        <div class="bar-track"><div class="bar-fill" style="width:15%;background:var(--cyan)"></div></div>
+        <span class="bar-val">3</span>
+      </div>
+      <div class="bar-row">
+        <span class="bar-label">Gold / Ops views</span>
+        <div class="bar-track"><div class="bar-fill" style="width:20%;background:var(--teal)"></div></div>
+        <span class="bar-val">4</span>
+      </div>
+      <div class="bar-row">
+        <span class="bar-label">MLOps</span>
+        <div class="bar-track"><div class="bar-fill" style="width:20%;background:var(--violet)"></div></div>
+        <span class="bar-val">4</span>
+      </div>
+      <div class="bar-row">
+        <span class="bar-label">Governance</span>
+        <div class="bar-track"><div class="bar-fill" style="width:10%;background:var(--red)"></div></div>
+        <span class="bar-val">2</span>
+      </div>
+      <div class="bar-row">
+        <span class="bar-label">Observability</span>
+        <div class="bar-track"><div class="bar-fill" style="width:20%;background:var(--green)"></div></div>
+        <span class="bar-val">4</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>Maturity — DataOps · MLOps · LLMOps</h2>
+    <div class="rings">
+      <!-- SVG ring: DataOps -->
+      <div class="ring-wrap">
+        <svg width="80" height="80" viewBox="0 0 80 80">
+          <circle cx="40" cy="40" r="32" fill="none" stroke="#1e3a4a" stroke-width="8"/>
+          <circle cx="40" cy="40" r="32" fill="none" stroke="#06b6d4" stroke-width="8"
+                  stroke-dasharray="201.06 201.06" stroke-dashoffset="0"
+                  stroke-linecap="round" transform="rotate(-90 40 40)"/>
+          <text x="40" y="44" text-anchor="middle" fill="#06b6d4" font-size="18" font-weight="700">L5</text>
+        </svg>
+        <div class="ring-val" style="color:var(--cyan)">DataOps</div>
+        <div class="ring-label">Optimised</div>
+      </div>
+      <!-- MLOps -->
+      <div class="ring-wrap">
+        <svg width="80" height="80" viewBox="0 0 80 80">
+          <circle cx="40" cy="40" r="32" fill="none" stroke="#2d1a4a" stroke-width="8"/>
+          <circle cx="40" cy="40" r="32" fill="none" stroke="#a78bfa" stroke-width="8"
+                  stroke-dasharray="201.06 201.06" stroke-dashoffset="0"
+                  stroke-linecap="round" transform="rotate(-90 40 40)"/>
+          <text x="40" y="44" text-anchor="middle" fill="#a78bfa" font-size="18" font-weight="700">L5</text>
+        </svg>
+        <div class="ring-val" style="color:var(--violet)">MLOps</div>
+        <div class="ring-label">Optimised</div>
+      </div>
+      <!-- LLMOps -->
+      <div class="ring-wrap">
+        <svg width="80" height="80" viewBox="0 0 80 80">
+          <circle cx="40" cy="40" r="32" fill="none" stroke="#3a2a0a" stroke-width="8"/>
+          <circle cx="40" cy="40" r="32" fill="none" stroke="#f59e0b" stroke-width="8"
+                  stroke-dasharray="201.06 201.06" stroke-dashoffset="201.06"
+                  stroke-linecap="round" transform="rotate(-90 40 40)">
+            <animate attributeName="stroke-dashoffset" from="201.06" to="0" dur="1.4s" fill="freeze"/>
+          </circle>
+          <text x="40" y="44" text-anchor="middle" fill="#f59e0b" font-size="18" font-weight="700">L5</text>
+        </svg>
+        <div class="ring-val" style="color:var(--amber)">LLMOps</div>
+        <div class="ring-label">Optimised</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ── Row 3: pipeline jobs table + cost model ─────────────────────────────── -->
+<div class="grid-2">
+  <div class="card">
+    <h2>Key Pipeline Jobs</h2>
+    <table>
+      <thead>
+        <tr><th>Job</th><th>Layer</th><th>Schedule</th><th>Status</th></tr>
+      </thead>
+      <tbody>
+        <tr><td>market_source_ingestion_job</td><td style="color:var(--amber)">Bronze</td><td>15 min</td><td><span class="dot dot-green"></span>DONE</td></tr>
+        <tr><td>defillama_ingestion_job</td><td style="color:var(--amber)">Bronze</td><td>1 h</td><td><span class="dot dot-green"></span>DONE</td></tr>
+        <tr><td>fred_macro_ingestion_job</td><td style="color:var(--amber)">Bronze</td><td>6 h</td><td><span class="dot dot-green"></span>DONE</td></tr>
+        <tr><td>github_activity_ingestion_job</td><td style="color:var(--amber)">Bronze</td><td>1 h</td><td><span class="dot dot-green"></span>DONE</td></tr>
+        <tr><td>silver_market_pipeline_job</td><td style="color:var(--cyan)">Silver</td><td>15 min</td><td><span class="dot dot-green"></span>DONE</td></tr>
+        <tr><td>silver_enrichment_pipeline_job</td><td style="color:var(--cyan)">Silver</td><td>1 h</td><td><span class="dot dot-green"></span>DONE</td></tr>
+        <tr><td>ops_readiness_refresh_job</td><td style="color:var(--teal)">Gold</td><td>15 min</td><td><span class="dot dot-green"></span>DONE</td></tr>
+        <tr><td>feature_engineering_job</td><td style="color:var(--violet)">MLOps</td><td>daily</td><td><span class="dot dot-green"></span>DONE</td></tr>
+        <tr><td>train_market_model_job</td><td style="color:var(--violet)">MLOps</td><td>on-demand</td><td><span class="dot dot-amber"></span>in CI</td></tr>
+        <tr><td>score_market_assets_job</td><td style="color:var(--violet)">MLOps</td><td>daily</td><td><span class="dot dot-green"></span>DONE</td></tr>
+        <tr><td>sentinela_evaluation_job</td><td style="color:var(--green)">Ops</td><td>15 min</td><td><span class="dot dot-green"></span>DONE</td></tr>
+        <tr><td>uc_grants_job</td><td style="color:var(--red)">Gov</td><td>on-demand</td><td><span class="dot dot-green"></span>DONE</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="card">
+    <h2>Copilot Cost Model (per query)</h2>
+    <div class="cost-row">
+      <span class="cost-tier">LIGHT tier — simple factual</span>
+      <span class="cost-val" style="color:var(--green)">~$0.001</span>
+    </div>
+    <div class="cost-row">
+      <span class="cost-tier">COMPLEX tier — 3 agents + synth</span>
+      <span class="cost-val" style="color:var(--amber)">~$0.012</span>
+    </div>
+    <div class="cost-row">
+      <span class="cost-tier">Budget cap (per request)</span>
+      <span class="cost-val" style="color:var(--cyan)">$0.05</span>
+    </div>
+    <div class="cost-row">
+      <span class="cost-tier">Model — LIGHT</span>
+      <span class="cost-val" style="color:var(--dim)">llama-3.1-8b-instruct</span>
+    </div>
+    <div class="cost-row">
+      <span class="cost-tier">Model — COMPLEX</span>
+      <span class="cost-val" style="color:var(--dim)">llama-3.3-70b-instruct</span>
+    </div>
+    <div class="cost-row">
+      <span class="cost-tier">Telemetry</span>
+      <span class="cost-val" style="color:var(--green)">✓ per response</span>
+    </div>
+    <div class="cost-row">
+      <span class="cost-tier">Cost table</span>
+      <span class="cost-val" style="color:var(--green)">ops_observability.copilot_usage</span>
+    </div>
+
+    <div style="margin-top:18px;">
+      <h2 style="margin-bottom:10px;">Security &amp; Compliance</h2>
+      <div class="cost-row"><span class="cost-tier">Row-level security (RLS)</span><span class="cost-val" style="color:var(--green)">✓ UC row filters</span></div>
+      <div class="cost-row"><span class="cost-tier">Column masking</span><span class="cost-val" style="color:var(--green)">✓ cost_usd masked</span></div>
+      <div class="cost-row"><span class="cost-tier">User ID in telemetry</span><span class="cost-val" style="color:var(--green)">✓ sha256 hashed</span></div>
+      <div class="cost-row"><span class="cost-tier">Input sanitisation</span><span class="cost-val" style="color:var(--green)">✓ pre-LLM</span></div>
+    </div>
+  </div>
+</div>
+
+<!-- ── Row 4: build timeline + data sources ─────────────────────────────────── -->
+<div class="grid-2">
+  <div class="card">
+    <h2>Build Timeline</h2>
+    <div class="timeline">
+      <div class="tl-item">
+        <div class="tl-dot" style="background:var(--cyan)"></div>
+        <div class="tl-date">2026-05-01</div>
+        <div class="tl-text">Session 1 — Bronze pipeline, DABs scaffold, CI skeleton</div>
+      </div>
+      <div class="tl-item">
+        <div class="tl-dot" style="background:var(--cyan)"></div>
+        <div class="tl-date">2026-05-02</div>
+        <div class="tl-text">Session 2 — Silver pipeline, Gold views, Ops observability, Sentinela</div>
+      </div>
+      <div class="tl-item">
+        <div class="tl-dot" style="background:var(--violet)"></div>
+        <div class="tl-date">2026-05-03</div>
+        <div class="tl-text">Session 3 — MLOps (feature eng. + train + score), Governance (UC grants + RLS)</div>
+      </div>
+      <div class="tl-item">
+        <div class="tl-dot" style="background:var(--amber)"></div>
+        <div class="tl-date">2026-05-04</div>
+        <div class="tl-text">Session 4 — Serverless fixes (cache, ORDER BY, schema, MLflow), Apps surface, full CI green</div>
+      </div>
+      <div class="tl-item">
+        <div class="tl-dot" style="background:var(--green)"></div>
+        <div class="tl-date">2026-05-04</div>
+        <div class="tl-text">Delivery — 15 blocks DONE, 22 jobs, 350+ tests, 4 docs assets, Level 5 maturity</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>Data Sources &amp; Integrations</h2>
+    <div class="bar-chart">
+      <div class="bar-row">
+        <span class="bar-label">CoinGecko API</span>
+        <div class="bar-track"><div class="bar-fill" style="width:100%;background:var(--amber)"></div></div>
+        <span class="bar-val">live</span>
+      </div>
+      <div class="bar-row">
+        <span class="bar-label">DeFiLlama API</span>
+        <div class="bar-track"><div class="bar-fill" style="width:100%;background:var(--cyan)"></div></div>
+        <span class="bar-val">live</span>
+      </div>
+      <div class="bar-row">
+        <span class="bar-label">FRED (macro)</span>
+        <div class="bar-track"><div class="bar-fill" style="width:100%;background:var(--violet)"></div></div>
+        <span class="bar-val">live</span>
+      </div>
+      <div class="bar-row">
+        <span class="bar-label">GitHub Activity</span>
+        <div class="bar-track"><div class="bar-fill" style="width:100%;background:var(--green)"></div></div>
+        <span class="bar-val">live</span>
+      </div>
+    </div>
+
+    <div style="margin-top:20px;">
+      <h2 style="margin-bottom:10px;">Product Surfaces</h2>
+      <div class="cost-row"><span class="cost-tier">cga-analytics</span><span class="cost-val" style="color:var(--green)">Genie BI + Copilot + Charts</span></div>
+      <div class="cost-row"><span class="cost-tier">cga-admin</span><span class="cost-val" style="color:var(--violet)">Sentinela + Cost + Access + Audit</span></div>
+      <div class="cost-row"><span class="cost-tier">Genie</span><span class="cost-val" style="color:var(--amber)">SQL → chart controller</span></div>
+      <div class="cost-row"><span class="cost-tier">Mosaic AI (Serverless)</span><span class="cost-val" style="color:var(--cyan)">FMAPI endpoint</span></div>
+    </div>
+  </div>
+</div>
+
+<footer>
+  CoinGeckoAnalytical · Databricks-native · Unity Catalog governed · Mosaic AI powered &nbsp;|&nbsp; Generated 2026-05-04
+</footer>
+
+</body>
+</html>
