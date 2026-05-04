@@ -257,8 +257,6 @@ jobs:
       - uses: actions/checkout@v4
       - name: Install Databricks CLI
         uses: databricks/setup-cli@main
-      - name: Deploy bundle (idempotent — ensures jobs are registered before run)
-        run: databricks bundle deploy -t dev --force-lock
       - name: Run UC grants job
         run: databricks bundle run uc_grants_job -t dev
 
