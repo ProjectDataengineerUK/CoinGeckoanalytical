@@ -4,6 +4,13 @@ import os
 import sys
 from pathlib import Path
 
+# Databricks Apps installs packages into .venv but launches via system python3.
+# Prepend venv site-packages so third-party imports resolve.
+_venv_lib = Path(__file__).parent / ".venv" / "lib"
+for _sp in sorted(_venv_lib.glob("python*/site-packages")):
+    if str(_sp) not in sys.path:
+        sys.path.insert(0, str(_sp))
+
 
 def _load_app_secrets() -> None:
     """Load warehouse/genie IDs from Databricks secret scope into env vars.
