@@ -494,11 +494,8 @@ def write_silver_changes(
     config: SilverPipelineConfig,
 ) -> int:
     dataframe = build_silver_changes_dataframe(spark, config)
-    dataframe = dataframe.cache()
     dataframe.write.mode("append").format("delta").saveAsTable(config.changes_full_table)
-    count = dataframe.count()
-    dataframe.unpersist()
-    return count
+    return spark.table(config.changes_full_table).count()
 
 
 def write_silver_dominance(
@@ -506,11 +503,8 @@ def write_silver_dominance(
     config: SilverPipelineConfig,
 ) -> int:
     dataframe = build_silver_dominance_dataframe(spark, config)
-    dataframe = dataframe.cache()
     dataframe.write.mode("append").format("delta").saveAsTable(config.dominance_full_table)
-    count = dataframe.count()
-    dataframe.unpersist()
-    return count
+    return spark.table(config.dominance_full_table).count()
 
 
 def write_silver_comparison(
@@ -518,11 +512,8 @@ def write_silver_comparison(
     config: SilverPipelineConfig,
 ) -> int:
     dataframe = build_silver_comparison_dataframe(spark, config)
-    dataframe = dataframe.cache()
     dataframe.write.mode("append").format("delta").saveAsTable(config.comparison_full_table)
-    count = dataframe.count()
-    dataframe.unpersist()
-    return count
+    return spark.table(config.comparison_full_table).count()
 
 
 def parse_payload(payload_json: str | None, payload_path: str | None = None) -> list[dict[str, Any]]:

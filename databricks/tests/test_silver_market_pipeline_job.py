@@ -421,6 +421,9 @@ class BuildSilverChangesDataframeTests(unittest.TestCase):
                 self.sql_calls.append(query)
                 return self.dataframe
 
+            def table(self, name: str) -> "FakeDataFrame":
+                return self.dataframe
+
             def createDataFrame(self, rows: list[dict]) -> "FakeDataFrame":
                 return self.dataframe
 
@@ -521,6 +524,9 @@ class MainFunctionTests(unittest.TestCase):
 
             def sql(self, query: str) -> "FakeDataFrame":
                 self.sql_calls.append(query)
+                return self.dataframe
+
+            def table(self, name: str) -> "FakeDataFrame":
                 return self.dataframe
 
             def createDataFrame(self, rows: list[dict]) -> "FakeDataFrame":
