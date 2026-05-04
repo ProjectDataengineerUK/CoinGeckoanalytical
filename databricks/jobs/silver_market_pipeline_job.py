@@ -277,26 +277,20 @@ def build_silver_changes_dataframe(spark: Any, config: SilverPipelineConfig) -> 
                 b.price_usd,
                 b.volume_24h_usd,
                 b.market_cap_usd,
-                -- 1h: closest snapshot in [55min, 65min] ago window
+                -- 1h: any snapshot in [55min, 65min] ago window; most recent wins
                 FIRST_VALUE(p1h.price_usd) OVER (
                     PARTITION BY b.asset_id, b.observed_at
-                    ORDER BY ABS(
-                        UNIX_TIMESTAMP(b.observed_at) - UNIX_TIMESTAMP(p1h.observed_at) - 3600
-                    )
+                    ORDER BY p1h.observed_at DESC
                 ) AS price_1h_ago,
-                -- 24h: closest snapshot in [23h, 25h] ago window (1380–1500 min)
+                -- 24h: any snapshot in [23h, 25h] ago window; most recent wins
                 FIRST_VALUE(p24h.price_usd) OVER (
                     PARTITION BY b.asset_id, b.observed_at
-                    ORDER BY ABS(
-                        UNIX_TIMESTAMP(b.observed_at) - UNIX_TIMESTAMP(p24h.observed_at) - 86400
-                    )
+                    ORDER BY p24h.observed_at DESC
                 ) AS price_24h_ago,
-                -- 7d: closest snapshot in [7d ± 2h] window
+                -- 7d: any snapshot in [7d ± 2h] window; most recent wins
                 FIRST_VALUE(p7d.price_usd) OVER (
                     PARTITION BY b.asset_id, b.observed_at
-                    ORDER BY ABS(
-                        UNIX_TIMESTAMP(b.observed_at) - UNIX_TIMESTAMP(p7d.observed_at) - 604800
-                    )
+                    ORDER BY p7d.observed_at DESC
                 ) AS price_7d_ago
             FROM base b
             LEFT JOIN base p1h
@@ -447,19 +441,19 @@ def build_silver_comparison_dataframe(spark: Any, config: SilverPipelineConfig) 
                 b.market_cap_usd,
                 b.volume_24h_usd,
                 b.market_cap_rank,
-                -- 24h: closest snapshot 23.5–24.5 hours ago
+                -- 24h: any snapshot in [23.5h, 24.5h] ago window; most recent wins
                 (SELECT p24h.price_usd FROM base p24h
                  WHERE p24h.asset_id = b.asset_id
                    AND p24h.observed_at BETWEEN b.observed_at - INTERVAL 1470 MINUTES
                                             AND b.observed_at - INTERVAL 1410 MINUTES
-                 ORDER BY ABS(UNIX_TIMESTAMP(b.observed_at) - UNIX_TIMESTAMP(p24h.observed_at) - 86400) ASC
+                 ORDER BY p24h.observed_at DESC
                  LIMIT 1) AS price_24h_ago,
-                -- 7d: closest snapshot 6.9–7.1 days ago
+                -- 7d: any snapshot in [7d ± 2h] window; most recent wins
                 (SELECT p7d.price_usd FROM base p7d
                  WHERE p7d.asset_id = b.asset_id
                    AND p7d.observed_at BETWEEN b.observed_at - INTERVAL 7 DAYS - INTERVAL 2 HOURS
                                            AND b.observed_at - INTERVAL 7 DAYS + INTERVAL 2 HOURS
-                 ORDER BY ABS(UNIX_TIMESTAMP(b.observed_at) - UNIX_TIMESTAMP(p7d.observed_at) - 604800) ASC
+                 ORDER BY p7d.observed_at DESC
                  LIMIT 1) AS price_7d_ago
             FROM base b
         )
