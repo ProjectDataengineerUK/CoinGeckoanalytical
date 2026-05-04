@@ -2,8 +2,14 @@ command: ["python3", "app.py"]
 
 env:
   - name: DATABRICKS_SQL_WAREHOUSE_ID
-    value: "5907fb5622adb03e"
+    valueFrom:
+      secretRef:
+        scope: cga-app-config
+        key: sql_warehouse_id
   - name: DATABRICKS_GENIE_SPACE_ID
-    value: "01f14632855010e6a2ab0d78e3235036"
+    valueFrom:
+      secretRef:
+        scope: cga-app-config
+        key: genie_space_id
   - name: COINGECKO_CATALOG
     value: "cgadev"
