@@ -105,6 +105,7 @@ jobs:
           python3 -m unittest databricks.tests.test_sentinela_evaluation_job
           python3 -m unittest databricks.tests.test_uc_grants_job
           python3 -m unittest databricks.tests.test_rls_migration_job
+          python3 -m unittest databricks.tests.test_model_drift_monitoring_job
 
       - name: Run workflow contract tests
         run: python3 -m unittest discover -s repo_tests -p 'test_*.py'
@@ -184,6 +185,7 @@ jobs:
           # 5. MLOps — feature engineering then scoring (training is on-demand only)
           databricks bundle run feature_engineering_job -t dev
           databricks bundle run score_market_assets_job -t dev
+          databricks bundle run model_drift_monitoring_job -t dev
           # 6. Sentinela live evaluation
           databricks bundle run sentinela_evaluation_job -t dev
 

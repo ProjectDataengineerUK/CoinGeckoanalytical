@@ -5,15 +5,26 @@ sync:
   exclude:
     - databricks/notebooks/**
 
+variables:
+  catalog:
+    default: cgadev
+    description: "Unity Catalog catalog name for this target environment"
+
 targets:
   dev:
     default: true
+    variables:
+      catalog: cgadev
     workspace:
       root_path: /Workspace/Users/${workspace.current_user.userName}/.bundle/${bundle.name}/dev
   staging:
+    variables:
+      catalog: cgastaging
     workspace:
       root_path: /Workspace/Users/${workspace.current_user.userName}/.bundle/${bundle.name}/staging
   prod:
+    variables:
+      catalog: cgaprod
     workspace:
       root_path: /Workspace/Users/${workspace.current_user.userName}/.bundle/${bundle.name}/prod
 
@@ -284,6 +295,10 @@ resources:
           spark_python_task:
             python_file: ./databricks/jobs/train_market_model_job.py
           environment_key: default
+      schedule:
+        quartz_cron_expression: "0 0 2 ? * MON"
+        timezone_id: America/Sao_Paulo
+        pause_status: UNPAUSED
       environments:
         - environment_key: default
           spec:
@@ -348,6 +363,24 @@ resources:
           spark_python_task:
             python_file: ./databricks/jobs/rls_migration_job.py
           environment_key: default
+      environments:
+        - environment_key: default
+          spec:
+            environment_version: "2"
+            dependencies: []
+
+    model_drift_monitoring_job:
+      name: model_drift_monitoring_job
+      description: Compute regime PSI vs 7-day baseline; write drift alert to ops_sentinela_alerts when threshold exceeded.
+      tasks:
+        - task_key: monitor_model_drift
+          spark_python_task:
+            python_file: ./databricks/jobs/model_drift_monitoring_job.py
+          environment_key: default
+      schedule:
+        quartz_cron_expression: "0 0 6 * * ?"
+        timezone_id: America/Sao_Paulo
+        pause_status: UNPAUSED
       environments:
         - environment_key: default
           spec:

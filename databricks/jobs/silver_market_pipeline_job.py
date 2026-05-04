@@ -267,6 +267,50 @@ def build_silver_changes_dataframe(spark: Any, config: SilverPipelineConfig) -> 
                 volume_24h_usd
             FROM deduped
             WHERE rn = 1
+        ),
+        lagged AS (
+            SELECT
+                b.asset_id,
+                b.symbol,
+                b.name,
+                b.observed_at,
+                b.price_usd,
+                b.volume_24h_usd,
+                b.market_cap_usd,
+                -- 1h: closest snapshot in [55min, 65min] ago window
+                FIRST_VALUE(p1h.price_usd) OVER (
+                    PARTITION BY b.asset_id, b.observed_at
+                    ORDER BY ABS(
+                        UNIX_TIMESTAMP(b.observed_at) - UNIX_TIMESTAMP(p1h.observed_at) - 3600
+                    )
+                ) AS price_1h_ago,
+                -- 24h: closest snapshot in [23h, 25h] ago window (1380–1500 min)
+                FIRST_VALUE(p24h.price_usd) OVER (
+                    PARTITION BY b.asset_id, b.observed_at
+                    ORDER BY ABS(
+                        UNIX_TIMESTAMP(b.observed_at) - UNIX_TIMESTAMP(p24h.observed_at) - 86400
+                    )
+                ) AS price_24h_ago,
+                -- 7d: closest snapshot in [7d ± 2h] window
+                FIRST_VALUE(p7d.price_usd) OVER (
+                    PARTITION BY b.asset_id, b.observed_at
+                    ORDER BY ABS(
+                        UNIX_TIMESTAMP(b.observed_at) - UNIX_TIMESTAMP(p7d.observed_at) - 604800
+                    )
+                ) AS price_7d_ago
+            FROM base b
+            LEFT JOIN base p1h
+                ON p1h.asset_id = b.asset_id
+               AND p1h.observed_at BETWEEN b.observed_at - INTERVAL 65 MINUTES
+                                        AND b.observed_at - INTERVAL 55 MINUTES
+            LEFT JOIN base p24h
+                ON p24h.asset_id = b.asset_id
+               AND p24h.observed_at BETWEEN b.observed_at - INTERVAL 1500 MINUTES
+                                         AND b.observed_at - INTERVAL 1380 MINUTES
+            LEFT JOIN base p7d
+                ON p7d.asset_id = b.asset_id
+               AND p7d.observed_at BETWEEN b.observed_at - INTERVAL 7 DAYS - INTERVAL 2 HOURS
+                                        AND b.observed_at - INTERVAL 7 DAYS + INTERVAL 2 HOURS
         )
         SELECT
             asset_id,
@@ -275,29 +319,20 @@ def build_silver_changes_dataframe(spark: Any, config: SilverPipelineConfig) -> 
             observed_at,
             DATE(observed_at) AS window_id,
             CASE
-                WHEN LAG(price_usd, 1) OVER (PARTITION BY asset_id ORDER BY observed_at) IS NULL
-                  OR LAG(price_usd, 1) OVER (PARTITION BY asset_id ORDER BY observed_at) = 0
-                THEN NULL
-                ELSE ((price_usd - LAG(price_usd, 1) OVER (PARTITION BY asset_id ORDER BY observed_at))
-                      / LAG(price_usd, 1) OVER (PARTITION BY asset_id ORDER BY observed_at)) * 100
+                WHEN price_1h_ago IS NULL OR price_1h_ago = 0 THEN NULL
+                ELSE ((price_usd - price_1h_ago) / price_1h_ago) * 100
             END AS price_change_pct_1h,
             CASE
-                WHEN LAG(price_usd, 24) OVER (PARTITION BY asset_id ORDER BY observed_at) IS NULL
-                  OR LAG(price_usd, 24) OVER (PARTITION BY asset_id ORDER BY observed_at) = 0
-                THEN NULL
-                ELSE ((price_usd - LAG(price_usd, 24) OVER (PARTITION BY asset_id ORDER BY observed_at))
-                      / LAG(price_usd, 24) OVER (PARTITION BY asset_id ORDER BY observed_at)) * 100
+                WHEN price_24h_ago IS NULL OR price_24h_ago = 0 THEN NULL
+                ELSE ((price_usd - price_24h_ago) / price_24h_ago) * 100
             END AS price_change_pct_24h,
             CASE
-                WHEN LAG(price_usd, 168) OVER (PARTITION BY asset_id ORDER BY observed_at) IS NULL
-                  OR LAG(price_usd, 168) OVER (PARTITION BY asset_id ORDER BY observed_at) = 0
-                THEN NULL
-                ELSE ((price_usd - LAG(price_usd, 168) OVER (PARTITION BY asset_id ORDER BY observed_at))
-                      / LAG(price_usd, 168) OVER (PARTITION BY asset_id ORDER BY observed_at)) * 100
+                WHEN price_7d_ago IS NULL OR price_7d_ago = 0 THEN NULL
+                ELSE ((price_usd - price_7d_ago) / price_7d_ago) * 100
             END AS price_change_pct_7d,
             volume_24h_usd,
             market_cap_usd
-        FROM base
+        FROM lagged
         """
     )
 
@@ -402,6 +437,31 @@ def build_silver_comparison_dataframe(spark: Any, config: SilverPipelineConfig) 
                 market_cap_rank
             FROM deduped
             WHERE rn = 1
+        ),
+        prices AS (
+            SELECT
+                b.asset_id,
+                b.symbol,
+                b.observed_at,
+                b.price_usd,
+                b.market_cap_usd,
+                b.volume_24h_usd,
+                b.market_cap_rank,
+                -- 24h: closest snapshot 23.5–24.5 hours ago
+                (SELECT p24h.price_usd FROM base p24h
+                 WHERE p24h.asset_id = b.asset_id
+                   AND p24h.observed_at BETWEEN b.observed_at - INTERVAL 1470 MINUTES
+                                            AND b.observed_at - INTERVAL 1410 MINUTES
+                 ORDER BY ABS(UNIX_TIMESTAMP(b.observed_at) - UNIX_TIMESTAMP(p24h.observed_at) - 86400) ASC
+                 LIMIT 1) AS price_24h_ago,
+                -- 7d: closest snapshot 6.9–7.1 days ago
+                (SELECT p7d.price_usd FROM base p7d
+                 WHERE p7d.asset_id = b.asset_id
+                   AND p7d.observed_at BETWEEN b.observed_at - INTERVAL 7 DAYS - INTERVAL 2 HOURS
+                                           AND b.observed_at - INTERVAL 7 DAYS + INTERVAL 2 HOURS
+                 ORDER BY ABS(UNIX_TIMESTAMP(b.observed_at) - UNIX_TIMESTAMP(p7d.observed_at) - 604800) ASC
+                 LIMIT 1) AS price_7d_ago
+            FROM base b
         )
         SELECT
             asset_id,
@@ -415,21 +475,11 @@ def build_silver_comparison_dataframe(spark: Any, config: SilverPipelineConfig) 
                 WHEN market_cap_rank <= 50 THEN 'mid_cap'
                 ELSE 'broad_market'
             END AS correlation_bucket,
-            CASE
-                WHEN LAG(price_usd, 24) OVER (PARTITION BY asset_id ORDER BY observed_at) IS NULL
-                  OR LAG(price_usd, 24) OVER (PARTITION BY asset_id ORDER BY observed_at) = 0
-                THEN NULL
-                ELSE ((price_usd - LAG(price_usd, 24) OVER (PARTITION BY asset_id ORDER BY observed_at))
-                      / LAG(price_usd, 24) OVER (PARTITION BY asset_id ORDER BY observed_at)) * 100
-            END AS price_change_pct_24h,
-            CASE
-                WHEN LAG(price_usd, 168) OVER (PARTITION BY asset_id ORDER BY observed_at) IS NULL
-                  OR LAG(price_usd, 168) OVER (PARTITION BY asset_id ORDER BY observed_at) = 0
-                THEN NULL
-                ELSE ((price_usd - LAG(price_usd, 168) OVER (PARTITION BY asset_id ORDER BY observed_at))
-                      / LAG(price_usd, 168) OVER (PARTITION BY asset_id ORDER BY observed_at)) * 100
-            END AS price_change_pct_7d
-        FROM base
+            CASE WHEN price_24h_ago IS NULL OR price_24h_ago = 0 THEN NULL
+                 ELSE ROUND(((price_usd - price_24h_ago) / price_24h_ago) * 100, 4) END AS price_change_pct_24h,
+            CASE WHEN price_7d_ago IS NULL OR price_7d_ago = 0 THEN NULL
+                 ELSE ROUND(((price_usd - price_7d_ago) / price_7d_ago) * 100, 4) END AS price_change_pct_7d
+        FROM prices
         """
     )
 
@@ -444,8 +494,11 @@ def write_silver_changes(
     config: SilverPipelineConfig,
 ) -> int:
     dataframe = build_silver_changes_dataframe(spark, config)
+    dataframe = dataframe.cache()
     dataframe.write.mode("append").format("delta").saveAsTable(config.changes_full_table)
-    return dataframe.count()
+    count = dataframe.count()
+    dataframe.unpersist()
+    return count
 
 
 def write_silver_dominance(
@@ -453,8 +506,11 @@ def write_silver_dominance(
     config: SilverPipelineConfig,
 ) -> int:
     dataframe = build_silver_dominance_dataframe(spark, config)
+    dataframe = dataframe.cache()
     dataframe.write.mode("append").format("delta").saveAsTable(config.dominance_full_table)
-    return dataframe.count()
+    count = dataframe.count()
+    dataframe.unpersist()
+    return count
 
 
 def write_silver_comparison(
@@ -462,8 +518,11 @@ def write_silver_comparison(
     config: SilverPipelineConfig,
 ) -> int:
     dataframe = build_silver_comparison_dataframe(spark, config)
+    dataframe = dataframe.cache()
     dataframe.write.mode("append").format("delta").saveAsTable(config.comparison_full_table)
-    return dataframe.count()
+    count = dataframe.count()
+    dataframe.unpersist()
+    return count
 
 
 def parse_payload(payload_json: str | None, payload_path: str | None = None) -> list[dict[str, Any]]:

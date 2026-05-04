@@ -29,12 +29,17 @@ class BuildRegimeLabelsTests(unittest.TestCase):
         self.assertEqual(labels, ["risk_off", "risk_off", "risk_off"])
 
     def test_bear_label_for_values_in_middle_range(self) -> None:
-        labels = train_market_model_job.build_regime_labels([0.0, -4.9, 4.9])
+        # Values in (2, 5] and [-5, -2) should be "bear"
+        labels = train_market_model_job.build_regime_labels([2.1, -2.1, 4.9])
         self.assertEqual(labels, ["bear", "bear", "bear"])
 
+    def test_neutral_label_for_sideways_market(self) -> None:
+        labels = train_market_model_job.build_regime_labels([0.0, -1.9, 2.0])
+        self.assertEqual(labels, ["neutral", "neutral", "neutral"])
+
     def test_mixed_labels_assigned_correctly(self) -> None:
-        labels = train_market_model_job.build_regime_labels([8.0, -8.0, 1.0])
-        self.assertEqual(labels, ["bull", "risk_off", "bear"])
+        labels = train_market_model_job.build_regime_labels([8.0, -8.0, 0.5])
+        self.assertEqual(labels, ["bull", "risk_off", "neutral"])
 
     def test_empty_input_returns_empty(self) -> None:
         self.assertEqual(train_market_model_job.build_regime_labels([]), [])
@@ -68,7 +73,7 @@ class TrainRegimeModelTests(unittest.TestCase):
         X, y = self._make_training_data()
         model = train_market_model_job.train_regime_model(X, y)
         preds = set(model.predict(X))
-        self.assertTrue(preds.issubset({"bull", "bear", "risk_off"}))
+        self.assertTrue(preds.issubset({"bull", "bear", "risk_off", "neutral"}))
 
 
 @unittest.skipUnless(_SKLEARN_AVAILABLE, "sklearn not installed in this environment")
@@ -96,23 +101,23 @@ class TrainAnomalyModelTests(unittest.TestCase):
 class TrainingResultTests(unittest.TestCase):
     def test_dataclass_fields_accessible(self) -> None:
         result = train_market_model_job.TrainingResult(
-            regime_accuracy=0.9,
+            regime_cv_accuracy=0.9,
             anomaly_contamination=0.05,
             regime_run_id="run-abc",
             anomaly_run_id="run-xyz",
         )
-        self.assertAlmostEqual(result.regime_accuracy, 0.9)
+        self.assertAlmostEqual(result.regime_cv_accuracy, 0.9)
         self.assertEqual(result.regime_run_id, "run-abc")
 
     def test_dataclass_is_frozen(self) -> None:
         result = train_market_model_job.TrainingResult(
-            regime_accuracy=0.85,
+            regime_cv_accuracy=0.85,
             anomaly_contamination=0.05,
             regime_run_id="r1",
             anomaly_run_id="r2",
         )
         with self.assertRaises(Exception):
-            result.regime_accuracy = 0.99  # type: ignore[misc]
+            result.regime_cv_accuracy = 0.99  # type: ignore[misc]
 
 
 if __name__ == "__main__":

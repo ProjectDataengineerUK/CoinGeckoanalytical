@@ -403,6 +403,12 @@ class BuildSilverChangesDataframeTests(unittest.TestCase):
                 self.dedup_keys = keys
                 return self
 
+            def cache(self) -> "FakeDataFrame":
+                return self
+
+            def unpersist(self) -> None:
+                pass
+
             def count(self) -> int:
                 return len(self._rows)
 
@@ -495,6 +501,12 @@ class MainFunctionTests(unittest.TestCase):
 
             def dropDuplicates(self, keys: list[str]) -> "FakeDataFrame":
                 return self
+
+            def cache(self) -> "FakeDataFrame":
+                return self
+
+            def unpersist(self) -> None:
+                pass
 
             def count(self) -> int:
                 return 5

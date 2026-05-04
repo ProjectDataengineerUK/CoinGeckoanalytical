@@ -17,7 +17,7 @@ CHAMPION_ALIAS = "champion"
 
 @dataclass(frozen=True)
 class TrainingResult:
-    regime_accuracy: float
+    regime_cv_accuracy: float
     anomaly_contamination: float
     regime_run_id: str
     anomaly_run_id: str
@@ -26,10 +26,12 @@ class TrainingResult:
 def build_regime_labels(avg_pct_7d: list[float]) -> list[str]:
     labels = []
     for v in avg_pct_7d:
-        if v > 5:
+        if v > 5.0:
             labels.append("bull")
-        elif v < -5:
+        elif v < -5.0:
             labels.append("risk_off")
+        elif -2.0 <= v <= 2.0:
+            labels.append("neutral")
         else:
             labels.append("bear")
     return labels
@@ -90,13 +92,28 @@ def main(spark: Any, catalog: str = DEFAULT_CATALOG, lookback_days: int = DEFAUL
 
     with mlflow.start_run(run_name=f"{REGIME_MODEL_NAME}_training") as regime_run:
         regime_model = train_regime_model(X_regime, y_regime)
-        train_preds = regime_model.predict(X_regime)
-        regime_accuracy = float(sum(p == t for p, t in zip(train_preds, y_regime)) / len(y_regime))
+
+        from sklearn.model_selection import cross_val_score
+        n_splits = min(5, len(X_regime))
+        if n_splits >= 2:
+            cv_scores = cross_val_score(regime_model, X_regime, y_regime, cv=n_splits)
+            regime_cv_accuracy = float(cv_scores.mean())
+            mlflow.log_metric("cv_accuracy_mean", regime_cv_accuracy)
+            mlflow.log_metric("cv_accuracy_std", float(cv_scores.std()))
+        else:
+            regime_cv_accuracy = 0.0
+            mlflow.log_metric("cv_accuracy_mean", 0.0)
 
         mlflow.log_param("n_estimators", 50)
         mlflow.log_param("lookback_days", lookback_days)
-        mlflow.log_metric("train_accuracy", regime_accuracy)
         mlflow.sklearn.log_model(regime_model, artifact_path="model")
+
+        MIN_REGIME_CV_ACCURACY = 0.60
+        if regime_cv_accuracy < MIN_REGIME_CV_ACCURACY and n_splits >= 2:
+            raise ValueError(
+                f"Regime CV accuracy {regime_cv_accuracy:.2f} below threshold "
+                f"{MIN_REGIME_CV_ACCURACY}. Model not promoted."
+            )
 
         mv = mlflow.register_model(
             model_uri=f"runs:/{regime_run.info.run_id}/model",
@@ -123,7 +140,7 @@ def main(spark: Any, catalog: str = DEFAULT_CATALOG, lookback_days: int = DEFAUL
         anomaly_run_id = anomaly_run.info.run_id
 
     return TrainingResult(
-        regime_accuracy=regime_accuracy,
+        regime_cv_accuracy=regime_cv_accuracy,
         anomaly_contamination=0.05,
         regime_run_id=regime_run_id,
         anomaly_run_id=anomaly_run_id,
@@ -149,7 +166,7 @@ if __name__ == "__main__":
 
     _result = main(spark_session, catalog=_catalog, lookback_days=_lookback_days)
     print(json.dumps({
-        "regime_accuracy": _result.regime_accuracy,
+        "regime_cv_accuracy": _result.regime_cv_accuracy,
         "anomaly_contamination": _result.anomaly_contamination,
         "regime_run_id": _result.regime_run_id,
         "anomaly_run_id": _result.anomaly_run_id,

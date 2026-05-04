@@ -4,6 +4,7 @@ import importlib.util
 import sys
 from pathlib import Path
 import unittest
+from unittest.mock import MagicMock
 
 
 MODULE_PATH = Path(__file__).resolve().parent.parent / "jobs/market_source_ingestion_job.py"
@@ -181,28 +182,11 @@ class MarketSourceIngestionJobTests(unittest.TestCase):
         self.assertIn("page=2", calls[1])
 
     def test_main_fetches_coingecko_when_no_payload_is_provided(self) -> None:
-        class FakeWriter:
-            def __init__(self) -> None:
-                self.mode_value: str | None = None
-                self.format_value: str | None = None
-                self.target_table: str | None = None
-
-            def mode(self, value: str) -> "FakeWriter":
-                self.mode_value = value
-                return self
-
-            def format(self, value: str) -> "FakeWriter":
-                self.format_value = value
-                return self
-
-            def saveAsTable(self, target_table: str) -> None:
-                self.target_table = target_table
-
         class FakeDataFrame:
             def __init__(self) -> None:
-                self.write = FakeWriter()
                 self.select_expressions: tuple[str, ...] = ()
                 self.dedup_keys: list[str] = []
+                self._temp_view: str | None = None
 
             def selectExpr(self, *expressions: str) -> "FakeDataFrame":
                 self.select_expressions = expressions
@@ -212,14 +196,41 @@ class MarketSourceIngestionJobTests(unittest.TestCase):
                 self.dedup_keys = keys
                 return self
 
+            def count(self) -> int:
+                return 1
+
+            def createOrReplaceTempView(self, name: str) -> None:
+                self._temp_view = name
+
         class FakeSpark:
             def __init__(self) -> None:
                 self.rows: list[dict[str, object]] | None = None
                 self.dataframe = FakeDataFrame()
+                self.sql_calls: list[str] = []
+                # Responses for sequential sql() calls:
+                #   [0] MERGE INTO (no collect needed)
+                #   [1] SELECT COUNT(*) FROM table  -> 10 rows total
+                #   [2] SELECT COUNT(*) ... WHERE asset_id IS NULL -> 0 nulls
+                self._sql_results = [None, [[10]], [[0]]]
+                self._sql_call_index = 0
 
             def createDataFrame(self, rows: list[dict[str, object]]) -> FakeDataFrame:
                 self.rows = rows
                 return self.dataframe
+
+            def sql(self, statement: str) -> object:
+                self.sql_calls.append(statement)
+                result_data = self._sql_results[self._sql_call_index] if self._sql_call_index < len(self._sql_results) else [[0]]
+                self._sql_call_index += 1
+
+                class _Result:
+                    def __init__(self, data: object) -> None:
+                        self._data = data
+
+                    def collect(self) -> list:
+                        return self._data  # type: ignore[return-value]
+
+                return _Result(result_data)
 
         original_fetch = market_source_ingestion_job.fetch_coingecko_market_rows
 
@@ -252,9 +263,11 @@ class MarketSourceIngestionJobTests(unittest.TestCase):
         self.assertIn("CAST(observed_at AS TIMESTAMP) AS observed_at", fake_spark.dataframe.select_expressions)
         self.assertIn("CAST(market_cap_usd AS DECIMAL(38, 8)) AS market_cap_usd", fake_spark.dataframe.select_expressions)
         self.assertEqual(fake_spark.dataframe.dedup_keys, ["source_system", "source_record_id"])
-        self.assertEqual(fake_spark.dataframe.write.mode_value, "append")
-        self.assertEqual(fake_spark.dataframe.write.format_value, "delta")
-        self.assertEqual(fake_spark.dataframe.write.target_table, "cgadev.market_bronze.bronze_market_snapshots")
+        self.assertEqual(fake_spark.dataframe._temp_view, "_incoming_market_rows")
+        # MERGE SQL must have been issued
+        merge_calls = [s for s in fake_spark.sql_calls if "MERGE INTO" in s]
+        self.assertTrue(merge_calls, "Expected at least one MERGE INTO SQL call")
+        self.assertIn("cgadev.market_bronze.bronze_market_snapshots", merge_calls[0])
 
     def test_build_bronze_market_dataframe_applies_spark_contract_transformations(self) -> None:
         class FakeDataFrame:
@@ -364,6 +377,53 @@ class MarketSourceIngestionJobTests(unittest.TestCase):
         self.assertIn("CAST(price_usd AS DOUBLE) AS price_usd", fake_spark.dataframe.select_expressions)
         self.assertIn("CAST(circulating_supply AS DOUBLE) AS circulating_supply", fake_spark.dataframe.select_expressions)
         self.assertEqual(fake_spark.table_calls, ["cgadev.market_bronze.bronze_market_snapshots"])
+
+
+    def test_merge_into_bronze_deduplicates(self) -> None:
+        """merge_into_bronze must register a temp view and execute a MERGE SQL statement."""
+        spark = MagicMock()
+        df = MagicMock()
+        df.count.return_value = 2
+
+        result = market_source_ingestion_job.merge_into_bronze(
+            spark, df, "cgadev.market_bronze.bronze_market_snapshots"
+        )
+
+        df.createOrReplaceTempView.assert_called_once_with("_incoming_market_rows")
+        merge_call_args = spark.sql.call_args[0][0]
+        self.assertIn("MERGE INTO cgadev.market_bronze.bronze_market_snapshots", merge_call_args)
+        self.assertIn("asset_id", merge_call_args)
+        self.assertIn("observed_at", merge_call_args)
+        self.assertEqual(result, 2)
+
+    def test_assert_bronze_quality_raises_on_empty(self) -> None:
+        """assert_bronze_quality must raise ValueError when the table has zero rows."""
+        spark = MagicMock()
+        # First sql() call returns count=0; second call (null check) would not be reached
+        count_result = MagicMock()
+        count_result.collect.return_value = [[0]]
+        spark.sql.return_value = count_result
+
+        with self.assertRaises(ValueError) as ctx:
+            market_source_ingestion_job.assert_bronze_quality(
+                spark, "cgadev.market_bronze.bronze_market_snapshots", min_rows=1
+            )
+
+        self.assertIn("Quality gate failed", str(ctx.exception))
+        self.assertIn("0 rows", str(ctx.exception))
+
+    def test_assert_bronze_quality_passes_on_valid_data(self) -> None:
+        """assert_bronze_quality must not raise when the table has rows and no NULL asset_ids."""
+        spark = MagicMock()
+        count_result = MagicMock()
+        # First call: total count = 10; second call: null asset_id count = 0
+        count_result.collect.side_effect = [[[10]], [[0]]]
+        spark.sql.return_value = count_result
+
+        # Must not raise
+        market_source_ingestion_job.assert_bronze_quality(
+            spark, "cgadev.market_bronze.bronze_market_snapshots", min_rows=1
+        )
 
 
 if __name__ == "__main__":

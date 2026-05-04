@@ -235,6 +235,37 @@ def normalize_market_rows(rows: list[dict[str, Any]]) -> list[dict[str, Any]]:
     return [normalize_market_row(row) for row in rows]
 
 
+def merge_into_bronze(spark: Any, df: Any, target_table: str) -> int:
+    """Merge incoming rows into a Bronze Delta table using (asset_id, observed_at) as the natural key.
+
+    Only inserts rows that do not already exist in the target table — prevents duplicate
+    accumulation on job retries. Returns the number of source rows processed.
+    """
+    row_count = df.count()
+    temp_view_name = "_incoming_market_rows"
+    df.createOrReplaceTempView(temp_view_name)
+    spark.sql(f"""
+        MERGE INTO {target_table} AS target
+        USING (SELECT * FROM {temp_view_name}) AS source
+        ON target.asset_id = source.asset_id AND target.observed_at = source.observed_at
+        WHEN NOT MATCHED THEN INSERT *
+    """)
+    return row_count
+
+
+def assert_bronze_quality(spark: Any, target_table: str, min_rows: int = 1) -> None:
+    """Raise if table has fewer rows than expected after ingestion."""
+    count = spark.sql(f"SELECT COUNT(*) FROM {target_table}").collect()[0][0]
+    if count < min_rows:
+        raise ValueError(f"Quality gate failed: {target_table} has {count} rows, expected >= {min_rows}")
+
+    null_asset_count = spark.sql(
+        f"SELECT COUNT(*) FROM {target_table} WHERE asset_id IS NULL"
+    ).collect()[0][0]
+    if null_asset_count > 0:
+        raise ValueError(f"Quality gate failed: {null_asset_count} rows with NULL asset_id in {target_table}")
+
+
 def write_market_rows(
     spark: Any,
     rows: list[dict[str, Any]],
@@ -246,8 +277,8 @@ def write_market_rows(
 
     dataframe = build_bronze_market_dataframe(spark, normalized_rows)
     dataframe = align_bronze_dataframe_to_target_schema(spark, dataframe, target_table)
-    dataframe.write.mode("append").format("delta").saveAsTable(target_table)
-    return IngestionResult(rows_written=len(normalized_rows), target_table=target_table)
+    rows_written = merge_into_bronze(spark, dataframe, target_table)
+    return IngestionResult(rows_written=rows_written, target_table=target_table)
 
 
 def build_bronze_market_dataframe(spark: Any, normalized_rows: list[dict[str, Any]]) -> Any:
@@ -326,7 +357,9 @@ def main(
         rows = parse_payload(payload_json, payload_path=payload_path)
     else:
         rows = fetch_coingecko_market_rows(fetch_config)
-    return write_market_rows(spark, rows, target_table=target_table)
+    result = write_market_rows(spark, rows, target_table=target_table)
+    assert_bronze_quality(spark, target_table, min_rows=1)
+    return result
 
 
 def _coerce_required_float(value: Any) -> float:
