@@ -245,7 +245,7 @@ jobs:
 
       - name: Deploy bundle (syncs app source code)
         if: steps.apps_prereq.outputs.apps_ready == 'true'
-        run: databricks bundle deploy -t dev
+        run: databricks bundle deploy -t dev --force-lock
 
       - name: Start cga-analytics app
         if: steps.apps_prereq.outputs.apps_ready == 'true'

@@ -76,6 +76,7 @@ def _latest_asset_features(features_df: Any) -> Any:
 def main(spark: Any, catalog: str = DEFAULT_CATALOG, lookback_days: int = DEFAULT_LOOKBACK_DAYS) -> TrainingResult:
     import mlflow
     import mlflow.sklearn
+    mlflow.set_registry_uri("databricks-uc")
 
     features_table = f"{catalog}.{DEFAULT_SILVER_SCHEMA}.{FEATURES_TABLE}"
     features_df = spark.table(features_table).toPandas()
