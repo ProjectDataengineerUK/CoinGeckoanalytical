@@ -204,6 +204,8 @@ jobs:
     runs-on: ubuntu-latest
     needs: [contract, deploy]
     if: |
+      always() &&
+      needs.contract.result == 'success' &&
       github.event_name == 'workflow_dispatch' && inputs.confirm_apps_deploy &&
       (needs.deploy.result == 'success' || needs.deploy.result == 'skipped')
     env:
@@ -271,6 +273,8 @@ jobs:
     runs-on: ubuntu-latest
     needs: [contract, deploy]
     if: |
+      always() &&
+      needs.contract.result == 'success' &&
       github.event_name == 'workflow_dispatch' && inputs.confirm_uc_grants &&
       (needs.deploy.result == 'success' || needs.deploy.result == 'skipped')
     env:
@@ -289,8 +293,12 @@ jobs:
 
   train_models:
     runs-on: ubuntu-latest
-    needs: deploy
-    if: github.event_name == 'workflow_dispatch' && inputs.confirm_train
+    needs: [contract, deploy]
+    if: |
+      always() &&
+      needs.contract.result == 'success' &&
+      github.event_name == 'workflow_dispatch' && inputs.confirm_train &&
+      (needs.deploy.result == 'success' || needs.deploy.result == 'skipped')
     env:
       DATABRICKS_HOST: ${{ secrets.DATABRICKS_HOST }}
       DATABRICKS_TOKEN: ${{ secrets.DATABRICKS_TOKEN }}

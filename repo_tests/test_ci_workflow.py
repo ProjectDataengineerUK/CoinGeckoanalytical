@@ -41,6 +41,7 @@ class CIWorkflowTests(unittest.TestCase):
         self.assertEqual(jobs["deploy"]["needs"], "contract")
         self.assertIn("deploy", jobs["deploy_apps"]["needs"])
         self.assertIn("deploy", jobs["uc_grants"]["needs"])
+        self.assertIn("deploy", jobs["train_models"]["needs"])
         self.assertEqual(jobs["deploy"]["if"], "github.event_name == 'workflow_dispatch' && inputs.confirm_deploy")
         self.assertIn("Install deploy dependencies", deploy_step_names)
         self.assertIn("python3 -m pip install --upgrade pip pyyaml", deploy_run_commands)
