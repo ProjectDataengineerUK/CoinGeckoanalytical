@@ -35,7 +35,7 @@ jobs:
         run: python3 -m pip install --upgrade pip pyyaml
 
       - name: Install Databricks CLI
-        uses: databricks/setup-cli@v0.231.0
+        uses: databricks/setup-cli@v0.240.0
 
       - name: Check migration prerequisites
         id: prereq
