@@ -1,10 +1,13 @@
 from __future__ import annotations
 
 import importlib.util
+import logging
 import sys
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
+
+_log = logging.getLogger(__name__)
 
 _REPO_ROOT = Path(__file__).resolve().parents[3]
 if str(_REPO_ROOT) not in sys.path:
@@ -56,9 +59,10 @@ def ask(question: str) -> GenieResult:
             execution_status=answer.execution_status,
             latency_ms=answer.latency_ms,
         )
-    except Exception as exc:
+    except Exception:
+        _log.error("Genie request failed", exc_info=True)
         return GenieResult(
-            answer_text=f"Erro ao consultar Genie: {exc}",
+            answer_text="Serviço temporariamente indisponível. Tente novamente.",
             generated_query=None,
             execution_status="failed",
             latency_ms=0,

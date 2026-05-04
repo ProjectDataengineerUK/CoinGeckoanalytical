@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import datetime
+import uuid
 
 import dash_bootstrap_components as dbc
 from dash import Input, Output, State, callback, dcc, html
@@ -227,13 +228,14 @@ def _assistant_bubble(text: str, tier: str | None, ts: str, entry: dict | None =
     if cost is not None:
         meta.append(html.Small(f" ~${cost:.5f}", style={"color": "#9CA3AF", "fontSize": "10px"}))
     if citations:
+        cite_badge_id = f"cite-badge-{uuid.uuid4().hex[:8]}"
         meta.append(
             dbc.Tooltip(
                 html.Ul([html.Li(c, style={"fontSize": "11px"}) for c in citations]),
-                target="cite-badge",
+                target=cite_badge_id,
             )
         )
-        meta.append(html.Small(" [fontes]", id="cite-badge", style={"color": "#6B7280", "cursor": "pointer", "fontSize": "10px"}))
+        meta.append(html.Small(" [fontes]", id=cite_badge_id, style={"color": "#6B7280", "cursor": "pointer", "fontSize": "10px"}))
 
     if meta:
         children.append(html.Div(meta, style={"marginTop": "3px"}))

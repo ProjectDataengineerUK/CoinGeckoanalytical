@@ -1,0 +1,72 @@
+[
+  {
+    "id": "mkt_001",
+    "question": "Qual é o ranking atual de mercado do Bitcoin?",
+    "domain": "market",
+    "expected_keywords": ["bitcoin", "ranking", "market_cap"],
+    "min_confidence": 0.7
+  },
+  {
+    "id": "mkt_002",
+    "question": "What is the current price of Ethereum and its 24h change?",
+    "domain": "market",
+    "expected_keywords": ["ethereum", "price", "24h"],
+    "min_confidence": 0.7
+  },
+  {
+    "id": "mkt_003",
+    "question": "How is Bitcoin dominance trending across the top 10 assets?",
+    "domain": "market",
+    "expected_keywords": ["dominance", "bitcoin", "market_cap"],
+    "min_confidence": 0.7
+  },
+  {
+    "id": "mac_001",
+    "question": "What does the current FRED interest rate environment imply for crypto?",
+    "domain": "macro",
+    "expected_keywords": ["rates", "fred", "macro"],
+    "min_confidence": 0.65
+  },
+  {
+    "id": "mac_002",
+    "question": "Summarize the current macro regime and its impact on risk assets.",
+    "domain": "macro",
+    "expected_keywords": ["regime", "macro", "risk"],
+    "min_confidence": 0.65
+  },
+  {
+    "id": "dfi_001",
+    "question": "Which DeFi protocols lead by total value locked right now?",
+    "domain": "defi",
+    "expected_keywords": ["tvl", "protocol", "defi"],
+    "min_confidence": 0.7
+  },
+  {
+    "id": "dfi_002",
+    "question": "How are DeFi protocol fees and revenue trending this week?",
+    "domain": "defi",
+    "expected_keywords": ["fees", "revenue", "defi"],
+    "min_confidence": 0.65
+  },
+  {
+    "id": "ml_001",
+    "question": "What is the current market regime classification?",
+    "domain": "regime",
+    "expected_keywords": ["regime", "classification", "market"],
+    "min_confidence": 0.7
+  },
+  {
+    "id": "ml_002",
+    "question": "Are there any anomaly scores flagged for the top assets right now?",
+    "domain": "anomaly",
+    "expected_keywords": ["anomaly", "score", "asset"],
+    "min_confidence": 0.65
+  },
+  {
+    "id": "syn_001",
+    "question": "Combine market, macro, and DeFi signals to explain the current crypto outlook.",
+    "domain": "synthesis",
+    "expected_keywords": ["market", "macro", "defi", "outlook"],
+    "min_confidence": 0.6
+  }
+]

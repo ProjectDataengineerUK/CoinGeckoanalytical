@@ -135,7 +135,7 @@ jobs:
         run: python3 -m pip install --upgrade pip pyyaml
 
       - name: Install Databricks CLI
-        uses: databricks/setup-cli@v0.240.0
+        uses: databricks/setup-cli@main
 
       - name: Check deploy prerequisites
         id: prereq
@@ -222,7 +222,7 @@ jobs:
         run: python3 -m pip install --upgrade pip pyyaml
 
       - name: Install Databricks CLI
-        uses: databricks/setup-cli@v0.240.0
+        uses: databricks/setup-cli@main
 
       - name: Check apps deploy prerequisites
         id: apps_prereq
@@ -277,7 +277,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: Install Databricks CLI
-        uses: databricks/setup-cli@v0.240.0
+        uses: databricks/setup-cli@main
       - name: Run UC grants job
         run: databricks bundle run uc_grants_job -t dev
 
@@ -293,6 +293,6 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: Install Databricks CLI
-        uses: databricks/setup-cli@v0.240.0
+        uses: databricks/setup-cli@main
       - name: Train models
         run: databricks bundle run train_market_model_job -t dev

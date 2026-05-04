@@ -1,11 +1,14 @@
 from __future__ import annotations
 
 import importlib.util
+import logging
 import sys
 import uuid
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
+
+_log = logging.getLogger(__name__)
 
 _REPO_ROOT = Path(__file__).resolve().parents[3]
 if str(_REPO_ROOT) not in sys.path:
@@ -87,9 +90,10 @@ def ask(
             warnings=response.get("warnings") or [],
             orchestrated=bool(routing.get("orchestrated")),
         )
-    except Exception as exc:
+    except Exception:
+        _log.error("Copilot request failed", exc_info=True)
         return CopilotResult(
-            body=f"Erro no copilot: {exc}",
+            body="Serviço temporariamente indisponível. Tente novamente.",
             model_tier="error",
             latency_ms=0,
             cost_estimate=None,

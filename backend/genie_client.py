@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import json
 import os
+import threading
 import time
 import urllib.error
 import urllib.parse
@@ -10,6 +11,7 @@ from dataclasses import dataclass
 from typing import Any
 
 _TOKEN_CACHE: dict[str, tuple[str, float]] = {}
+_TOKEN_CACHE_LOCK = threading.Lock()
 
 _TERMINAL_STATUSES = {"COMPLETED", "FAILED", "CANCELLED", "QUERY_RESULT_EXPIRED"}
 
@@ -46,28 +48,30 @@ def _get_bearer_token(config: GenieConfig) -> str:
 
     cache_key = f"{config.host}:{config.client_id}"
     now = time.monotonic()
-    if cache_key in _TOKEN_CACHE:
-        cached, expires_at = _TOKEN_CACHE[cache_key]
-        if now < expires_at:
-            return cached
 
-    url = f"{config.host}/oidc/v1/token"
-    body = urllib.parse.urlencode(
-        {
-            "grant_type": "client_credentials",
-            "client_id": config.client_id,
-            "client_secret": config.client_secret,
-            "scope": "all-apis",
-        }
-    ).encode()
-    req = urllib.request.Request(url, data=body, method="POST")
-    with urllib.request.urlopen(req, timeout=30) as resp:
-        data: dict[str, Any] = json.loads(resp.read())
+    with _TOKEN_CACHE_LOCK:
+        if cache_key in _TOKEN_CACHE:
+            cached, expires_at = _TOKEN_CACHE[cache_key]
+            if now < expires_at:
+                return cached
 
-    bearer = str(data["access_token"])
-    ttl = int(data.get("expires_in", 3600))
-    _TOKEN_CACHE[cache_key] = (bearer, now + min(ttl, 3300))
-    return bearer
+        url = f"{config.host}/oidc/v1/token"
+        body = urllib.parse.urlencode(
+            {
+                "grant_type": "client_credentials",
+                "client_id": config.client_id,
+                "client_secret": config.client_secret,
+                "scope": "all-apis",
+            }
+        ).encode()
+        req = urllib.request.Request(url, data=body, method="POST")
+        with urllib.request.urlopen(req, timeout=30) as resp:
+            data: dict[str, Any] = json.loads(resp.read())
+
+        bearer = str(data["access_token"])
+        ttl = int(data.get("expires_in", 3600))
+        _TOKEN_CACHE[cache_key] = (bearer, now + min(ttl, 3300))
+        return bearer
 
 
 def _post_json(url: str, body: dict[str, Any], token: str, timeout: int = 30) -> dict[str, Any]:
