@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import os
 import sys
 from pathlib import Path
 
@@ -129,4 +130,8 @@ def render_page(pathname: str):
 
 
 if __name__ == "__main__":
-    app.run(debug=False, host="0.0.0.0", port=8051)
+    app.run(
+        debug=False,
+        host="0.0.0.0",
+        port=int(os.environ.get("PORT", os.environ.get("DATABRICKS_APP_PORT", "8051"))),
+    )

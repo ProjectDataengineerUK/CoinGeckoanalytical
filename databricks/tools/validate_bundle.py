@@ -36,6 +36,11 @@ REQUIRED_NOTEBOOKS = {
     "databricks/notebooks/03_ops_readiness_review.py",
 }
 
+REQUIRED_APPS = {
+    "cga_analytics": "apps/cga-analytics",
+    "cga_admin": "apps/cga-admin",
+}
+
 
 def load_bundle(path: str | Path = "databricks.yml") -> dict[str, Any]:
     bundle_path = Path(path)
@@ -65,6 +70,38 @@ def validate_bundle(bundle: dict[str, Any], root_dir: str | Path | None = None) 
     sync_excludes = set(bundle.get("sync", {}).get("exclude", []))
     if not any("notebooks/**" in e for e in sync_excludes):
         errors.append("Databricks notebooks must be excluded from job bundle file sync")
+
+    apps = bundle.get("resources", {}).get("apps", {})
+    missing_apps = set(REQUIRED_APPS) - set(apps.keys())
+    if missing_apps:
+        errors.append(f"missing apps: {', '.join(sorted(missing_apps))}")
+
+    for app_name, expected_path in REQUIRED_APPS.items():
+        app = apps.get(app_name)
+        if not isinstance(app, dict):
+            continue
+        if app.get("source_code_path") != f"./{expected_path}":
+            errors.append(f"{app_name} source_code_path must be ./{expected_path}")
+        app_yaml_path = base_dir / expected_path / "app.yaml"
+        if not app_yaml_path.exists():
+            errors.append(f"{app_name} app.yaml is missing: {expected_path}/app.yaml")
+            continue
+        app_yaml = yaml.safe_load(app_yaml_path.read_text(encoding="utf-8")) or {}
+        command = app_yaml.get("command")
+        if not isinstance(command, list) or not command:
+            errors.append(f"{app_name} app.yaml must define a non-empty command sequence")
+        env_items = app_yaml.get("env", [])
+        if not isinstance(env_items, list):
+            errors.append(f"{app_name} app.yaml env must be a list")
+            continue
+        for idx, item in enumerate(env_items):
+            if not isinstance(item, dict):
+                errors.append(f"{app_name} app.yaml env[{idx}] must be a mapping")
+                continue
+            if not item.get("name"):
+                errors.append(f"{app_name} app.yaml env[{idx}] must define name")
+            if ("value" in item) == ("valueFrom" in item):
+                errors.append(f"{app_name} app.yaml env[{idx}] must define exactly one of value or valueFrom")
 
     jobs = bundle.get("resources", {}).get("jobs", {})
     missing_jobs = REQUIRED_JOB_KEYS - set(jobs.keys())

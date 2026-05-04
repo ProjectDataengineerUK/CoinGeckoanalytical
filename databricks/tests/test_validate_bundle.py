@@ -63,6 +63,22 @@ class ValidateBundleTests(unittest.TestCase):
         errors = validate_bundle.validate_bundle(bundle, root_dir=Path(__file__).resolve().parents[2])
         self.assertEqual(errors, [])
 
+    def test_validate_bundle_rejects_invalid_app_env_item(self) -> None:
+        bundle = validate_bundle.load_bundle(Path(__file__).resolve().parents[2] / "databricks.yml")
+        bundle_path = Path(__file__).resolve().parents[2]
+        app_yaml = bundle_path / "apps/cga-analytics/app.yaml"
+        original = app_yaml.read_text(encoding="utf-8")
+        try:
+            app_yaml.write_text(
+                "command: [\"python3\", \"app.py\"]\n\nenv:\n  - name: BROKEN_ONLY_NAME\n",
+                encoding="utf-8",
+            )
+            errors = validate_bundle.validate_bundle(bundle, root_dir=bundle_path)
+        finally:
+            app_yaml.write_text(original, encoding="utf-8")
+
+        self.assertTrue(any("must define exactly one of value or valueFrom" in error for error in errors))
+
 
 if __name__ == "__main__":
     unittest.main()

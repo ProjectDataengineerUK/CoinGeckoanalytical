@@ -52,5 +52,14 @@ class BundleManifestTests(unittest.TestCase):
         endpoints = bundle.get("resources", {}).get("model_serving_endpoints", {})
         self.assertEqual(endpoints, {}, "No external model endpoints should be defined; use Unity AI Gateway FMAPI endpoints instead")
 
+    def test_bundle_defines_expected_apps(self) -> None:
+        bundle_path = Path(__file__).resolve().parents[2] / "databricks.yml"
+        bundle = yaml.safe_load(bundle_path.read_text(encoding="utf-8"))
+
+        apps = bundle["resources"]["apps"]
+        self.assertEqual(set(apps.keys()), {"cga_analytics", "cga_admin"})
+        self.assertEqual(apps["cga_analytics"]["source_code_path"], "./apps/cga-analytics")
+        self.assertEqual(apps["cga_admin"]["source_code_path"], "./apps/cga-admin")
+
 if __name__ == "__main__":
     unittest.main()
