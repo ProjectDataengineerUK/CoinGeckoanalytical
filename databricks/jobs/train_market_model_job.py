@@ -77,7 +77,7 @@ def main(spark: Any, catalog: str = DEFAULT_CATALOG, lookback_days: int = DEFAUL
     import mlflow
     import mlflow.sklearn
     mlflow.set_registry_uri("databricks-uc")
-    mlflow.set_experiment(f"/Shared/coingeckoanalytical/{catalog}/market_model_training")
+    mlflow.set_experiment("/Shared/coingeckoanalytical_market_model_training")
 
     features_table = f"{catalog}.{DEFAULT_SILVER_SCHEMA}.{FEATURES_TABLE}"
     features_df = spark.table(features_table).toPandas()

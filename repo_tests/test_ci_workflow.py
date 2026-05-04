@@ -16,8 +16,8 @@ class CIWorkflowTests(unittest.TestCase):
         if triggers is None:
             triggers = workflow.get(True)
         self.assertIsNotNone(triggers)
+        self.assertIn("push", triggers)
         self.assertIn("workflow_dispatch", triggers)
-        self.assertIn("confirm_deploy", triggers["workflow_dispatch"]["inputs"])
 
         contract_steps = jobs["contract"]["steps"]
         contract_step_names = [step.get("name", "") for step in contract_steps]
@@ -42,7 +42,6 @@ class CIWorkflowTests(unittest.TestCase):
         self.assertIn("deploy", jobs["deploy_apps"]["needs"])
         self.assertIn("deploy", jobs["uc_grants"]["needs"])
         self.assertIn("deploy", jobs["train_models"]["needs"])
-        self.assertEqual(jobs["deploy"]["if"], "github.event_name == 'workflow_dispatch' && inputs.confirm_deploy")
         self.assertIn("Install deploy dependencies", deploy_step_names)
         self.assertIn("python3 -m pip install --upgrade pip pyyaml", deploy_run_commands)
         self.assertIn("Install Databricks CLI", deploy_step_names)
