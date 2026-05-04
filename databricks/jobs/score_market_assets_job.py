@@ -59,8 +59,14 @@ def main(spark: Any, catalog: str = DEFAULT_CATALOG) -> ScoringResult:
         .toPandas()
     )
 
-    regime_model = mlflow.sklearn.load_model(f"models:/{REGIME_MODEL_NAME}@{CHAMPION_ALIAS}")
-    anomaly_model = mlflow.sklearn.load_model(f"models:/{ANOMALY_MODEL_NAME}@{CHAMPION_ALIAS}")
+    mlflow.set_registry_uri("databricks-uc")
+
+    try:
+        regime_model = mlflow.sklearn.load_model(f"models:/{REGIME_MODEL_NAME}@{CHAMPION_ALIAS}")
+        anomaly_model = mlflow.sklearn.load_model(f"models:/{ANOMALY_MODEL_NAME}@{CHAMPION_ALIAS}")
+    except Exception as exc:
+        print(f"WARN: no trained model found in registry ({exc}); scoring skipped until train job runs.")
+        return ScoringResult(rows_scored=0, regime_used="none", anomaly_used="none")
 
     regime_version = CHAMPION_ALIAS
     anomaly_version = CHAMPION_ALIAS

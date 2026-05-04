@@ -50,6 +50,15 @@ Preserve resumable project context in repo files instead of relying on chat memo
 - latest workflow state: `ci deploy, terraform apply, and bronze migration are now all explicitly approved in the repo-local approval status artifact`
 - latest workflow state: `the default publication flow now includes commit and push after validation when the user is ready to publish the change set`
 
+- latest workflow state (2026-05-03): `architecture pivoted to Databricks Apps as primary surface; cga-analytics and cga-admin fully built and registered in DABs; 22 jobs covering Bronze/Silver/Gold/MLOps/Governance/Compliance; DataOps + MLOps + LLMOps reached Level 5`
+- latest workflow state (2026-05-03): `security audit completed; SQL injection guard (_SAFE_ASSET_ID_RE), threading.Lock on token cache, prompt injection sanitization, user_id hashed (sha256), prompt versioning (backend/prompts/v1.yaml), golden eval set added`
+- latest workflow state (2026-05-03): `MLOps Level 5: cross-val gate (cv_accuracy >= 0.60), PSI drift monitoring, weekly retraining cron, model_drift_monitoring_job, MERGE INTO idempotency on Bronze, time-based price change windows`
+- latest workflow state (2026-05-03): `Compliance done: uc_grants_job automates all GRANT statements; rls_migration_job applies UC row filters and column masking; rls_column_masking.sql version-controlled; both CI-triggerable`
+- latest workflow state (2026-05-04): `Serverless compatibility fixes: DataFrame.cache() replaced with post-write count (PERSIST TABLE unsupported); correlated ORDER BY replaced with ORDER BY col DESC (CORRELATED_REFERENCE unsupported); overwriteSchema=true on Silver enrichment writes; mlflow.set_registry_uri("databricks-uc") added to score job`
+- latest workflow state (2026-05-04): `CI serialization fix: deploy_apps and uc_grants now depend on deploy (needs: [contract, deploy]) to prevent concurrent bundle deploy lock conflicts; uc_grants adds its own bundle deploy step for standalone runs`
+- latest workflow state (2026-05-04): `setup-cli@main adopted across all workflows to bypass expired Terraform GPG key in pinned CLI versions (v0.231.0, v0.240.0)`
+- latest workflow state (2026-05-04): `documentation assets created: docs/presentation/coingeckoanalytical.pptx (14 slides), docs/architecture_diagram.html (interactive, 29 components with detail panel)`
+
 ## Important Decisions
 
 - public SaaS surface uses `external web frontend`

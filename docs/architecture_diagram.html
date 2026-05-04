@@ -1,0 +1,297 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CoinGeckoAnalytical — Architecture</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'Segoe UI', system-ui, sans-serif; background: #0f172a; color: #e2e8f0; min-height: 100vh; }
+
+  header {
+    background: #1e3a5f;
+    border-bottom: 3px solid #f59e0b;
+    padding: 16px 32px;
+    display: flex; align-items: center; justify-content: space-between;
+  }
+  header h1 { font-size: 1.5rem; font-weight: 700; color: #fff; }
+  header span { font-size: 0.85rem; color: #94a3b8; }
+  .btn-export {
+    background: #f59e0b; color: #1e293b; border: none; padding: 8px 16px;
+    border-radius: 6px; font-weight: 600; cursor: pointer; font-size: 0.85rem;
+  }
+  .btn-export:hover { background: #d97706; }
+
+  .layout { display: flex; height: calc(100vh - 61px); }
+
+  /* ── DIAGRAM ── */
+  .diagram { flex: 1; overflow: auto; padding: 24px 20px; }
+
+  .layer {
+    margin-bottom: 12px;
+    border-radius: 10px;
+    overflow: hidden;
+    border: 1px solid rgba(255,255,255,0.08);
+  }
+  .layer-header {
+    padding: 8px 16px;
+    font-size: 0.7rem;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: rgba(255,255,255,0.85);
+  }
+  .layer-body {
+    display: flex; flex-wrap: wrap; gap: 8px;
+    padding: 10px 14px 14px;
+    background: rgba(0,0,0,0.25);
+  }
+
+  .node {
+    background: rgba(255,255,255,0.07);
+    border: 1px solid rgba(255,255,255,0.14);
+    border-radius: 7px;
+    padding: 8px 14px;
+    cursor: pointer;
+    transition: all 0.18s ease;
+    min-width: 140px;
+    position: relative;
+  }
+  .node:hover { background: rgba(255,255,255,0.14); transform: translateY(-2px); box-shadow: 0 4px 20px rgba(0,0,0,0.4); }
+  .node.active { border-width: 2px; border-color: #f59e0b; background: rgba(245,158,11,0.1); }
+
+  .node-name { font-size: 0.8rem; font-weight: 600; color: #f1f5f9; }
+  .node-sub  { font-size: 0.68rem; color: #94a3b8; margin-top: 2px; }
+
+  .arrow {
+    text-align: center; color: #475569; font-size: 1.2rem;
+    margin: -2px 0 2px;
+    user-select: none;
+  }
+
+  /* layer colours */
+  .l-sources .layer-header { background: #374151; }
+  .l-bronze  .layer-header { background: #78350f; }
+  .l-silver  .layer-header { background: #334155; }
+  .l-gold    .layer-header { background: #92400e; }
+  .l-catalog .layer-header { background: #1e40af; }
+  .l-ai      .layer-header { background: #5b21b6; }
+  .l-apps    .layer-header { background: #065f46; }
+  .l-cicd    .layer-header { background: #134e4a; }
+
+  /* node accent dots */
+  .node::before {
+    content: '';
+    position: absolute; top: 8px; right: 8px;
+    width: 7px; height: 7px; border-radius: 50%;
+    background: var(--dot, #475569);
+  }
+  .l-sources .node { --dot: #6b7280; }
+  .l-bronze  .node { --dot: #d97706; }
+  .l-silver  .node { --dot: #64748b; }
+  .l-gold    .node { --dot: #f59e0b; }
+  .l-catalog .node { --dot: #3b82f6; }
+  .l-ai      .node { --dot: #a78bfa; }
+  .l-apps    .node { --dot: #34d399; }
+  .l-cicd    .node { --dot: #2dd4bf; }
+
+  /* ── PANEL ── */
+  .panel {
+    width: 320px; min-width: 320px;
+    background: #1e293b;
+    border-left: 1px solid #334155;
+    padding: 24px 20px;
+    overflow-y: auto;
+    transition: all 0.2s ease;
+  }
+  .panel-empty { color: #475569; font-size: 0.9rem; margin-top: 40px; text-align: center; }
+  .panel-empty svg { opacity: 0.3; margin-bottom: 12px; }
+
+  .panel h2 { font-size: 1.1rem; font-weight: 700; color: #f1f5f9; margin-bottom: 6px; }
+  .panel .badge {
+    display: inline-block; font-size: 0.65rem; font-weight: 700; letter-spacing: 0.08em;
+    text-transform: uppercase; padding: 3px 8px; border-radius: 4px;
+    margin-bottom: 14px;
+  }
+  .panel p { font-size: 0.82rem; color: #94a3b8; line-height: 1.55; margin-bottom: 12px; }
+  .panel h3 { font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.1em; color: #64748b; margin: 14px 0 6px; }
+  .panel ul { list-style: none; }
+  .panel ul li {
+    font-size: 0.8rem; color: #cbd5e1; padding: 4px 0;
+    border-bottom: 1px solid #1e293b;
+    display: flex; align-items: flex-start; gap: 6px;
+  }
+  .panel ul li::before { content: '▸'; color: #f59e0b; flex-shrink: 0; margin-top: 1px; }
+  .tag {
+    display: inline-block; background: rgba(255,255,255,0.07);
+    border: 1px solid rgba(255,255,255,0.1); border-radius: 4px;
+    font-size: 0.68rem; padding: 2px 7px; color: #94a3b8; margin: 2px 2px 0 0;
+  }
+
+  @media print {
+    .panel { display: none; }
+    .diagram { overflow: visible; }
+    body { background: #fff; color: #000; }
+    .layer { border-color: #ccc; }
+    .layer-header { color: #fff !important; }
+    .node { background: #f8fafc; border-color: #ccc; color: #000; }
+    .node-name, .node-sub { color: #000; }
+  }
+</style>
+</head>
+<body>
+<header>
+  <div>
+    <h1>CoinGeckoAnalytical</h1>
+    <span>Architecture · 22 jobs · 2 Databricks Apps · MLOps Level 5</span>
+  </div>
+  <button class="btn-export" onclick="window.print()">⎙ Print / Export</button>
+</header>
+
+<div class="layout">
+  <div class="diagram" id="diagram"></div>
+  <div class="panel" id="panel">
+    <div class="panel-empty">
+      <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+        <rect x="3" y="3" width="18" height="18" rx="2"/><line x1="9" y1="9" x2="15" y2="9"/>
+        <line x1="9" y1="12" x2="15" y2="12"/><line x1="9" y1="15" x2="13" y2="15"/>
+      </svg>
+      <p>Click any component<br>to see details</p>
+    </div>
+  </div>
+</div>
+
+<script>
+const NODES = {
+  // SOURCES
+  coingecko:    { layer:'sources', name:'CoinGecko API',    sub:'Prices · Market Cap · Rankings', desc:'Primary market data source. Provides real-time prices, market caps, volume, and rankings for all tracked crypto assets. Ingested every 5 minutes via market_source_ingestion_job.', tech:['REST API','Python requests','HMAC auth'], jobs:['market_source_ingestion_job'], tags:['external','rest','crypto'] },
+  defillama:    { layer:'sources', name:'DefiLlama API',    sub:'TVL · DeFi Protocols · Fees', desc:'Decentralised finance metrics. Provides Total Value Locked (TVL), protocol categories, fees, and revenue for DeFi ecosystem analysis.', tech:['REST API','JSON'], jobs:['defillama_ingestion_job'], tags:['external','defi','tvl'] },
+  github_api:   { layer:'sources', name:'GitHub API',       sub:'Developer Activity · Stars · Commits', desc:'Developer activity signals. Tracks commit velocity (30d/90d), star counts, forks, open issues, contributor counts, and repository age per asset.', tech:['GitHub REST API v3','OAuth token'], jobs:['github_activity_ingestion_job'], tags:['external','developer','activity'] },
+  fred_api:     { layer:'sources', name:'FRED API',         sub:'Fed Rate · CPI · M2 Money Supply', desc:'Macroeconomic indicators from the Federal Reserve. Used to contextualise crypto market movements against macro backdrop.', tech:['FRED REST API','fredapi Python'], jobs:['fred_macro_ingestion_job'], tags:['external','macro','fed'] },
+
+  // BRONZE
+  bronze_market:    { layer:'bronze', name:'bronze_market_snapshots', sub:'Raw OHLCV per asset · 5-min cadence', desc:'Raw market snapshots from CoinGecko. One row per asset per 5-minute observation. MERGE INTO ensures idempotency on (asset_id, observed_at). Schema: asset_id, symbol, name, price_usd, market_cap_usd, volume_24h_usd, observed_at, ingested_at, source_record_id.', tech:['Delta Lake','MERGE INTO','Databricks Serverless'], jobs:['market_source_ingestion_job','bronze_market_table_migration_job'], tags:['delta','bronze','idempotent'] },
+  bronze_defi:      { layer:'bronze', name:'bronze_defillama_protocols', sub:'TVL · fees per protocol', desc:'Raw DeFi protocol data from DefiLlama. One row per protocol per ingestion run. Tracks TVL, fees, revenue, and mcap/TVL ratio.', tech:['Delta Lake','append mode'], jobs:['defillama_ingestion_job','bronze_enrichment_migration_job'], tags:['delta','bronze','defi'] },
+  bronze_github:    { layer:'bronze', name:'bronze_github_activity', sub:'Repo metrics per asset', desc:'GitHub repository metrics per tracked crypto asset. Commits (30d/90d), stars, forks, contributors, repo age. Enrichment source for developer activity scoring.', tech:['Delta Lake','append mode'], jobs:['github_activity_ingestion_job'], tags:['delta','bronze','github'] },
+  bronze_fred:      { layer:'bronze', name:'bronze_fred_macro', sub:'Economic series observations', desc:'FRED macro indicator observations. Series: FEDFUNDS, CPIAUCSL, M2SL. One row per series per observation date. Used to compute 30-day change % in Silver.', tech:['Delta Lake','append mode'], jobs:['fred_macro_ingestion_job'], tags:['delta','bronze','macro'] },
+  bronze_ops:       { layer:'bronze', name:'bronze_ops_*',     sub:'Usage events · bundle runs · alerts', desc:'Operational Bronze tables: ops_usage_events (copilot usage telemetry), ops_bundle_runs (Databricks job execution history), ops_sentinela_alerts (Sentinela evaluation outputs).', tech:['Delta Lake'], jobs:['ops_usage_ingestion_job','ops_bundle_run_ingestion_job','ops_sentinela_alert_ingestion_job'], tags:['delta','bronze','ops','telemetry'] },
+
+  // SILVER
+  silver_changes:   { layer:'silver', name:'silver_market_changes', sub:'Price change % · 1h / 24h / 7d', desc:'Normalised price change percentages per asset. Time-range JOIN against Bronze (BETWEEN INTERVAL) to find 1h/24h/7d ago prices. Deduped on (asset_id, window_id, observed_at).', tech:['Delta Lake','Spark SQL','window functions'], jobs:['silver_market_pipeline_job'], tags:['delta','silver','price-change'] },
+  silver_dominance: { layer:'silver', name:'silver_market_dominance', sub:'BTC/ETH dominance %', desc:'Market dominance percentages for BTC and ETH relative to total market cap. Aggregated hourly. Feeds the dominance chart in cga-analytics.', tech:['Delta Lake','Spark SQL'], jobs:['silver_market_pipeline_job'], tags:['delta','silver','dominance'] },
+  silver_comparison:{ layer:'silver', name:'silver_market_comparison', sub:'Cross-asset correlation buckets', desc:'Cross-asset comparison view: correlation_bucket (high/medium/low cap), price change ranking, volume ranking. Used for comparative analytics in Genie.', tech:['Delta Lake','Spark SQL'], jobs:['silver_market_pipeline_job'], tags:['delta','silver','comparison'] },
+  silver_enriched:  { layer:'silver', name:'silver_asset_enriched', sub:'Market + DeFi + GitHub joined', desc:'Full enrichment join: CoinGecko market data LEFT JOINed with DefiLlama TVL and GitHub activity. Computes dev_activity_score per asset. Schema overwrites on each run.', tech:['Delta Lake','overwriteSchema=true'], jobs:['silver_enrichment_pipeline_job'], tags:['delta','silver','enrichment'] },
+  silver_macro:     { layer:'silver', name:'silver_macro_context', sub:'Fed Rate · CPI · M2 change %', desc:'Macro indicator context with 30-day change percentages. ROUND(change_30d_pct, 4). Writes with overwriteSchema=true to handle decimal precision evolution. Skipped gracefully if Bronze FRED is empty.', tech:['Delta Lake','overwriteSchema=true'], jobs:['silver_enrichment_pipeline_job'], tags:['delta','silver','macro'] },
+  silver_features:  { layer:'silver', name:'silver_market_features', sub:'ML feature store · momentum + dominance', desc:'Feature engineering output. Computes momentum_score (price_change_pct_24h × volume weight), vol_to_cap_ratio, dominance_pct_btc, price_change_pct_7d. One row per (asset_id, feature_date).', tech:['Delta Lake','Spark SQL'], jobs:['feature_engineering_job'], tags:['delta','silver','ml','features'] },
+
+  // GOLD
+  gold_market:      { layer:'gold', name:'gold_market_overview', sub:'Genie-ready analytical view', desc:'Primary Gold analytical view. Aggregates market rankings, price changes, DeFi TVL, and macro context. Refreshed by ops_readiness_refresh_job on schedule. Genie Space is configured to query this view.', tech:['Delta Lake views','Spark SQL'], jobs:['ops_readiness_refresh_job'], tags:['gold','genie','analytics'] },
+  gold_scores:      { layer:'gold', name:'gold_ml_scores', sub:'Regime + anomaly per asset', desc:'Batch ML scoring output. One row per asset with predicted_regime (bull/bear/neutral), anomaly_score (1=anomalous), regime_confidence, momentum_score, model_version, scored_at.', tech:['Delta Lake','MLflow sklearn'], jobs:['score_market_assets_job'], tags:['gold','ml','scores'] },
+  genie_views:      { layer:'gold', name:'Genie Metric Views', sub:'NLQ-optimised metric tables', desc:'Dedicated metric views for AI/BI Genie: genie_market_summary, genie_top_movers, genie_macro_context, genie_defi_overview. Optimised for natural language query generation with clear column names and descriptions.', tech:['Delta Lake views'], jobs:['ops_readiness_refresh_job'], tags:['gold','genie','bi'] },
+
+  // UNITY CATALOG
+  uc_catalog:   { layer:'catalog', name:'Unity Catalog', sub:'cgadev · cgastaging · cgaprod', desc:'All data assets governed under Unity Catalog. Three environments: cgadev (dev), cgastaging (staging), cgaprod (production). Automated lineage tracking via System Tables. GRANT statements version-controlled in unity_catalog_foundation.sql.', tech:['Unity Catalog','Delta Sharing'], jobs:['uc_grants_job'], tags:['governance','uc','lineage'] },
+  rls:          { layer:'catalog', name:'Row-Level Security', sub:'UC row filters + column masking', desc:'UC row filter functions on sensitive ops tables: ops_usage_events (platform_ops group only), ops_sentinela_alerts (ops/governance only). cost_usd column masked to NULL for non-ops users. Applied via rls_migration_job.', tech:['UC row filters','column masks','SQL functions'], jobs:['rls_migration_job'], tags:['governance','rls','compliance'] },
+
+  // AI LAYER
+  model_registry: { layer:'ai', name:'MLflow Model Registry', sub:'Regime Classifier · Anomaly Detector', desc:'Managed model lifecycle in Unity Catalog MLflow Registry. Two models: market_regime_classifier (bull/bear/neutral, cross-val ≥ 0.60) and market_anomaly_detector (IsolationForest). Champion alias promotion gated by validation.', tech:['MLflow','Unity Catalog','sklearn'], jobs:['train_market_model_job','score_market_assets_job'], tags:['mlops','mlflow','registry'] },
+  drift:        { layer:'ai', name:'Drift Monitor', sub:'PSI > 0.2 → Sentinela alert', desc:'Population Stability Index monitoring. Compares regime label distribution between 24h window and 7d baseline. PSI > 0.2 triggers a CRITICAL alert written to ops_sentinela_alerts. Runs daily at 6am.', tech:['PSI algorithm','Databricks jobs','Delta Lake'], jobs:['model_drift_monitoring_job'], tags:['mlops','drift','monitoring'] },
+  orchestrator: { layer:'ai', name:'Copilot Orchestrator', sub:'MarketAgent · MacroAgent · DefiAgent · SynthAgent', desc:'Coded Python multi-agent orchestrator. Three domain agents fetch grounded data from Gold tables. SynthAgent synthesises into a narrative with provenance, freshness badge, and confidence context. Prompt versioning via backend/prompts/v1.yaml.', tech:['Mosaic AI FMAPI','Python','prompt versioning'], jobs:[], tags:['llmops','agents','copilot'] },
+  tier_router:  { layer:'ai', name:'Model Tier Router', sub:'light · standard · complex', desc:'Classifies each copilot request into a compute tier. Light: simple factual → direct Mosaic AI. Standard: contextual → Mosaic + Gold context. Complex: multi-factor → full orchestrator. Per-tier token budget cap enforced before LLM call.', tech:['Python','budget cap','token counting'], jobs:[], tags:['llmops','routing','cost'] },
+
+  // APPS
+  cga_analytics: { layer:'apps', name:'cga-analytics', sub:'Genie + Charts + Copilot', desc:'Primary user-facing Databricks App. Three panels: (1) Genie Chat — NLQ input → generated SQL → updates active_dataset state. (2) Chart Dashboard — subscribes to active_dataset, renders market rankings, DeFi TVL, macro overlays. (3) Copilot Panel — narrative AI with tier routing, provenance, freshness.', tech:['Databricks Apps','Streamlit','Python'], jobs:[], tags:['app','analytics','genie'] },
+  cga_admin:    { layer:'apps', name:'cga-admin', sub:'Sentinela · Pipeline Health · Cost · Access · Audit', desc:'Internal ops Databricks App. Five pages: Sentinela Monitor (live alerts), Pipeline Health (job run history), Cost Monitor (token/cost telemetry with masking), Access Management (UC grants, tenant controls), Audit Review (ops_usage_events log).', tech:['Databricks Apps','Streamlit','Python'], jobs:[], tags:['app','ops','admin'] },
+  sentinela:    { layer:'apps', name:'Sentinela', sub:'Evaluation every 15 min', desc:'Operational trust layer. sentinela_evaluation_job evaluates all pipeline health checks every 15 minutes and writes CRITICAL/WARNING/OK status to ops_sentinela_alerts. Surfaced in cga-admin. Feeds model drift alerts.', tech:['Python','Delta Lake','Databricks jobs'], jobs:['sentinela_evaluation_job'], tags:['ops','monitoring','alerting'] },
+
+  // CI/CD
+  github_actions: { layer:'cicd', name:'GitHub Actions', sub:'lint → contract → deploy', desc:'6-job CI pipeline: lint (compileall), contract (346 tests + bundle validation + chain validators), deploy (bundle deploy + all 20 pipeline jobs), deploy_apps (start cga-analytics + cga-admin), uc_grants (GRANT execution), train_models (on-demand).', tech:['GitHub Actions','YAML','workflow_dispatch'], jobs:[], tags:['ci','cd','automation'] },
+  dabs:           { layer:'cicd', name:'Databricks Asset Bundles', sub:'22 jobs · 2 apps · 3 targets', desc:'All 22 Databricks jobs and 2 apps defined in databricks.yml (repo root). Three targets: dev, staging, prod. Per-target catalog variable (cgadev/cgastaging/cgaprod). Notebook sync excluded from job bundle. setup-cli@main to bypass expired GPG keys.', tech:['DABs','databricks.yml','bundle deploy'], jobs:[], tags:['ci','dabs','databricks'] },
+};
+
+const LAYERS = [
+  { id:'sources', cls:'l-sources', label:'External Data Sources',  nodes:['coingecko','defillama','github_api','fred_api'] },
+  { id:'bronze',  cls:'l-bronze',  label:'Bronze Layer — Raw Ingestion', nodes:['bronze_market','bronze_defi','bronze_github','bronze_fred','bronze_ops'] },
+  { id:'silver',  cls:'l-silver',  label:'Silver Layer — Normalised & Enriched', nodes:['silver_changes','silver_dominance','silver_comparison','silver_enriched','silver_macro','silver_features'] },
+  { id:'gold',    cls:'l-gold',    label:'Gold Layer — Analytical Models & Views', nodes:['gold_market','gold_scores','genie_views'] },
+  { id:'catalog', cls:'l-catalog', label:'Unity Catalog — Governance & Compliance', nodes:['uc_catalog','rls'] },
+  { id:'ai',      cls:'l-ai',      label:'AI / ML Layer', nodes:['model_registry','drift','orchestrator','tier_router'] },
+  { id:'apps',    cls:'l-apps',    label:'Product Surface — Databricks Apps', nodes:['cga_analytics','cga_admin','sentinela'] },
+  { id:'cicd',    cls:'l-cicd',    label:'CI/CD & Deployment', nodes:['github_actions','dabs'] },
+];
+
+const LAYER_COLORS = { sources:'#6b7280', bronze:'#d97706', silver:'#64748b', gold:'#f59e0b', catalog:'#3b82f6', ai:'#a78bfa', apps:'#34d399', cicd:'#2dd4bf' };
+
+let active = null;
+
+function render() {
+  const diagram = document.getElementById('diagram');
+  diagram.innerHTML = '';
+
+  LAYERS.forEach((layer, li) => {
+    if (li > 0) {
+      const arrow = document.createElement('div');
+      arrow.className = 'arrow';
+      arrow.textContent = '▼';
+      diagram.appendChild(arrow);
+    }
+
+    const layerEl = document.createElement('div');
+    layerEl.className = `layer ${layer.cls}`;
+
+    const header = document.createElement('div');
+    header.className = 'layer-header';
+    header.textContent = layer.label;
+    layerEl.appendChild(header);
+
+    const body = document.createElement('div');
+    body.className = 'layer-body';
+
+    layer.nodes.forEach(nid => {
+      const n = NODES[nid];
+      const node = document.createElement('div');
+      node.className = 'node' + (active === nid ? ' active' : '');
+      node.innerHTML = `<div class="node-name">${n.name}</div><div class="node-sub">${n.sub}</div>`;
+      node.onclick = () => selectNode(nid);
+      body.appendChild(node);
+    });
+
+    layerEl.appendChild(body);
+    diagram.appendChild(layerEl);
+  });
+}
+
+function selectNode(nid) {
+  active = nid;
+  render();
+  showPanel(nid);
+}
+
+function showPanel(nid) {
+  const n = NODES[nid];
+  const color = LAYER_COLORS[n.layer];
+  const layerName = LAYERS.find(l => l.id === n.layer)?.label || n.layer;
+
+  const jobsHtml = n.jobs.length
+    ? `<h3>Related Jobs</h3><ul>${n.jobs.map(j => `<li>${j}</li>`).join('')}</ul>`
+    : '';
+
+  const tagsHtml = n.tags.map(t => `<span class="tag">${t}</span>`).join('');
+  const techHtml = n.tech.map(t => `<span class="tag">${t}</span>`).join('');
+
+  document.getElementById('panel').innerHTML = `
+    <h2>${n.name}</h2>
+    <span class="badge" style="background:${color}22;color:${color};border:1px solid ${color}44">${layerName}</span>
+    <p>${n.desc}</p>
+    <h3>Technology</h3>
+    <div style="margin-bottom:12px">${techHtml}</div>
+    ${jobsHtml}
+    <h3>Tags</h3>
+    <div>${tagsHtml}</div>
+  `;
+}
+
+render();
+</script>
+</body>
+</html>

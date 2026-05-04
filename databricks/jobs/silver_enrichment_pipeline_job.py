@@ -92,12 +92,12 @@ def run_silver_enrichment(spark: Any) -> dict[str, Any]:
     macro_context_table = "cgadev.market_silver.silver_macro_context"
 
     asset_df = spark.sql(SILVER_ASSET_ENRICHED_SQL)
-    asset_df.write.mode("overwrite").format("delta").saveAsTable(asset_enriched_table)
+    asset_df.write.mode("overwrite").format("delta").option("overwriteSchema", "true").saveAsTable(asset_enriched_table)
     asset_rows = asset_df.count()
 
     try:
         macro_df = spark.sql(SILVER_MACRO_CONTEXT_SQL)
-        macro_df.write.mode("overwrite").format("delta").saveAsTable(macro_context_table)
+        macro_df.write.mode("overwrite").format("delta").option("overwriteSchema", "true").saveAsTable(macro_context_table)
         macro_rows = macro_df.count()
     except Exception as exc:
         print(f"WARN: silver_macro_context skipped (bronze_fred_macro may be empty): {exc}")
