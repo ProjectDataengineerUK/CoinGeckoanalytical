@@ -68,7 +68,7 @@ class UcGrantsJobTests(unittest.TestCase):
         self.assertEqual(result.statements_failed, 0)
         self.assertEqual(mock_spark.sql.call_count, 3)
 
-    def test_main_tolerates_spark_sql_failures(self) -> None:
+    def test_main_raises_after_executing_all_failing_statements(self) -> None:
         sql = (
             "CREATE CATALOG IF NOT EXISTS cgadev;\n"
             "GRANT USAGE ON CATALOG cgadev TO `platform_ops`;\n"
@@ -79,10 +79,12 @@ class UcGrantsJobTests(unittest.TestCase):
 
             mock_spark = MagicMock()
             mock_spark.sql.side_effect = Exception("permission denied")
-            result = uc_grants_job.main(mock_spark, sql_path=sql_path)
+            with self.assertRaises(RuntimeError) as ctx:
+                uc_grants_job.main(mock_spark, sql_path=sql_path)
 
-        self.assertEqual(result.statements_run, 2)
-        self.assertEqual(result.statements_failed, 2)
+        # All statements must be attempted before raising — not short-circuited
+        self.assertEqual(mock_spark.sql.call_count, 2)
+        self.assertIn("2/2", str(ctx.exception))
 
 
 if __name__ == "__main__":

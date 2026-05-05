@@ -70,7 +70,7 @@ class RlsMigrationJobTests(unittest.TestCase):
         self.assertEqual(result.statements_failed, 0)
         self.assertEqual(mock_spark.sql.call_count, 2)
 
-    def test_main_tolerates_spark_sql_failures(self) -> None:
+    def test_main_raises_after_executing_all_failing_statements(self) -> None:
         sql = (
             "CREATE OR REPLACE FUNCTION cgadev.audit_control.ops_usage_row_filter(event_user_id STRING)\n"
             "RETURNS BOOLEAN\n"
@@ -84,10 +84,12 @@ class RlsMigrationJobTests(unittest.TestCase):
 
             mock_spark = MagicMock()
             mock_spark.sql.side_effect = Exception("function already exists")
-            result = rls_migration_job.main(mock_spark, sql_path=sql_path)
+            with self.assertRaises(RuntimeError) as ctx:
+                rls_migration_job.main(mock_spark, sql_path=sql_path)
 
-        self.assertEqual(result.statements_run, 2)
-        self.assertEqual(result.statements_failed, 2)
+        # All statements must be attempted before raising — not short-circuited
+        self.assertEqual(mock_spark.sql.call_count, 2)
+        self.assertIn("2/2", str(ctx.exception))
 
 
 if __name__ == "__main__":
