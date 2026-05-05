@@ -54,12 +54,12 @@ class DriftResultDataclassTests(unittest.TestCase):
             psi_score=0.15,
             alert_written=False,
             regime_distribution_24h={"bull": 0.6, "bear": 0.4},
-            regime_distribution_7d={"bull": 0.5, "bear": 0.5},
+            regime_distribution_7d_baseline={"bull": 0.5, "bear": 0.5},
         )
         self.assertAlmostEqual(result.psi_score, 0.15)
         self.assertFalse(result.alert_written)
         self.assertEqual(result.regime_distribution_24h["bull"], 0.6)
-        self.assertEqual(result.regime_distribution_7d["bear"], 0.5)
+        self.assertEqual(result.regime_distribution_7d_baseline["bear"], 0.5)
         with self.assertRaises(Exception):
             result.psi_score = 0.99  # type: ignore[misc]
 
