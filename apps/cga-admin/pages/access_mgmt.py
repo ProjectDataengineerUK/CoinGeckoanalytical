@@ -3,6 +3,8 @@ from __future__ import annotations
 import dash_bootstrap_components as dbc
 from dash import Input, Output, State, callback, html
 
+from . import _card_header, _page_header
+
 REFRESH_BTN_ID = "access-refresh-btn"
 TENANT_TABLE_ID = "access-tenant-table"
 GROUPS_TABLE_ID = "access-groups-table"

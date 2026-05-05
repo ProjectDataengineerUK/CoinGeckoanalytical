@@ -4,6 +4,8 @@ import dash_bootstrap_components as dbc
 import plotly.graph_objects as go
 from dash import Input, Output, callback, dcc, html
 
+from . import _card_header, _page_header
+
 REFRESH_BTN_ID = "audit-refresh-btn"
 AUDIT_TABLE_ID = "audit-table"
 CHART_LATENCY_ID = "audit-latency-chart"
