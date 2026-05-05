@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import logging
 import os
 import threading
 import time
@@ -9,6 +10,8 @@ import urllib.parse
 import urllib.request
 from dataclasses import dataclass
 from typing import Any
+
+_log = logging.getLogger(__name__)
 
 _TOKEN_CACHE: dict[str, tuple[str, float]] = {}
 _TOKEN_CACHE_LOCK = threading.Lock()
@@ -76,6 +79,15 @@ def _get_bearer_token(config: GenieConfig) -> str:
         return bearer
 
 
+def _raise_for_http(exc: urllib.error.HTTPError, url: str) -> None:
+    try:
+        body = exc.read().decode("utf-8", errors="replace")
+    except Exception:
+        body = "<unreadable>"
+    _log.error("Genie HTTP %s %s — %s", exc.code, url, body)
+    raise urllib.error.HTTPError(exc.url, exc.code, f"HTTP {exc.code}: {body}", exc.headers, None) from exc
+
+
 def _post_json(url: str, body: dict[str, Any], token: str, timeout: int = 30) -> dict[str, Any]:
     payload = json.dumps(body).encode()
     req = urllib.request.Request(
@@ -84,8 +96,12 @@ def _post_json(url: str, body: dict[str, Any], token: str, timeout: int = 30) ->
         headers={"Authorization": f"Bearer {token}", "Content-Type": "application/json"},
         method="POST",
     )
-    with urllib.request.urlopen(req, timeout=timeout) as resp:
-        return json.loads(resp.read())
+    try:
+        with urllib.request.urlopen(req, timeout=timeout) as resp:
+            return json.loads(resp.read())
+    except urllib.error.HTTPError as exc:
+        _raise_for_http(exc, url)
+        raise  # unreachable but satisfies type checker
 
 
 def _get_json(url: str, token: str, timeout: int = 30) -> dict[str, Any]:
@@ -94,8 +110,12 @@ def _get_json(url: str, token: str, timeout: int = 30) -> dict[str, Any]:
         headers={"Authorization": f"Bearer {token}"},
         method="GET",
     )
-    with urllib.request.urlopen(req, timeout=timeout) as resp:
-        return json.loads(resp.read())
+    try:
+        with urllib.request.urlopen(req, timeout=timeout) as resp:
+            return json.loads(resp.read())
+    except urllib.error.HTTPError as exc:
+        _raise_for_http(exc, url)
+        raise  # unreachable
 
 
 def _extract_answer_text(attachments: list[dict[str, Any]]) -> str | None:

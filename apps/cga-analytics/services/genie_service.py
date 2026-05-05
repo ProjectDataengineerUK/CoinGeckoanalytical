@@ -65,8 +65,20 @@ def ask(question: str) -> GenieResult:
             execution_status=answer.execution_status,
             latency_ms=answer.latency_ms,
         )
-    except Exception:
+    except Exception as exc:
+        import urllib.error as _ue
         _log.error("Genie request failed", exc_info=True)
+        if isinstance(exc, _ue.HTTPError) and exc.code == 403:
+            return GenieResult(
+                answer_text=(
+                    "Genie: permissão negada (403). O service principal do app precisa de "
+                    "CAN_RUN no Genie Space e CAN_USE no SQL Warehouse. "
+                    "Veja os logs do servidor para o detalhe exato retornado pelo Databricks."
+                ),
+                generated_query=None,
+                execution_status="permission_denied",
+                latency_ms=0,
+            )
         return GenieResult(
             answer_text="Serviço temporariamente indisponível. Tente novamente.",
             generated_query=None,
