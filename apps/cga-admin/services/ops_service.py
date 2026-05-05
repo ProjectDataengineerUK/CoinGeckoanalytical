@@ -1,10 +1,13 @@
 from __future__ import annotations
 
 import importlib.util
+import logging
 import os
 import sys
 from pathlib import Path
 from typing import Any
+
+_log = logging.getLogger(__name__)
 
 _REPO_ROOT = Path(__file__).resolve().parents[1]
 if str(_REPO_ROOT) not in sys.path:
@@ -37,12 +40,14 @@ def _ops_catalog() -> str:
     return os.environ.get("COINGECKO_OPS_CATALOG") or os.environ.get("COINGECKO_CATALOG", "cgadev")
 
 
+# BUG-08: log failures instead of silently returning []
 def run(sql: str) -> list[dict[str, Any]]:
     if not _load():
         return []
     try:
         return _mod.execute_statement(_cfg, sql)
-    except Exception:
+    except Exception as exc:
+        _log.warning("ops_service SQL failed: %s", exc)
         return []
 
 
@@ -79,7 +84,7 @@ def fetch_daily_spend(days: int = 14) -> list[dict[str, Any]]:
         f"SELECT DATE(event_time) AS day, model_tier, "
         f"SUM(cost_estimate) AS cost_usd, SUM(total_tokens) AS tokens "
         f"FROM {cat}.ops_observability.ops_usage_events "
-        f"WHERE event_time >= CURRENT_DATE - INTERVAL {days} DAYS "
+        f"WHERE event_time >= CURRENT_TIMESTAMP() - INTERVAL {days} DAYS "
         f"GROUP BY day, model_tier ORDER BY day ASC"
     )
 
@@ -96,24 +101,35 @@ def fetch_cost_by_tenant() -> list[dict[str, Any]]:
 
 # ---------------------------------------------------------------------------
 # Sentinela alerts
+# BUG-02: use actual DDL columns (created_at, kind) not alert_time/severity
 # ---------------------------------------------------------------------------
+
+_SEVERITY_EXPR = (
+    "CASE "
+    "WHEN kind IN ('bundle_failure', 'bundle_cancelled') THEN 'high' "
+    "WHEN kind IN ('error_spike', 'latency_breach', 'cost_anomaly', 'model_drift', 'retrain_trigger') THEN 'medium' "
+    "ELSE 'low' "
+    "END"
+)
+
 
 def fetch_alerts(limit: int = 100) -> list[dict[str, Any]]:
     cat = _ops_catalog()
     return run(
-        f"SELECT alert_time, kind, severity, route_selected, message, "
-        f"tenant_id, request_id "
+        f"SELECT created_at AS alert_time, kind, "
+        f"{_SEVERITY_EXPR} AS severity, "
+        f"route_selected, message, tenant_id, request_id "
         f"FROM {cat}.ops_observability.ops_sentinela_alerts "
-        f"ORDER BY alert_time DESC LIMIT {limit}"
+        f"ORDER BY created_at DESC LIMIT {limit}"
     )
 
 
 def fetch_alert_counts() -> list[dict[str, Any]]:
     cat = _ops_catalog()
     return run(
-        f"SELECT severity, COUNT(*) AS count "
+        f"SELECT {_SEVERITY_EXPR} AS severity, COUNT(*) AS count "
         f"FROM {cat}.ops_observability.ops_sentinela_alerts "
-        f"WHERE alert_time >= CURRENT_DATE - INTERVAL 7 DAYS "
+        f"WHERE created_at >= CURRENT_TIMESTAMP() - INTERVAL 7 DAYS "
         f"GROUP BY severity"
     )
 

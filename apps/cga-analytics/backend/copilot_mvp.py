@@ -127,6 +127,7 @@ class TelemetryEnvelope:
     response_status: str
     response_surface_type: str
     response_title: str
+    prompt_version: str | None = None
     schema_version: str = "copilot.telemetry.v1"
 
 
@@ -308,8 +309,10 @@ def build_copilot_response(request: CopilotRequest) -> dict[str, Any]:
                                 "model_tier": tier,
                                 "tier_reason": tier_classification.reason if tier_classification else "complex_orchestrated",
                                 "cost_estimate": cost,
+                                "total_tokens": orch_result.total_tokens,
                                 "agent_count": len(orch_result.agent_results),
                                 "orchestrated": True,
+                                "prompt_version": orch_result.prompt_version,
                             },
                         )
                     )
@@ -346,6 +349,7 @@ def build_copilot_response(request: CopilotRequest) -> dict[str, Any]:
                             "latency_ms": answer.latency_ms,
                             "model_id": answer.model_id,
                             "token_count_hint": answer.token_count_hint,
+                            "total_tokens": answer.token_count_hint,
                             "model_tier": tier,
                             "tier_reason": tier_classification.reason if tier_classification else "standard_market_analysis",
                             "cost_estimate": cost,
@@ -355,6 +359,33 @@ def build_copilot_response(request: CopilotRequest) -> dict[str, Any]:
         except Exception as _mosaic_exc:
             import logging as _log
             _log.getLogger(__name__).warning("Mosaic fallback failed: %s", _mosaic_exc, exc_info=True)
+            # L7: if complex tier failed, try standard tier before giving up
+            if tier == "complex" and _mosaic is not None and mosaic_config is not None:
+                try:
+                    answer = _mosaic.ask_mosaic(mosaic_config, request.message_text, tier="standard")
+                    if answer.execution_status == "completed":
+                        return serialize_response_envelope(
+                            ResponseEnvelope(
+                                request_id=request.request_id,
+                                surface_type="copilot_answer",
+                                title="Copilot de mercado",
+                                body=answer.answer_text,
+                                citations=["unity_catalog.gold_market_views"],
+                                freshness={"watermark": "live", "status": "fresh"},
+                                confidence={"label": "standard_fallback", "score": 0.75},
+                                actions=["follow_up_question"],
+                                warnings=["complex_tier_fallback_to_standard"],
+                                routing={
+                                    "surface": decision.surface,
+                                    "reason": decision.reason,
+                                    "total_tokens": answer.token_count_hint,
+                                    "model_tier": "standard",
+                                    "tier_reason": "complex_tier_failed_fallback",
+                                },
+                            )
+                        )
+                except Exception:
+                    pass
 
     response_text = (
         "Resposta de copilot MVP: use o agente para analise narrativa, com "
@@ -382,6 +413,7 @@ def build_copilot_response(request: CopilotRequest) -> dict[str, Any]:
 
 def build_usage_event(request: CopilotRequest, response: dict[str, Any], latency_ms: int = 120) -> dict[str, Any]:
     routing = response.get("routing") or {}
+    total_tokens = routing.get("total_tokens") or routing.get("token_count_hint")
     telemetry = TelemetryEnvelope(
         event_time=dt.datetime.now(dt.UTC).isoformat(),
         request_id=request.request_id,
@@ -392,13 +424,14 @@ def build_usage_event(request: CopilotRequest, response: dict[str, Any], latency
         model_tier=routing.get("model_tier") or "standard",
         prompt_tokens=None,
         completion_tokens=None,
-        total_tokens=None,
+        total_tokens=total_tokens,
         latency_ms=latency_ms,
         cost_estimate=routing.get("cost_estimate"),
-        freshness_watermark=response["freshness"]["watermark"],
+        freshness_watermark=(response.get("freshness") or {}).get("watermark"),
         response_status="success",
-        response_surface_type=response["surface_type"],
-        response_title=response["title"],
+        response_surface_type=response.get("surface_type", ""),
+        response_title=response.get("title", ""),
+        prompt_version=routing.get("prompt_version"),
     )
     return serialize_telemetry_envelope(telemetry)
 

@@ -2,6 +2,8 @@ from __future__ import annotations
 
 import json
 import os
+import urllib.request
+import urllib.parse
 from dataclasses import dataclass
 from datetime import datetime, timezone
 from typing import Any
@@ -25,6 +27,23 @@ class EvaluationResult:
     usage_rows_read: int
     bundle_rows_read: int
     target_table: str
+
+
+def _dispatch_slack(message: str) -> None:
+    webhook_url = os.environ.get("SLACK_WEBHOOK_URL", "")
+    if not webhook_url:
+        return
+    try:
+        payload = json.dumps({"text": f":rotating_light: *CGA Sentinela*\n{message}"}).encode()
+        req = urllib.request.Request(
+            webhook_url,
+            data=payload,
+            headers={"Content-Type": "application/json"},
+            method="POST",
+        )
+        urllib.request.urlopen(req, timeout=5)
+    except Exception:
+        pass
 
 
 def _alert(kind: str, message: str, **kwargs: Any) -> dict[str, Any]:
@@ -128,9 +147,9 @@ def main(
     try:
         usage_rows: list[dict[str, Any]] = (
             spark.sql(
-                f"SELECT response_status, latency_ms, cost_estimate "
+                f"SELECT response_status, latency_ms, cost_estimate, model_tier "
                 f"FROM {usage_table} "
-                f"WHERE event_time >= CURRENT_TIMESTAMP - INTERVAL {lookback_hours} HOURS"
+                f"WHERE event_time >= CURRENT_TIMESTAMP() - INTERVAL {lookback_hours} HOURS"
             )
             .toPandas()
             .to_dict(orient="records")
@@ -143,7 +162,7 @@ def main(
             spark.sql(
                 f"SELECT job_name, status, run_id "
                 f"FROM {bundle_table} "
-                f"WHERE ingested_at >= CURRENT_TIMESTAMP - INTERVAL {lookback_hours} HOURS"
+                f"WHERE ingested_at >= CURRENT_TIMESTAMP() - INTERVAL {lookback_hours} HOURS"
             )
             .toPandas()
             .to_dict(orient="records")
@@ -151,7 +170,34 @@ def main(
     except Exception:
         bundle_rows = []
 
-    alerts = evaluate_usage_events(usage_rows) + evaluate_bundle_runs(bundle_rows)
+    usage_alerts = evaluate_usage_events(usage_rows)
+    bundle_alerts = evaluate_bundle_runs(bundle_rows)
+
+    # L4: compute p95 latency per tier and emit alert if any tier exceeds threshold
+    tier_latencies: dict[str, list[int]] = {}
+    for r in usage_rows:
+        tier = str(r.get("model_tier") or "standard")
+        lat = r.get("latency_ms")
+        if isinstance(lat, int):
+            tier_latencies.setdefault(tier, []).append(lat)
+    for tier, lats in tier_latencies.items():
+        sorted_lats = sorted(lats)
+        p95_idx = max(0, int(len(sorted_lats) * 0.95) - 1)
+        p95 = sorted_lats[p95_idx]
+        if p95 > THRESHOLD_P95_LATENCY_MS:
+            usage_alerts.append(_alert(
+                "latency_breach",
+                f"P95 latency for tier '{tier}' is {p95}ms — exceeds {THRESHOLD_P95_LATENCY_MS}ms threshold.",
+            ))
+
+    alerts = usage_alerts + bundle_alerts
+
+    # D1: dispatch high-severity alerts to Slack
+    high_severity_kinds = {"bundle_failure", "bundle_cancelled", "error_spike"}
+    for alert in alerts:
+        if alert.get("kind") in high_severity_kinds:
+            _dispatch_slack(f"[{alert['kind']}] {alert['message']}")
+
     written = write_alerts(spark, alerts, target_table=alert_table)
 
     return EvaluationResult(

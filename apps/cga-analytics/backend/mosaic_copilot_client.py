@@ -125,33 +125,51 @@ def ask_mosaic(
 
     import logging as _logging
     _log = _logging.getLogger(__name__)
-    try:
-        with urllib.request.urlopen(req, timeout=config.timeout_seconds) as resp:
-            data: dict[str, Any] = json.loads(resp.read())
-    except urllib.error.HTTPError as exc:
-        latency_ms = int((time.monotonic() - started_at) * 1000)
-        body = ""
+
+    _RETRY_CODES = {429, 503, 502}
+    _MAX_RETRIES = 3
+    _BACKOFF_BASE = 2.0
+
+    last_exc: Exception | None = None
+    for attempt in range(_MAX_RETRIES):
+        if attempt > 0:
+            time.sleep(_BACKOFF_BASE ** attempt)
         try:
-            body = exc.read().decode("utf-8", errors="replace")
-        except Exception:
-            pass
-        _log.error("Mosaic HTTP %s for endpoint %s: %s", exc.code, endpoint, body)
-        return MosaicAnswer(
-            answer_text="",
-            model_id="",
-            token_count_hint=0,
-            latency_ms=latency_ms,
-            execution_status="failed",
-        )
-    except urllib.error.URLError as exc:
+            with urllib.request.urlopen(req, timeout=config.timeout_seconds) as resp:
+                data: dict[str, Any] = json.loads(resp.read())
+            last_exc = None
+            break
+        except urllib.error.HTTPError as exc:
+            last_exc = exc
+            body = ""
+            try:
+                body = exc.read().decode("utf-8", errors="replace")
+            except Exception:
+                pass
+            if exc.code in _RETRY_CODES and attempt < _MAX_RETRIES - 1:
+                _log.warning("Mosaic HTTP %s for endpoint %s (attempt %d/%d) — retrying",
+                             exc.code, endpoint, attempt + 1, _MAX_RETRIES)
+                continue
+            _log.error("Mosaic HTTP %s for endpoint %s: %s", exc.code, endpoint, body)
+            latency_ms = int((time.monotonic() - started_at) * 1000)
+            return MosaicAnswer(
+                answer_text="", model_id="", token_count_hint=0,
+                latency_ms=latency_ms, execution_status="failed",
+            )
+        except urllib.error.URLError as exc:
+            last_exc = exc
+            _log.error("Mosaic URLError for endpoint %s: %s", endpoint, exc.reason)
+            latency_ms = int((time.monotonic() - started_at) * 1000)
+            return MosaicAnswer(
+                answer_text="", model_id="", token_count_hint=0,
+                latency_ms=latency_ms, execution_status="failed",
+            )
+
+    if last_exc is not None:
         latency_ms = int((time.monotonic() - started_at) * 1000)
-        _log.error("Mosaic URLError for endpoint %s: %s", endpoint, exc.reason)
         return MosaicAnswer(
-            answer_text="",
-            model_id="",
-            token_count_hint=0,
-            latency_ms=latency_ms,
-            execution_status="failed",
+            answer_text="", model_id="", token_count_hint=0,
+            latency_ms=latency_ms, execution_status="failed",
         )
 
     latency_ms = int((time.monotonic() - started_at) * 1000)

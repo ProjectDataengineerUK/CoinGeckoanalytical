@@ -45,6 +45,11 @@ def main(spark: Any, sql_path: Path | None = None) -> RlsResult:
             print(f"WARN: {stmt[:60]}: {e}")
             statements_failed += 1
 
+    if statements_failed > 0:
+        raise RuntimeError(
+            f"RLS migration: {statements_failed}/{statements_run} statements failed — "
+            "compliance enforcement is incomplete. Check WARN lines above for details."
+        )
     return RlsResult(statements_run=statements_run, statements_failed=statements_failed)
 
 

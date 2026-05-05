@@ -107,6 +107,11 @@ def main(spark: Any, sql_path: Path | None = None) -> GrantsResult:
             print(f"WARN: {stmt[:60]}: {e}")
             statements_failed += 1
 
+    if statements_failed > 0:
+        raise RuntimeError(
+            f"UC grants: {statements_failed}/{statements_run} statements failed — "
+            "governance grants are incomplete. Check WARN lines above for details."
+        )
     return GrantsResult(statements_run=statements_run, statements_failed=statements_failed)
 
 

@@ -3,6 +3,7 @@ from __future__ import annotations
 import importlib.util
 import logging
 import sys
+import threading
 import uuid
 from dataclasses import dataclass
 from pathlib import Path
@@ -15,6 +16,7 @@ if str(_REPO_ROOT) not in sys.path:
     sys.path.insert(0, str(_REPO_ROOT))
 
 _mvp_mod: Any = None
+_load_lock = threading.Lock()
 
 
 @dataclass(frozen=True)
@@ -32,17 +34,20 @@ def _load() -> Any | None:
     global _mvp_mod
     if _mvp_mod is not None:
         return _mvp_mod
-    try:
-        spec = importlib.util.spec_from_file_location(
-            "copilot_mvp",
-            _REPO_ROOT / "backend" / "copilot_mvp.py",
-        )
-        mod = importlib.util.module_from_spec(spec)  # type: ignore[arg-type]
-        sys.modules["copilot_mvp"] = mod
-        spec.loader.exec_module(mod)  # type: ignore[union-attr]
-        _mvp_mod = mod
-    except Exception:
-        pass
+    with _load_lock:
+        if _mvp_mod is not None:
+            return _mvp_mod
+        try:
+            spec = importlib.util.spec_from_file_location(
+                "copilot_mvp",
+                _REPO_ROOT / "backend" / "copilot_mvp.py",
+            )
+            mod = importlib.util.module_from_spec(spec)  # type: ignore[arg-type]
+            sys.modules["copilot_mvp"] = mod
+            spec.loader.exec_module(mod)  # type: ignore[union-attr]
+            _mvp_mod = mod
+        except Exception:
+            pass
     return _mvp_mod
 
 

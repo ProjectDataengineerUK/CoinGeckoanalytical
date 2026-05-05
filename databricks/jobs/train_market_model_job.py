@@ -105,6 +105,8 @@ def main(spark: Any, catalog: str = DEFAULT_CATALOG, lookback_days: int = DEFAUL
     X_regime = agg_df[regime_feature_cols].values
     y_regime = build_regime_labels(agg_df["avg_price_change_pct_7d"].tolist())
 
+    client = mlflow.tracking.MlflowClient()
+
     with mlflow.start_run(run_name=f"{REGIME_MODEL_NAME}_training") as regime_run:
         regime_model = train_regime_model(X_regime, y_regime)
 
@@ -123,6 +125,19 @@ def main(spark: Any, catalog: str = DEFAULT_CATALOG, lookback_days: int = DEFAUL
         mlflow.log_param("lookback_days", lookback_days)
         mlflow.sklearn.log_model(regime_model, artifact_path="model")
 
+        feature_importance = dict(zip(regime_feature_cols, regime_model.feature_importances_.tolist()))
+        mlflow.log_dict(feature_importance, "feature_importance.json")
+
+        try:
+            prev_versions = client.search_model_versions(f"name='{REGIME_MODEL_NAME}'")
+            prev_champion = next(
+                (v for v in prev_versions if CHAMPION_ALIAS in (v.aliases or [])), None
+            )
+            if prev_champion:
+                mlflow.log_param("previous_champion_version", prev_champion.version)
+        except Exception:
+            pass
+
         MIN_REGIME_CV_ACCURACY = 0.60
         if regime_cv_accuracy < MIN_REGIME_CV_ACCURACY and n_splits >= 2:
             raise ValueError(
@@ -134,7 +149,6 @@ def main(spark: Any, catalog: str = DEFAULT_CATALOG, lookback_days: int = DEFAUL
             model_uri=f"runs:/{regime_run.info.run_id}/model",
             name=REGIME_MODEL_NAME,
         )
-        client = mlflow.tracking.MlflowClient()
         client.set_registered_model_alias(REGIME_MODEL_NAME, CHAMPION_ALIAS, mv.version)
         regime_run_id = regime_run.info.run_id
 

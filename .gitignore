@@ -5,3 +5,18 @@ __pycache__/
 .pytest_cache/
 .mypy_cache/
 .ruff_cache/
+
+# Credentials and secrets — never commit these
+.env
+.env.*
+*.tfvars
+!*.tfvars.example
+*.tfstate
+*.tfstate.backup
+*.pem
+*.key
+*.p12
+*.pfx
+.terraform/
+credentials.json
+service_account*.json

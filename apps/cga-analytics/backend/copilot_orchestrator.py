@@ -1,11 +1,14 @@
 from __future__ import annotations
 
 import json
+import logging
 import re
 import time
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
+
+_log = logging.getLogger(__name__)
 
 
 # ---------------------------------------------------------------------------
@@ -329,7 +332,7 @@ def run_synth_agent(
                 prompt_version=PROMPT_VERSION,
             )
     except Exception:
-        pass
+        _log.exception("SynthAgent failed")
     latency = int((time.monotonic() - started) * 1000)
     return AgentResult(
         agent_name="synth_agent", answer_text="", sources=(),

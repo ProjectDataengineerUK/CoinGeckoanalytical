@@ -3,6 +3,7 @@ from __future__ import annotations
 import importlib.util
 import logging
 import sys
+import threading
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
@@ -15,6 +16,7 @@ if str(_REPO_ROOT) not in sys.path:
 
 _genie_mod: Any = None
 _genie_config: Any = None
+_load_lock = threading.Lock()
 
 
 @dataclass(frozen=True)
@@ -29,18 +31,21 @@ def _load() -> bool:
     global _genie_mod, _genie_config
     if _genie_mod is not None:
         return _genie_config is not None
-    try:
-        spec = importlib.util.spec_from_file_location(
-            "genie_client",
-            _REPO_ROOT / "backend" / "genie_client.py",
-        )
-        mod = importlib.util.module_from_spec(spec)  # type: ignore[arg-type]
-        sys.modules["genie_client"] = mod
-        spec.loader.exec_module(mod)  # type: ignore[union-attr]
-        _genie_mod = mod
-        _genie_config = mod.load_config_from_env()
-    except Exception:
-        pass
+    with _load_lock:
+        if _genie_mod is not None:
+            return _genie_config is not None
+        try:
+            spec = importlib.util.spec_from_file_location(
+                "genie_client",
+                _REPO_ROOT / "backend" / "genie_client.py",
+            )
+            mod = importlib.util.module_from_spec(spec)  # type: ignore[arg-type]
+            sys.modules["genie_client"] = mod
+            spec.loader.exec_module(mod)  # type: ignore[union-attr]
+            _genie_mod = mod
+            _genie_config = mod.load_config_from_env()
+        except Exception:
+            pass
     return _genie_config is not None
 
 

@@ -53,6 +53,13 @@ def main(spark: Any, catalog: str = DEFAULT_CATALOG) -> ScoringResult:
     scores_table = f"{catalog}.{DEFAULT_GOLD_SCHEMA}.{SCORES_TABLE}"
 
     max_date = spark.sql(f"SELECT MAX(feature_date) FROM {features_table}").collect()[0][0]
+    if max_date is None:
+        print(
+            "WARN: feature table is empty — scoring skipped until feature_engineering_job "
+            "populates it. No data will be overwritten."
+        )
+        return ScoringResult(rows_scored=0, regime_used="none", anomaly_used="none")
+
     features_df: pd.DataFrame = (
         spark.table(features_table)
         .filter(f"feature_date = '{max_date}'")
@@ -106,7 +113,18 @@ def main(spark: Any, catalog: str = DEFAULT_CATALOG) -> ScoringResult:
     ]
 
     scores_spark_df = spark.createDataFrame(score_rows)
-    scores_spark_df.write.mode("overwrite").format("delta").saveAsTable(scores_table)
+    scores_spark_df.createOrReplaceTempView("_score_updates")
+    try:
+        spark.sql(f"""
+            MERGE INTO {scores_table} AS t
+            USING _score_updates AS s
+            ON t.asset_id = s.asset_id
+            WHEN MATCHED AND t.scored_at <= s.scored_at THEN UPDATE SET *
+            WHEN NOT MATCHED THEN INSERT *
+        """)
+    except Exception:
+        scores_spark_df.write.format("delta").saveAsTable(scores_table)
+    spark.sql(f"OPTIMIZE {scores_table} ZORDER BY (asset_id, scored_at)")
 
     return ScoringResult(
         rows_scored=len(score_rows),

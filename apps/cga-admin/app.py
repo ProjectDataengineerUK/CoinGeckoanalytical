@@ -26,6 +26,14 @@ def _load_app_secrets() -> None:
         return
     host = raw_host if raw_host.startswith("https://") else f"https://{raw_host}"
 
+    # SEC-06: validate host is a known Databricks domain before sending credentials
+    from urllib.parse import urlparse as _urlparse
+    _hostname = _urlparse(host).hostname or ""
+    _ALLOWED_SUFFIXES = (".azuredatabricks.net", ".gcp.databricks.com", ".databricks.com")
+    if not any(_hostname.endswith(s) for s in _ALLOWED_SUFFIXES):
+        print(f"[cga-admin] secrets bootstrap: untrusted host {_hostname!r} — skipped", file=sys.stderr, flush=True)
+        return
+
     needed = {
         k: v
         for k, v in {
@@ -47,7 +55,7 @@ def _load_app_secrets() -> None:
         with urllib.request.urlopen(req, timeout=15) as resp:
             token = json.loads(resp.read())["access_token"]
     except Exception as exc:
-        print(f"[cga-admin] secrets bootstrap: token error — {exc}", file=sys.stderr, flush=True)
+        print(f"[cga-admin] secrets bootstrap: token error — {type(exc).__name__}", file=sys.stderr, flush=True)
         return
 
     for env_var, (scope, key) in needed.items():
@@ -63,7 +71,7 @@ def _load_app_secrets() -> None:
             if raw:
                 os.environ[env_var] = base64.b64decode(raw).decode("utf-8").strip()
         except Exception as exc:
-            print(f"[cga-admin] secrets bootstrap: {scope}/{key} error — {exc}", file=sys.stderr, flush=True)
+            print(f"[cga-admin] secrets bootstrap: {scope}/{key} error — {type(exc).__name__}", file=sys.stderr, flush=True)
 
 
 _load_app_secrets()
