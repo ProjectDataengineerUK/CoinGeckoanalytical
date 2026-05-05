@@ -24,6 +24,7 @@ def _load() -> bool:
             _REPO_ROOT / "backend" / "databricks_sql_client.py",
         )
         m = importlib.util.module_from_spec(spec)  # type: ignore[arg-type]
+        sys.modules["databricks_sql_client"] = m
         spec.loader.exec_module(m)  # type: ignore[union-attr]
         _mod = m
         _cfg = m.load_config_from_env()

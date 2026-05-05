@@ -38,6 +38,7 @@ def _load() -> Any | None:
             _REPO_ROOT / "backend" / "copilot_mvp.py",
         )
         mod = importlib.util.module_from_spec(spec)  # type: ignore[arg-type]
+        sys.modules["copilot_mvp"] = mod
         spec.loader.exec_module(mod)  # type: ignore[union-attr]
         _mvp_mod = mod
     except Exception:

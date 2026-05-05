@@ -35,6 +35,7 @@ def _load() -> bool:
             _REPO_ROOT / "backend" / "genie_client.py",
         )
         mod = importlib.util.module_from_spec(spec)  # type: ignore[arg-type]
+        sys.modules["genie_client"] = mod
         spec.loader.exec_module(mod)  # type: ignore[union-attr]
         _genie_mod = mod
         _genie_config = mod.load_config_from_env()

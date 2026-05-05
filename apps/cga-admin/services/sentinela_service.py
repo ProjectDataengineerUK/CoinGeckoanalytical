@@ -21,6 +21,7 @@ def _load() -> Any:
             "sentinela", _REPO_ROOT / "backend" / "sentinela.py"
         )
         mod = importlib.util.module_from_spec(spec)  # type: ignore[arg-type]
+        sys.modules["sentinela"] = mod
         spec.loader.exec_module(mod)  # type: ignore[union-attr]
         _sentinela = mod
     except Exception:
