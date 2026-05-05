@@ -1,15 +1,32 @@
 from __future__ import annotations
 
 import dash_bootstrap_components as dbc
-from dash import Input, Output, callback, html
+from dash import Input, Output, callback, dcc, html
 
 from state.app_state import STORE_FRESHNESS, STORE_GENIE
 
 FRESHNESS_BAR_ID = "freshness-bar"
+FRESHNESS_INTERVAL_ID = "freshness-interval"
 
 
 def layout() -> html.Div:
-    return html.Div(id=FRESHNESS_BAR_ID, style={"marginBottom": "8px"})
+    return html.Div(
+        [
+            dcc.Interval(id=FRESHNESS_INTERVAL_ID, interval=60_000, n_intervals=0),
+            html.Div(id=FRESHNESS_BAR_ID),
+        ],
+        style={"marginBottom": "8px"},
+    )
+
+
+@callback(
+    Output(STORE_FRESHNESS, "data"),
+    Input(FRESHNESS_INTERVAL_ID, "n_intervals"),
+)
+def poll_freshness(n: int) -> dict:
+    from services import sql_service
+    wm = sql_service.fetch_market_freshness()
+    return {"market": wm}
 
 
 @callback(

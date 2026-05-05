@@ -84,3 +84,14 @@ def fetch_macro_regime(limit: int = 8) -> list[dict[str, Any]]:
         f"ORDER BY observation_date DESC LIMIT {limit}"
     )
     return run_query(sql)
+
+
+def fetch_market_freshness() -> str | None:
+    catalog = os.environ.get("COINGECKO_CATALOG", "cgadev")
+    rows = run_query(
+        f"SELECT MAX(ingested_at) AS wm FROM {catalog}.market_gold.gold_market_rankings"
+    )
+    if not rows:
+        return None
+    wm = rows[0].get("wm")
+    return str(wm) if wm is not None else None
