@@ -1,9 +1,18 @@
-command: ["python3", "app.py"]
-
 env:
   - name: COINGECKO_CATALOG
     value: "cgadev"
+
+  - name: COINGECKO_SCHEMA
+    value: "ai_serving"
+
   - name: DATABRICKS_SQL_WAREHOUSE_ID
     value: "5907fb5622adb03e"
+
+  - name: SQL_WAREHOUSE_ID
+    value: "5907fb5622adb03e"
+
   - name: DATABRICKS_GENIE_SPACE_ID
+    value: "01f14632855010e6a2ab0d78e3235036"
+
+  - name: GENIE_SPACE_ID
     value: "01f14632855010e6a2ab0d78e3235036"

@@ -15,78 +15,160 @@ for _sp in sorted(_venv_lib.glob("python*/site-packages")):
 def _load_app_secrets() -> None:
     import base64
     import json
-    import urllib.error
     import urllib.parse
     import urllib.request
 
     raw_host = os.environ.get("DATABRICKS_HOST", "").rstrip("/")
     client_id = os.environ.get("DATABRICKS_CLIENT_ID", "")
     client_secret = os.environ.get("DATABRICKS_CLIENT_SECRET", "")
+
     if not (raw_host and client_id and client_secret):
         return
+
     host = raw_host if raw_host.startswith("https://") else f"https://{raw_host}"
 
     # SEC-06: validate host is a known Databricks domain before sending credentials
     from urllib.parse import urlparse as _urlparse
+
     _hostname = _urlparse(host).hostname or ""
-    _ALLOWED_SUFFIXES = (".azuredatabricks.net", ".gcp.databricks.com", ".databricks.com")
+    _ALLOWED_SUFFIXES = (
+        ".azuredatabricks.net",
+        ".gcp.databricks.com",
+        ".databricks.com",
+    )
+
     if not any(_hostname.endswith(s) for s in _ALLOWED_SUFFIXES):
-        print(f"[cga-analytics] secrets bootstrap: untrusted host {_hostname!r} — skipped", file=sys.stderr, flush=True)
+        print(
+            f"[cga-analytics] secrets bootstrap: untrusted host {_hostname!r} — skipped",
+            file=sys.stderr,
+            flush=True,
+        )
         return
 
     needed = {
         k: v
         for k, v in {
-            "DATABRICKS_SQL_WAREHOUSE_ID": ("cga-app-config", "sql_warehouse_id"),
-            "DATABRICKS_GENIE_SPACE_ID": ("cga-app-config", "genie_space_id"),
+            "DATABRICKS_SQL_WAREHOUSE_ID": (
+                "cga-app-config",
+                "sql_warehouse_id",
+            ),
+            "DATABRICKS_GENIE_SPACE_ID": (
+                "cga-app-config",
+                "genie_space_id",
+            ),
         }.items()
         if not os.environ.get(k)
     }
+
     if not needed:
         return
 
     try:
-        body = urllib.parse.urlencode({
-            "grant_type": "client_credentials",
-            "client_id": client_id,
-            "client_secret": client_secret,
-            "scope": "all-apis",
-        }).encode()
-        req = urllib.request.Request(f"{host}/oidc/v1/token", data=body, method="POST")
+        body = urllib.parse.urlencode(
+            {
+                "grant_type": "client_credentials",
+                "client_id": client_id,
+                "client_secret": client_secret,
+                "scope": "all-apis",
+            }
+        ).encode()
+
+        req = urllib.request.Request(
+            f"{host}/oidc/v1/token",
+            data=body,
+            method="POST",
+        )
+
         with urllib.request.urlopen(req, timeout=15) as resp:
             token = json.loads(resp.read())["access_token"]
+
     except Exception as exc:
-        print(f"[cga-analytics] secrets bootstrap: token error — {type(exc).__name__}", file=sys.stderr, flush=True)
+        print(
+            f"[cga-analytics] secrets bootstrap: token error — {type(exc).__name__}",
+            file=sys.stderr,
+            flush=True,
+        )
         return
 
     for env_var, (scope, key) in needed.items():
         try:
-            params = urllib.parse.urlencode({"scope": scope, "key": key})
+            params = urllib.parse.urlencode(
+                {
+                    "scope": scope,
+                    "key": key,
+                }
+            )
+
             req = urllib.request.Request(
                 f"{host}/api/2.0/secrets/get?{params}",
                 headers={"Authorization": f"Bearer {token}"},
                 method="GET",
             )
+
             with urllib.request.urlopen(req, timeout=15) as resp:
                 raw = json.loads(resp.read()).get("value", "")
+
             if raw:
                 os.environ[env_var] = base64.b64decode(raw).decode("utf-8").strip()
+
         except Exception as exc:
-            print(f"[cga-analytics] secrets bootstrap: {scope}/{key} error — {type(exc).__name__}", file=sys.stderr, flush=True)
+            print(
+                f"[cga-analytics] secrets bootstrap: {scope}/{key} error — {type(exc).__name__}",
+                file=sys.stderr,
+                flush=True,
+            )
 
 
 _load_app_secrets()
 
+# ---------------------------------------------------------------------------
+# Normalize environment variables
+# ---------------------------------------------------------------------------
+if os.environ.get("DATABRICKS_GENIE_SPACE_ID") and not os.environ.get("GENIE_SPACE_ID"):
+    os.environ["GENIE_SPACE_ID"] = os.environ["DATABRICKS_GENIE_SPACE_ID"]
+
+if os.environ.get("GENIE_SPACE_ID") and not os.environ.get("DATABRICKS_GENIE_SPACE_ID"):
+    os.environ["DATABRICKS_GENIE_SPACE_ID"] = os.environ["GENIE_SPACE_ID"]
+
+if os.environ.get("DATABRICKS_SQL_WAREHOUSE_ID") and not os.environ.get("SQL_WAREHOUSE_ID"):
+    os.environ["SQL_WAREHOUSE_ID"] = os.environ["DATABRICKS_SQL_WAREHOUSE_ID"]
+
+if os.environ.get("SQL_WAREHOUSE_ID") and not os.environ.get("DATABRICKS_SQL_WAREHOUSE_ID"):
+    os.environ["DATABRICKS_SQL_WAREHOUSE_ID"] = os.environ["SQL_WAREHOUSE_ID"]
+
+print(
+    "[cga-analytics] DATABRICKS_GENIE_SPACE_ID =",
+    os.environ.get("DATABRICKS_GENIE_SPACE_ID"),
+    flush=True,
+)
+print(
+    "[cga-analytics] GENIE_SPACE_ID =",
+    os.environ.get("GENIE_SPACE_ID"),
+    flush=True,
+)
+print(
+    "[cga-analytics] DATABRICKS_SQL_WAREHOUSE_ID =",
+    os.environ.get("DATABRICKS_SQL_WAREHOUSE_ID"),
+    flush=True,
+)
+print(
+    "[cga-analytics] SQL_WAREHOUSE_ID =",
+    os.environ.get("SQL_WAREHOUSE_ID"),
+    flush=True,
+)
+
 import dash
 import dash_bootstrap_components as dbc
-from dash import dcc, html
+from dash import html
 
 # ---------------------------------------------------------------------------
 # Path setup — backend modules importable from repo root
 # ---------------------------------------------------------------------------
 _REPO_ROOT = Path(__file__).resolve().parents[2]
+
 if str(_REPO_ROOT) not in sys.path:
     sys.path.insert(0, str(_REPO_ROOT))
+
 if str(Path(__file__).resolve().parent) not in sys.path:
     sys.path.insert(0, str(Path(__file__).resolve().parent))
 
@@ -99,6 +181,7 @@ app = dash.Dash(
     title="CoinGecko Analytical",
     suppress_callback_exceptions=True,
 )
+
 server = app.server  # Exposed for WSGI servers used by Databricks Apps
 
 # ---------------------------------------------------------------------------
@@ -120,7 +203,10 @@ _NAV = dbc.Navbar(
                         dbc.Col(
                             dbc.NavbarBrand(
                                 "CoinGecko Analytical",
-                                style={"fontWeight": "700", "fontSize": "16px"},
+                                style={
+                                    "fontWeight": "700",
+                                    "fontSize": "16px",
+                                },
                             )
                         ),
                     ],
@@ -151,7 +237,11 @@ _NAV = dbc.Navbar(
     style={"padding": "8px 0"},
 )
 
-_FRESHNESS = dbc.Container(freshness_bar.layout(), fluid=True, style={"paddingTop": "8px"})
+_FRESHNESS = dbc.Container(
+    freshness_bar.layout(),
+    fluid=True,
+    style={"paddingTop": "8px"},
+)
 
 # Three-column main layout:
 #   Left  (3 cols): Genie conversational panel — chart state controller
@@ -190,7 +280,10 @@ _MAIN = dbc.Container(
                 },
             ),
         ],
-        style={"height": "100%", "margin": "0"},
+        style={
+            "height": "100%",
+            "margin": "0",
+        },
     ),
     fluid=True,
     style={"padding": "0"},
@@ -203,7 +296,10 @@ app.layout = html.Div(
         _FRESHNESS,
         _MAIN,
     ],
-    style={"backgroundColor": "#FFFFFF", "minHeight": "100vh"},
+    style={
+        "backgroundColor": "#FFFFFF",
+        "minHeight": "100vh",
+    },
 )
 
 # ---------------------------------------------------------------------------
@@ -213,5 +309,10 @@ if __name__ == "__main__":
     app.run(
         debug=False,
         host="0.0.0.0",
-        port=int(os.environ.get("PORT", os.environ.get("DATABRICKS_APP_PORT", "8050"))),
+        port=int(
+            os.environ.get(
+                "PORT",
+                os.environ.get("DATABRICKS_APP_PORT", "8050"),
+            )
+        ),
     )
