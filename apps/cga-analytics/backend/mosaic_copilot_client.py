@@ -36,6 +36,8 @@ _DEFAULT_ENDPOINT_COMPLEX = "databricks-qwen3-next-80b-a3b-instruct"
 def load_config_from_env(env: dict[str, str] | None = None) -> MosaicConfig | None:
     source = env if env is not None else os.environ
     host = source.get("DATABRICKS_HOST", "").rstrip("/")
+    if host and not host.startswith("https://"):
+        host = f"https://{host}"
     if not host:
         return None
     endpoint_name = source.get("DATABRICKS_MOSAIC_ENDPOINT_NAME", _DEFAULT_ENDPOINT_STANDARD)

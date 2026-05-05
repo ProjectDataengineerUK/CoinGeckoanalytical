@@ -13,17 +13,19 @@ for _sp in sorted(_venv_lib.glob("python*/site-packages")):
 
 
 def _load_app_secrets() -> None:
-    """Load warehouse ID from Databricks secret scope into env vars.
+    import base64
+    import json
+    import urllib.error
+    import urllib.parse
+    import urllib.request
 
-    Runs at startup using the OAuth M2M credentials injected by the
-    Databricks Apps runtime. Fails silently so the app still starts
-    even if secrets are unavailable.
-    """
-    host = os.environ.get("DATABRICKS_HOST", "")
+    raw_host = os.environ.get("DATABRICKS_HOST", "").rstrip("/")
     client_id = os.environ.get("DATABRICKS_CLIENT_ID", "")
     client_secret = os.environ.get("DATABRICKS_CLIENT_SECRET", "")
-    if not (host and client_id and client_secret):
+    if not (raw_host and client_id and client_secret):
         return
+    host = raw_host if raw_host.startswith("https://") else f"https://{raw_host}"
+
     needed = {
         k: v
         for k, v in {
@@ -33,18 +35,35 @@ def _load_app_secrets() -> None:
     }
     if not needed:
         return
+
     try:
-        from databricks.sdk import WorkspaceClient
-        w = WorkspaceClient(host=host, client_id=client_id, client_secret=client_secret)
-        for env_var, (scope, key) in needed.items():
-            try:
-                val = w.secrets.get_secret(scope=scope, key=key).value
-                if val:
-                    os.environ[env_var] = val
-            except Exception:
-                pass
-    except Exception:
-        pass
+        body = urllib.parse.urlencode({
+            "grant_type": "client_credentials",
+            "client_id": client_id,
+            "client_secret": client_secret,
+            "scope": "all-apis",
+        }).encode()
+        req = urllib.request.Request(f"{host}/oidc/v1/token", data=body, method="POST")
+        with urllib.request.urlopen(req, timeout=15) as resp:
+            token = json.loads(resp.read())["access_token"]
+    except Exception as exc:
+        print(f"[cga-admin] secrets bootstrap: token error — {exc}", file=sys.stderr, flush=True)
+        return
+
+    for env_var, (scope, key) in needed.items():
+        try:
+            params = urllib.parse.urlencode({"scope": scope, "key": key})
+            req = urllib.request.Request(
+                f"{host}/api/2.0/secrets/get?{params}",
+                headers={"Authorization": f"Bearer {token}"},
+                method="GET",
+            )
+            with urllib.request.urlopen(req, timeout=15) as resp:
+                raw = json.loads(resp.read()).get("value", "")
+            if raw:
+                os.environ[env_var] = base64.b64decode(raw).decode("utf-8").strip()
+        except Exception as exc:
+            print(f"[cga-admin] secrets bootstrap: {scope}/{key} error — {exc}", file=sys.stderr, flush=True)
 
 
 _load_app_secrets()

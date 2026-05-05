@@ -30,6 +30,8 @@ class GenieConfig:
 def load_config_from_env(env: dict[str, str] | None = None) -> GenieConfig | None:
     source = env if env is not None else os.environ
     host = source.get("DATABRICKS_HOST", "").rstrip("/")
+    if host and not host.startswith("https://"):
+        host = f"https://{host}"
     space_id = source.get("DATABRICKS_GENIE_SPACE_ID", "")
     if not host or not space_id:
         return None

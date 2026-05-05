@@ -38,6 +38,8 @@ class DatabricksSQLConfig:
 def load_config_from_env(env: dict[str, str] | None = None) -> DatabricksSQLConfig | None:
     source = env if env is not None else os.environ
     host = source.get("DATABRICKS_HOST", "").rstrip("/")
+    if host and not host.startswith("https://"):
+        host = f"https://{host}"
     warehouse_id = source.get("DATABRICKS_SQL_WAREHOUSE_ID", "")
     if not host or not warehouse_id:
         return None
