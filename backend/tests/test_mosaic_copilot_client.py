@@ -32,5 +32,47 @@ class TestLoadConfigFromEnv(unittest.TestCase):
         self.assertIsNone(client.load_config_from_env(env))
 
 
+class TestResponseParsing(unittest.TestCase):
+    def test_extracts_text_from_responses_output_blocks(self) -> None:
+        payload = {
+            "output": [
+                {
+                    "type": "reasoning",
+                    "summary": [
+                        {"type": "summary_text", "text": "reasoning text"},
+                    ],
+                },
+                {
+                    "type": "text",
+                    "text": "Oi! Como posso ajudar você hoje?",
+                },
+            ]
+        }
+
+        self.assertEqual(
+            client._extract_answer_text(payload),
+            "reasoning text\n\nOi! Como posso ajudar você hoje?",
+        )
+
+    def test_extracts_text_from_stringified_block_list(self) -> None:
+        payload = {
+            "choices": [
+                {
+                    "message": {
+                        "content": (
+                            "[{'type': 'reasoning', 'summary': [{'type': 'summary_text', "
+                            "'text': 'resumo interno'}]}, {'type': 'text', 'text': 'Resposta final'}]"
+                        )
+                    }
+                }
+            ]
+        }
+
+        self.assertEqual(
+            client._extract_answer_text(payload),
+            "resumo interno\n\nResposta final",
+        )
+
+
 if __name__ == "__main__":
     unittest.main()

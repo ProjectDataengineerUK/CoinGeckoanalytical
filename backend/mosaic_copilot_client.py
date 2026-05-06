@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import ast
 import json
 import os
 import threading
@@ -67,6 +68,61 @@ def _resolve_endpoint(config: MosaicConfig, tier: str) -> str:
     if tier == "complex" and config.endpoint_name_complex:
         return config.endpoint_name_complex
     return config.endpoint_name
+
+
+def _extract_text_from_content(content: Any) -> str:
+    if isinstance(content, str):
+        stripped = content.strip()
+        if stripped.startswith("[") or stripped.startswith("{"):
+            for parser in (json.loads, ast.literal_eval):
+                try:
+                    parsed = parser(stripped)
+                    extracted = _extract_text_from_content(parsed)
+                    if extracted:
+                        return extracted
+                except Exception:
+                    continue
+        return stripped
+
+    if isinstance(content, dict):
+        for key in ("text", "output_text", "content"):
+            extracted = _extract_text_from_content(content.get(key))
+            if extracted:
+                return extracted
+        summary = content.get("summary")
+        extracted = _extract_text_from_content(summary)
+        if extracted:
+            return extracted
+        return ""
+
+    if isinstance(content, list):
+        parts: list[str] = []
+        for item in content:
+            extracted = _extract_text_from_content(item)
+            if extracted:
+                parts.append(extracted)
+        return "\n\n".join(parts).strip()
+
+    return ""
+
+
+def _extract_answer_text(data: dict[str, Any]) -> str:
+    choices: list[dict[str, Any]] = data.get("choices") or []
+    if choices:
+        message = choices[0].get("message") or {}
+        extracted = _extract_text_from_content(message.get("content"))
+        if extracted:
+            return extracted
+
+    extracted = _extract_text_from_content(data.get("output"))
+    if extracted:
+        return extracted
+
+    extracted = _extract_text_from_content(data.get("content"))
+    if extracted:
+        return extracted
+
+    return ""
 
 
 def _get_bearer_token(config: MosaicConfig) -> str:
@@ -156,11 +212,7 @@ def ask_mosaic(
 
     latency_ms = int((time.monotonic() - started_at) * 1000)
 
-    choices: list[dict[str, Any]] = data.get("choices") or []
-    answer_text = ""
-    if choices:
-        message = choices[0].get("message") or {}
-        answer_text = message.get("content") or ""
+    answer_text = _extract_answer_text(data)
 
     model_id = str(data.get("model", ""))
     token_count_hint = int((data.get("usage") or {}).get("total_tokens", 0))
