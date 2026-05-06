@@ -136,7 +136,8 @@ def ask_mosaic(
             time.sleep(_BACKOFF_BASE ** attempt)
         try:
             with urllib.request.urlopen(req, timeout=config.timeout_seconds) as resp:
-                data: dict[str, Any] = json.loads(resp.read())
+                raw = resp.read()
+            data: dict[str, Any] = json.loads(raw)
             last_exc = None
             break
         except urllib.error.HTTPError as exc:
@@ -154,7 +155,7 @@ def ask_mosaic(
             latency_ms = int((time.monotonic() - started_at) * 1000)
             return MosaicAnswer(
                 answer_text="", model_id="", token_count_hint=0,
-                latency_ms=latency_ms, execution_status="failed",
+                latency_ms=latency_ms, execution_status=f"http_{exc.code}",
             )
         except urllib.error.URLError as exc:
             last_exc = exc
@@ -162,7 +163,16 @@ def ask_mosaic(
             latency_ms = int((time.monotonic() - started_at) * 1000)
             return MosaicAnswer(
                 answer_text="", model_id="", token_count_hint=0,
-                latency_ms=latency_ms, execution_status="failed",
+                latency_ms=latency_ms, execution_status="url_error",
+            )
+        except json.JSONDecodeError as exc:
+            last_exc = exc
+            _log.error("Mosaic JSON parse error for endpoint %s (body prefix: %r): %s",
+                       endpoint, raw[:120] if "raw" in dir() else b"", exc)
+            latency_ms = int((time.monotonic() - started_at) * 1000)
+            return MosaicAnswer(
+                answer_text="", model_id="", token_count_hint=0,
+                latency_ms=latency_ms, execution_status="json_parse_error",
             )
 
     if last_exc is not None:

@@ -354,3 +354,17 @@ resources:
             environment_version: "2"
             dependencies: []
 
+    model_drift_monitoring_job:
+      name: model_drift_monitoring_job
+      description: Detect regime classifier drift via PSI and write alerts to Gold ops tables.
+      tasks:
+        - task_key: monitor_drift
+          spark_python_task:
+            python_file: ./jobs/model_drift_monitoring_job.py
+          environment_key: default
+      environments:
+        - environment_key: default
+          spec:
+            environment_version: "2"
+            dependencies: []
+

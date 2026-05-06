@@ -89,10 +89,11 @@ def fetch_market_rankings(limit: int = 12) -> list[dict[str, Any]]:
             symbol,
             name,
             price_usd,
-            price_change_pct_24h,
+            CAST(NULL AS DOUBLE) AS price_change_pct_24h,
             market_cap_usd,
             volume_24h_usd,
-            market_cap_rank
+            market_cap_rank,
+            observed_at
         FROM {_table("mv_market_rankings")}
         ORDER BY market_cap_rank ASC
         LIMIT {int(limit)}
@@ -101,7 +102,7 @@ def fetch_market_rankings(limit: int = 12) -> list[dict[str, Any]]:
 
 
 def fetch_top_movers(limit: int = 10) -> list[dict[str, Any]]:
-    sql = f"""
+    primary_sql = f"""
         SELECT
             asset_id,
             symbol,
@@ -114,21 +115,58 @@ def fetch_top_movers(limit: int = 10) -> list[dict[str, Any]]:
         ORDER BY ABS(price_change_pct_24h) DESC NULLS LAST
         LIMIT {int(limit)}
     """
-    return run_query(sql)
+    rows = run_query(primary_sql)
+    if rows:
+        return rows
+
+    fallback_sql = f"""
+        SELECT
+            asset_id,
+            symbol,
+            asset_id AS name,
+            price_change_pct_24h,
+            price_change_pct_7d,
+            volume_24h_usd,
+            market_cap_usd
+        FROM {_table("mv_cross_asset_compare")}
+        ORDER BY ABS(price_change_pct_24h) DESC NULLS LAST
+        LIMIT {int(limit)}
+    """
+    return run_query(fallback_sql)
 
 
 def fetch_defi_protocols(limit: int = 10) -> list[dict[str, Any]]:
-    # Não apareceu no Genie/log uma view DeFi em ai_serving.
-    # Mantém fallback vazio para não quebrar dashboard.
-    print("[SQL SERVICE] fetch_defi_protocols: view DeFi não configurada em ai_serving.", flush=True)
-    return []
+    sql = f"""
+        SELECT
+            protocol_slug,
+            name AS protocol_name,
+            tvl_usd,
+            fees_24h_usd,
+            revenue_24h_usd,
+            mcap_tvl_ratio,
+            enriched_at
+        FROM {_table("mv_defi_protocols")}
+        WHERE quality_status = 'pass'
+        ORDER BY tvl_usd DESC NULLS LAST
+        LIMIT {int(limit)}
+    """
+    return run_query(sql)
 
 
 def fetch_macro_regime(limit: int = 8) -> list[dict[str, Any]]:
-    # Não apareceu no Genie/log uma view macro em ai_serving.
-    # Mantém fallback vazio para não quebrar dashboard.
-    print("[SQL SERVICE] fetch_macro_regime: view macro não configurada em ai_serving.", flush=True)
-    return []
+    sql = f"""
+        SELECT
+            series_name,
+            latest_date AS observation_date,
+            current_value AS value,
+            regime_label,
+            change_30d_pct
+        FROM {_table("mv_macro_regime")}
+        WHERE quality_status = 'pass'
+        ORDER BY latest_date DESC, series_name ASC
+        LIMIT {int(limit)}
+    """
+    return run_query(sql)
 
 
 def fetch_market_freshness() -> str | None:

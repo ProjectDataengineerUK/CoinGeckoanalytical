@@ -263,6 +263,13 @@ def build_copilot_response(request: CopilotRequest) -> dict[str, Any]:
 
     tier = tier_classification.tier.value if tier_classification is not None else "standard"
 
+    _endpoint_tried = (
+        _mosaic._resolve_endpoint(mosaic_config, tier)
+        if (_mosaic is not None and mosaic_config is not None)
+        else None
+    )
+    _mosaic_fail_status: str | None = None
+
     # Multi-agent orchestrator path for complex cross-domain questions
     if tier == "complex" and _mosaic is not None and mosaic_config is not None:
         _orchestrator = _load_orchestrator()
@@ -356,9 +363,11 @@ def build_copilot_response(request: CopilotRequest) -> dict[str, Any]:
                         },
                     )
                 )
+            _mosaic_fail_status = answer.execution_status
         except Exception as _mosaic_exc:
             import logging as _log
             _log.getLogger(__name__).warning("Mosaic fallback failed: %s", _mosaic_exc, exc_info=True)
+            _mosaic_fail_status = type(_mosaic_exc).__name__
             # L7: if complex tier failed, try standard tier before giving up
             if tier == "complex" and _mosaic is not None and mosaic_config is not None:
                 try:
@@ -387,10 +396,22 @@ def build_copilot_response(request: CopilotRequest) -> dict[str, Any]:
                 except Exception:
                     pass
 
-    response_text = (
-        "Resposta de copilot MVP: use o agente para analise narrativa, com "
-        "provenance, frescor e policy context."
-    )
+    if _endpoint_tried and _mosaic_fail_status:
+        response_text = (
+            f"Copilot offline — endpoint '{_endpoint_tried}' retornou: {_mosaic_fail_status}. "
+            "Verifique se o endpoint existe no workspace Databricks. "
+            "Para substituir, defina DATABRICKS_MOSAIC_ENDPOINT_NAME no ambiente da app."
+        )
+    elif _endpoint_tried:
+        response_text = (
+            f"Copilot offline — endpoint '{_endpoint_tried}' nao respondeu. "
+            "Verifique a configuracao do workspace."
+        )
+    else:
+        response_text = (
+            "Copilot offline — DATABRICKS_HOST nao configurado ou inacessivel. "
+            "Verifique as variaveis de ambiente da app."
+        )
     return serialize_response_envelope(
         ResponseEnvelope(
             request_id=request.request_id,
