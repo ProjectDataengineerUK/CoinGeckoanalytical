@@ -99,6 +99,66 @@ def fetch_cost_by_tenant() -> list[dict[str, Any]]:
     )
 
 
+def fetch_cost_latency_trend(hours: int = 72) -> list[dict[str, Any]]:
+    cat = _ops_catalog()
+    return run(
+        f"SELECT route_selected, hour_bucket, event_count, avg_latency_ms, max_latency_ms, "
+        f"total_cost_estimate, stale_freshness_count "
+        f"FROM {cat}.ops_observability.ops_cost_latency_trend "
+        f"WHERE hour_bucket >= CURRENT_TIMESTAMP() - INTERVAL {hours} HOURS "
+        f"ORDER BY hour_bucket DESC, route_selected"
+    )
+
+
+def fetch_ready_overview() -> list[dict[str, Any]]:
+    cat = _ops_catalog()
+    return run(
+        f"SELECT route_rows, ready_routes, hold_routes, total_events, total_errors, "
+        f"total_cost_estimate, peak_latency_ms, stale_freshness_count "
+        f"FROM {cat}.ops_observability.ops_ready_overview"
+    )
+
+
+def fetch_route_readiness_latest() -> list[dict[str, Any]]:
+    cat = _ops_catalog()
+    return run(
+        f"SELECT route_selected, readiness_status, hour_bucket, event_count, success_count, "
+        f"partial_count, refused_count, error_count, max_latency_ms, avg_latency_ms, total_tokens, "
+        f"total_cost_estimate, stale_freshness_count, policy_max_latency_ms, "
+        f"policy_max_cost_estimate, policy_max_total_tokens "
+        f"FROM {cat}.ops_observability.ops_route_readiness_latest "
+        f"ORDER BY route_selected"
+    )
+
+
+def fetch_alert_backlog() -> list[dict[str, Any]]:
+    cat = _ops_catalog()
+    return run(
+        f"SELECT alert_kind, route_selected, alert_count, latest_event_time "
+        f"FROM {cat}.ops_observability.ops_alert_backlog "
+        f"ORDER BY alert_count DESC, latest_event_time DESC"
+    )
+
+
+def fetch_bundle_run_status() -> list[dict[str, Any]]:
+    cat = _ops_catalog()
+    return run(
+        f"SELECT job_name, bundle_readiness_status, run_count, success_count, failed_count, "
+        f"cancelled_count, running_count, latest_update_time, max_duration_ms, avg_duration_ms, "
+        f"latest_run_id, latest_status, latest_result_state, latest_run_state, serving_status "
+        f"FROM {cat}.ops_observability.ops_bundle_run_status "
+        f"ORDER BY latest_update_time DESC"
+    )
+
+
+def fetch_sentinela_alert_status() -> list[dict[str, Any]]:
+    cat = _ops_catalog()
+    return run(
+        f"SELECT sentinela_alert_status, total_alerts, bundle_alerts, runtime_alerts "
+        f"FROM {cat}.ops_observability.ops_sentinela_alert_status"
+    )
+
+
 # ---------------------------------------------------------------------------
 # Sentinela alerts
 # BUG-02: use actual DDL columns (created_at, kind) not alert_time/severity

@@ -94,7 +94,7 @@ app = dash.Dash(
 )
 server = app.server
 
-from pages import sentinela, pipeline_health, cost_monitor, access_mgmt, audit_trail  # noqa: E402
+from pages import sentinela, pipeline_health, cost_monitor, access_mgmt, audit_trail, architecture_ops  # noqa: E402
 from state import admin_state  # noqa: E402
 
 # ---------------------------------------------------------------------------
@@ -105,6 +105,7 @@ _NAV_ITEMS = [
     ("sentinela",      "◉",  "Sentinela",      "Alertas e observabilidade"),
     ("pipeline",       "⚙️", "Pipeline Health", "Status de ingestão"),
     ("cost",           "💰", "Custo & Tokens",  "LLMOps telemetria"),
+    ("architecture",   "🗺️", "Arquitetura",     "Infra, recursos e otimização"),
     ("access",         "🔐", "Acessos",          "Tenants e grupos"),
     ("audit",          "🔍", "Audit Trail",     "Rastreabilidade"),
 ]
@@ -188,6 +189,7 @@ _PAGE_MAP = {
     "/sentinela": sentinela.layout,
     "/pipeline": pipeline_health.layout,
     "/cost": cost_monitor.layout,
+    "/architecture": architecture_ops.layout,
     "/access": access_mgmt.layout,
     "/audit": audit_trail.layout,
     "/": sentinela.layout,

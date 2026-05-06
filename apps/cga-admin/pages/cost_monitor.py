@@ -11,6 +11,8 @@ KPI_ROW_ID = "cost-kpi-row"
 CHART_DAILY_ID = "cost-daily-chart"
 CHART_TIER_ID = "cost-tier-chart"
 TABLE_TENANT_ID = "cost-tenant-table"
+INFRA_TABLE_ID = "cost-infra-table"
+OPTIMIZATION_ID = "cost-optimization-list"
 
 _TIER_COLOR = {"light": "#10B981", "standard": "#3B82F6", "complex": "#EF4444"}
 _TIER_LABEL = {
@@ -61,6 +63,32 @@ def layout() -> html.Div:
                 ],
                 className="shadow-sm",
             ),
+            dbc.Row(
+                [
+                    dbc.Col(
+                        dbc.Card(
+                            [
+                                dbc.CardHeader(_card_header("🧱", "Infra & Recursos Databricks")),
+                                dbc.CardBody(html.Div(id=INFRA_TABLE_ID)),
+                            ],
+                            className="shadow-sm h-100",
+                        ),
+                        width=7,
+                        className="mt-3",
+                    ),
+                    dbc.Col(
+                        dbc.Card(
+                            [
+                                dbc.CardHeader(_card_header("💡", "Oportunidades de Otimização")),
+                                dbc.CardBody(html.Div(id=OPTIMIZATION_ID)),
+                            ],
+                            className="shadow-sm h-100",
+                        ),
+                        width=5,
+                        className="mt-3",
+                    ),
+                ]
+            ),
         ],
         style={"padding": "16px"},
     )
@@ -71,6 +99,8 @@ def layout() -> html.Div:
     Output(CHART_DAILY_ID, "figure"),
     Output(CHART_TIER_ID, "figure"),
     Output(TABLE_TENANT_ID, "children"),
+    Output(INFRA_TABLE_ID, "children"),
+    Output(OPTIMIZATION_ID, "children"),
     Input(REFRESH_BTN_ID, "n_clicks"),
     prevent_initial_call=False,
 )
@@ -80,10 +110,14 @@ def refresh_cost(n_clicks):
     tier_rows = ops_service.fetch_cost_by_tier() or _mock_tier_summary()
     daily_rows = ops_service.fetch_daily_spend(14) or _mock_daily()
     tenant_rows = ops_service.fetch_cost_by_tenant() or _mock_tenants()
+    route_rows = ops_service.fetch_route_readiness_latest() or _mock_route_readiness()
+    bundle_rows = ops_service.fetch_bundle_run_status() or _mock_bundle_status()
 
     total_cost = sum(r.get("total_cost_usd", 0) or 0 for r in tier_rows)
     total_tokens = sum(r.get("total_tokens", 0) or 0 for r in tier_rows)
     total_requests = sum(r.get("requests", 0) or 0 for r in tier_rows)
+    infra_rows = _build_infra_rows(route_rows, bundle_rows)
+    opportunities = _build_cost_opportunities(route_rows, bundle_rows)
 
     kpi_row = dbc.Row(
         [
@@ -99,6 +133,8 @@ def refresh_cost(n_clicks):
         _build_daily_chart(daily_rows),
         _build_tier_pie(tier_rows),
         _render_tenant_table(tenant_rows),
+        _render_infra_table(infra_rows),
+        _render_optimization_list(opportunities),
     )
 
 
@@ -194,6 +230,126 @@ def _render_tenant_table(rows: list[dict]) -> html.Div:
     )
 
 
+def _build_infra_rows(route_rows: list[dict], bundle_rows: list[dict]) -> list[dict]:
+    route_map = {row.get("route_selected", ""): row for row in route_rows}
+    return [
+        {
+            "resource": "SQL Warehouse / Genie",
+            "category": "consulta governada",
+            "cost": float((route_map.get("genie") or {}).get("total_cost_estimate", 0) or 0),
+            "latency": int((route_map.get("genie") or {}).get("avg_latency_ms", 0) or 0),
+            "status": (route_map.get("genie") or {}).get("readiness_status", "hold"),
+        },
+        {
+            "resource": "Mosaic AI / Copilot",
+            "category": "narrativa AI",
+            "cost": float((route_map.get("copilot") or {}).get("total_cost_estimate", 0) or 0),
+            "latency": int((route_map.get("copilot") or {}).get("avg_latency_ms", 0) or 0),
+            "status": (route_map.get("copilot") or {}).get("readiness_status", "hold"),
+        },
+        {
+            "resource": "Dashboard API",
+            "category": "payload analítico",
+            "cost": float((route_map.get("dashboard_api") or {}).get("total_cost_estimate", 0) or 0),
+            "latency": int((route_map.get("dashboard_api") or {}).get("avg_latency_ms", 0) or 0),
+            "status": (route_map.get("dashboard_api") or {}).get("readiness_status", "hold"),
+        },
+        {
+            "resource": "Databricks Jobs",
+            "category": "ingestão e refresh",
+            "cost": 0.0,
+            "latency": int(max((row.get("avg_duration_ms", 0) or 0) for row in bundle_rows) if bundle_rows else 0),
+            "status": "ready" if all((row.get("bundle_readiness_status") == "ready") for row in bundle_rows) else "hold",
+        },
+    ]
+
+
+def _render_infra_table(rows: list[dict]) -> html.Div:
+    return dbc.Table(
+        [
+            html.Thead(html.Tr([
+                html.Th("Recurso", style={"fontSize": "12px"}),
+                html.Th("Categoria", style={"fontSize": "12px"}),
+                html.Th("Custo", style={"fontSize": "12px"}),
+                html.Th("Latência / Duração", style={"fontSize": "12px"}),
+                html.Th("Status", style={"fontSize": "12px"}),
+            ])),
+            html.Tbody([
+                html.Tr([
+                    html.Td(html.Strong(row["resource"], style={"fontSize": "11px"})),
+                    html.Td(row["category"], style={"fontSize": "11px"}),
+                    html.Td(f"${row['cost']:.4f}", style={"fontSize": "11px", "fontWeight": "600"}),
+                    html.Td(f"{row['latency']} ms", style={"fontSize": "11px"}),
+                    html.Td(
+                        dbc.Badge(
+                            "verde" if row["status"] == "ready" else "amarelo",
+                            color="success" if row["status"] == "ready" else "warning",
+                            pill=True,
+                        )
+                    ),
+                ])
+                for row in rows
+            ]),
+        ],
+        bordered=False,
+        striped=True,
+        hover=True,
+        size="sm",
+        responsive=True,
+    )
+
+
+def _build_cost_opportunities(route_rows: list[dict], bundle_rows: list[dict]) -> list[dict]:
+    items: list[dict] = []
+    for row in route_rows:
+        route = row.get("route_selected", "?")
+        cost = float(row.get("total_cost_estimate", 0) or 0)
+        latency = int(row.get("avg_latency_ms", 0) or 0)
+        policy = float(row.get("policy_max_cost_estimate", 0) or 0)
+        if policy and cost >= policy * 0.8:
+            items.append({
+                "title": f"Reduzir custo da rota {route}",
+                "detail": f"Custo em ${cost:.4f} próximo do teto ${policy:.4f}.",
+                "color": "warning",
+            })
+        if latency >= 1000:
+            items.append({
+                "title": f"Otimizar latência da rota {route}",
+                "detail": f"Latência média de {latency} ms indica oportunidade de simplificar o caminho.",
+                "color": "danger",
+            })
+    if any((row.get("failed_count", 0) or 0) > 0 for row in bundle_rows):
+        items.append({
+            "title": "Reduzir custo de rerun de jobs",
+            "detail": "Há jobs com falhas recentes; estabilizar ingestões evita recomputação e atraso.",
+            "color": "danger",
+        })
+    if not items:
+        items.append({
+            "title": "Sem alertas fortes de custo",
+            "detail": "O baseline atual está dentro do envelope esperado de AI e operação.",
+            "color": "success",
+        })
+    return items[:6]
+
+
+def _render_optimization_list(items: list[dict]) -> html.Div:
+    return html.Div(
+        [
+            dbc.Alert(
+                [
+                    html.Div(item["title"], style={"fontWeight": "700", "fontSize": "12px"}),
+                    html.Div(item["detail"], style={"fontSize": "11px"}),
+                ],
+                color=item["color"],
+                className="mb-2",
+                style={"padding": "10px 12px"},
+            )
+            for item in items
+        ]
+    )
+
+
 def _base_layout(height: int) -> dict:
     return {
         "height": height,
@@ -234,4 +390,19 @@ def _mock_tenants() -> list[dict]:
         {"tenant_id": "tenant_alpha", "model_tier": "complex", "requests": 22, "total_tokens": 110_000, "total_cost_usd": 2.75},
         {"tenant_id": "tenant_beta", "model_tier": "standard", "requests": 180, "total_tokens": 320_000, "total_cost_usd": 1.28},
         {"tenant_id": "default", "model_tier": "light", "requests": 640, "total_tokens": 280_000, "total_cost_usd": 0.224},
+    ]
+
+
+def _mock_route_readiness() -> list[dict]:
+    return [
+        {"route_selected": "genie", "readiness_status": "hold", "avg_latency_ms": 240, "total_cost_estimate": 0.004, "policy_max_cost_estimate": 0.02},
+        {"route_selected": "copilot", "readiness_status": "ready", "avg_latency_ms": 820, "total_cost_estimate": 0.041, "policy_max_cost_estimate": 0.05},
+        {"route_selected": "dashboard_api", "readiness_status": "ready", "avg_latency_ms": 120, "total_cost_estimate": 0.003, "policy_max_cost_estimate": 0.005},
+    ]
+
+
+def _mock_bundle_status() -> list[dict]:
+    return [
+        {"job_name": "market_source_ingestion_job", "bundle_readiness_status": "ready", "failed_count": 0, "avg_duration_ms": 1800},
+        {"job_name": "defillama_ingestion_job", "bundle_readiness_status": "hold", "failed_count": 1, "avg_duration_ms": 4200},
     ]
