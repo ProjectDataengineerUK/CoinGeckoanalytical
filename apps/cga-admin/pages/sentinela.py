@@ -102,7 +102,8 @@ def refresh_sentinela(n_clicks):
     ready = readiness.get("ready", False)
     score = readiness.get("score", 0)
     blockers = readiness.get("blockers", [])
-    readiness_card = _readiness_kpi(ready, score, blockers)
+    warnings = readiness.get("warnings", [])
+    readiness_card = _readiness_kpi(ready, score, blockers, warnings)
 
     # Alert count badges
     counts_row = _alert_count_badges(alert_counts or alert_rows)
@@ -124,10 +125,17 @@ def refresh_sentinela(n_clicks):
 # Sub-renderers
 # ---------------------------------------------------------------------------
 
-def _readiness_kpi(ready: bool, score: int | float, blockers: list) -> html.Div:
-    color = "#16A34A" if ready else "#DC2626"
-    label = "PRONTO" if ready else "BLOQUEADO"
-    blocker_labels = [_blocker_label(blocker) for blocker in blockers[:4]]
+def _readiness_kpi(ready: bool, score: int | float, blockers: list, warnings: list | None = None) -> html.Div:
+    warnings = warnings or []
+    kinds = {_blocker_label(blocker) for blocker in blockers}
+    warning_kinds = {_blocker_label(warning) for warning in warnings}
+    limited_monitoring = (
+        ("missing_telemetry" in kinds and len(kinds) == 1)
+        or ("missing_telemetry" in warning_kinds and len(warning_kinds) == 1)
+    )
+    color = "#D97706" if limited_monitoring else ("#16A34A" if ready else "#DC2626")
+    label = "MONITORAR" if limited_monitoring else ("PRONTO" if ready else "BLOQUEADO")
+    blocker_labels = [_blocker_label(blocker) for blocker in (blockers or warnings)[:4]]
     return html.Div(
         [
             html.Div(
@@ -136,9 +144,17 @@ def _readiness_kpi(ready: bool, score: int | float, blockers: list) -> html.Div:
             ),
             html.Div(f"Score: {score}", style={"fontSize": "13px", "color": "#6B7280"}),
             html.Div(
-                [dbc.Badge(text, color="danger", pill=True, className="me-1 mb-1") for text in blocker_labels],
+                [
+                    dbc.Badge(
+                        text,
+                        color="warning" if limited_monitoring else "danger",
+                        pill=True,
+                        className="me-1 mb-1",
+                    )
+                    for text in blocker_labels
+                ],
                 style={"marginTop": "6px"},
-            ) if blockers else html.Small("Sem bloqueadores", style={"color": "#16A34A"}),
+            ) if (blockers or warnings) else html.Small("Sem bloqueadores", style={"color": "#16A34A"}),
         ]
     )
 
@@ -249,7 +265,7 @@ def _assurance_card(title: str, value: str, subtitle: str, color: str) -> dbc.Ca
 def _model_confidence(readiness: dict, usage_rows: list[dict]) -> int:
     checks = list(readiness.get("checks") or [])
     if checks:
-        passed = sum(1 for check in checks if check.get("passed"))
+        passed = sum(1 for check in checks if _check_passed(check))
         total = len(checks)
         return int(round((passed / max(total, 1)) * 100))
     total = len(usage_rows)
@@ -273,6 +289,12 @@ def _confidence_subtitle(confidence: int) -> str:
     if confidence >= 60:
         return "exige monitoramento"
     return "instável ou bloqueado"
+
+
+def _check_passed(check: dict) -> bool:
+    if "passed" in check:
+        return bool(check.get("passed"))
+    return str(check.get("status", "")).lower() == "pass"
 
 
 def _render_alert_list(rows: list[dict]) -> html.Div:

@@ -55,11 +55,40 @@ def evaluate_readiness(
     try:
         result = mod.evaluate_release_readiness(usage_events, bundle_runs=bundle_events)
         checks = list(result.get("checks") or [])
-        passed = sum(1 for check in checks if check.get("passed"))
+        passed = sum(1 for check in checks if _check_passed(check))
         total = len(checks)
         score = int(round((passed / total) * 100)) if total else 0
+        blockers = list(result.get("blockers") or [])
+        if _only_missing_telemetry(blockers) and _bundle_runs_healthy(bundle_events):
+            result["warnings"] = blockers
+            result["blockers"] = []
+            result["ready"] = True
+            result["operational_state"] = "monitoring_limited"
         result["score"] = score
         return result
     except Exception:
         _LOG.error("Sentinela readiness evaluation failed", exc_info=True)
         return {"ready": False, "blockers": ["sentinela_error"], "score": 0}
+
+
+def _check_passed(check: dict[str, Any]) -> bool:
+    if "passed" in check:
+        return bool(check.get("passed"))
+    return str(check.get("status", "")).lower() == "pass"
+
+
+def _only_missing_telemetry(blockers: list[dict[str, Any] | str]) -> bool:
+    if not blockers:
+        return False
+    kinds = {
+        blocker.get("kind") if isinstance(blocker, dict) else str(blocker)
+        for blocker in blockers
+    }
+    return kinds == {"missing_telemetry"}
+
+
+def _bundle_runs_healthy(bundle_events: list[dict[str, Any]]) -> bool:
+    if not bundle_events:
+        return True
+    healthy_states = {"SUCCESS", "SUCCEEDED", "COMPLETED"}
+    return all(str(event.get("status", "")).upper() in healthy_states for event in bundle_events)

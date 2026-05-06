@@ -36,6 +36,22 @@ class _FakeSentinela:
         }
 
 
+class _StatusSentinela:
+    @staticmethod
+    def evaluate_release_readiness(events, policy=None, bundle_runs=None):
+        return {
+            "ready": False,
+            "checks": [
+                {"name": "telemetry_present", "status": "fail"},
+                {"name": "bundle_runs_failure_free", "status": "pass"},
+                {"name": "alert_free", "status": "pass"},
+            ],
+            "blockers": [{"kind": "missing_telemetry"}],
+            "bundle_runs_seen": bundle_runs,
+            "policy_seen": policy,
+        }
+
+
 class SentinelaServiceTests(unittest.TestCase):
     def test_evaluate_readiness_passes_bundle_runs_by_keyword_and_computes_score(self) -> None:
         original = sentinela_service._load
@@ -51,6 +67,23 @@ class SentinelaServiceTests(unittest.TestCase):
         self.assertEqual(result["bundle_runs_seen"], [{"job_name": "market_source_ingestion_job"}])
         self.assertIsNone(result["policy_seen"])
         self.assertEqual(result["score"], 67)
+
+    def test_evaluate_readiness_uses_status_checks_and_downgrades_missing_telemetry(self) -> None:
+        original = sentinela_service._load
+        try:
+            sentinela_service._load = lambda: _StatusSentinela()
+            result = sentinela_service.evaluate_readiness(
+                usage_events=[],
+                bundle_events=[{"job_name": "market_source_ingestion_job", "status": "SUCCESS"}],
+            )
+        finally:
+            sentinela_service._load = original
+
+        self.assertTrue(result["ready"])
+        self.assertEqual(result["score"], 67)
+        self.assertEqual(result["blockers"], [])
+        self.assertEqual(result["operational_state"], "monitoring_limited")
+        self.assertEqual(result["warnings"], [{"kind": "missing_telemetry"}])
 
 
 if __name__ == "__main__":
