@@ -138,6 +138,9 @@ def send_copilot_message(n_clicks: int, message: str, history: list, assets_stat
         "cost": result.cost_estimate,
     })
 
+    is_stub = "mvp_stub_response" in (result.warnings or [])
+    is_unavailable = result.model_tier in ("unavailable", "error")
+
     tier_label = _TIER_LABELS.get(result.model_tier, result.model_tier)
     tier_color = _TIER_COLORS.get(result.model_tier, "secondary")
     tier_badge = [
@@ -151,6 +154,17 @@ def send_copilot_message(n_clicks: int, message: str, history: list, assets_stat
     if result.cost_estimate is not None:
         tier_badge.append(
             dbc.Badge(f"~${result.cost_estimate:.5f}", color="secondary", pill=True, className="ms-1")
+        )
+    if is_stub or is_unavailable:
+        tier_badge.append(
+            dbc.Badge(
+                "⚠ sem conexão com AI — verifique DATABRICKS_HOST e endpoints",
+                color="warning",
+                text_color="dark",
+                pill=True,
+                className="ms-1",
+                style={"fontSize": "10px"},
+            )
         )
 
     return _render_history(new_history), new_history, tier_badge, ""
