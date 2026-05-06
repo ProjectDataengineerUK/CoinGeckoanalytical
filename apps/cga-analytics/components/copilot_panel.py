@@ -1,12 +1,15 @@
 from __future__ import annotations
 
 import datetime
+import logging
 import uuid
 
 import dash_bootstrap_components as dbc
 from dash import Input, Output, State, callback, dcc, html
 
 from state.app_state import STORE_ASSETS, STORE_COPILOT
+
+_LOG = logging.getLogger(__name__)
 
 # ---------------------------------------------------------------------------
 # Component IDs
@@ -125,18 +128,30 @@ def send_copilot_message(n_clicks: int, message: str, history: list, assets_stat
 
     new_history = list(history or [])
     new_history.append({"role": "user", "text": message.strip(), "tier": None, "ts": ts})
+    _LOG.info(
+        "Copilot callback fired: clicks=%s selected_assets=%s",
+        n_clicks,
+        ",".join(selected) if selected else "-",
+    )
 
     result = copilot_service.ask(message.strip(), selected_assets=selected)
+    assistant_text = result.body.strip() or "Copilot retornou uma resposta vazia."
 
     new_history.append({
         "role": "assistant",
-        "text": result.body,
+        "text": assistant_text,
         "tier": result.model_tier,
         "ts": ts,
         "citations": result.citations,
         "orchestrated": result.orchestrated,
         "cost": result.cost_estimate,
     })
+    _LOG.info(
+        "Copilot callback completed: tier=%s orchestrated=%s warnings=%s",
+        result.model_tier,
+        result.orchestrated,
+        ",".join(result.warnings) if result.warnings else "-",
+    )
 
     is_stub = "mvp_stub_response" in (result.warnings or [])
     is_unavailable = result.model_tier in ("unavailable", "error")

@@ -47,7 +47,7 @@ def _load() -> Any | None:
             spec.loader.exec_module(mod)  # type: ignore[union-attr]
             _mvp_mod = mod
         except Exception:
-            pass
+            _log.error("Failed to load app-local copilot backend", exc_info=True)
     return _mvp_mod
 
 
@@ -57,6 +57,15 @@ def ask(
     tenant_id: str = "default",
     user_id: str | None = None,
 ) -> CopilotResult:
+    clean_message = message.strip()
+    asset_list = list(selected_assets or [])
+    _log.info(
+        "Copilot request received: tenant=%s user=%s assets=%d chars=%d",
+        tenant_id,
+        user_id or "-",
+        len(asset_list),
+        len(clean_message),
+    )
     mod = _load()
     if mod is None:
         return CopilotResult(
@@ -75,10 +84,10 @@ def ask(
         tenant_id=tenant_id,
         user_id=user_id,
         conversation_id=str(uuid.uuid4()),
-        message_text=message,
+        message_text=clean_message,
         conversation_summary=None,
         retrieval_scope="market_gold",
-        selected_assets=selected_assets or [],
+        selected_assets=asset_list,
         time_range=None,
         policy_context={},
         locale="pt-BR",
@@ -87,13 +96,24 @@ def ask(
         response = mod.build_copilot_response(request)
         routing = response.get("routing") or {}
         latency = int((time.monotonic() - started) * 1000)
+        body = str(response.get("body") or "").strip()
+        if not body:
+            body = "Copilot sem resposta útil no momento. Verifique a configuração dos endpoints AI."
+        model_tier = routing.get("model_tier") or "standard"
+        warnings = list(response.get("warnings") or [])
+        _log.info(
+            "Copilot response ready: tier=%s latency_ms=%s warnings=%s",
+            model_tier,
+            routing.get("latency_ms") or latency,
+            ",".join(warnings) if warnings else "-",
+        )
         return CopilotResult(
-            body=response.get("body", ""),
-            model_tier=routing.get("model_tier") or "standard",
+            body=body,
+            model_tier=model_tier,
             latency_ms=routing.get("latency_ms") or latency,
             cost_estimate=routing.get("cost_estimate"),
             citations=response.get("citations") or [],
-            warnings=response.get("warnings") or [],
+            warnings=warnings,
             orchestrated=bool(routing.get("orchestrated")),
         )
     except Exception:

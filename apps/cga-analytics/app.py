@@ -156,6 +156,26 @@ print(
     os.environ.get("SQL_WAREHOUSE_ID"),
     flush=True,
 )
+print(
+    "[cga-analytics] DATABRICKS_HOST =",
+    os.environ.get("DATABRICKS_HOST"),
+    flush=True,
+)
+print(
+    "[cga-analytics] DATABRICKS_MOSAIC_ENDPOINT_NAME =",
+    os.environ.get("DATABRICKS_MOSAIC_ENDPOINT_NAME", "databricks-gpt-oss-120b"),
+    flush=True,
+)
+print(
+    "[cga-analytics] DATABRICKS_MOSAIC_ENDPOINT_LIGHT =",
+    os.environ.get("DATABRICKS_MOSAIC_ENDPOINT_LIGHT", "databricks-gemma-3-12b"),
+    flush=True,
+)
+print(
+    "[cga-analytics] DATABRICKS_MOSAIC_ENDPOINT_COMPLEX =",
+    os.environ.get("DATABRICKS_MOSAIC_ENDPOINT_COMPLEX", "databricks-qwen3-next-80b-a3b-instruct"),
+    flush=True,
+)
 
 import dash
 import dash_bootstrap_components as dbc
