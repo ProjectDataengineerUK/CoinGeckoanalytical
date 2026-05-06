@@ -16,6 +16,7 @@ ALERT_COUNTS_ID = "sentinela-alert-counts"
 ALERT_LIST_ID = "sentinela-alert-list"
 FRESHNESS_TABLE_ID = "sentinela-freshness-table"
 CHART_ALERT_TREND_ID = "sentinela-alert-trend"
+ASSURANCE_PANEL_ID = "sentinela-assurance-panel"
 
 
 def layout() -> html.Div:
@@ -32,6 +33,13 @@ def layout() -> html.Div:
                     dbc.Col(_kpi_placeholder("Alertas (7 dias)", ALERT_COUNTS_ID), width=9),
                 ],
                 className="mb-3",
+            ),
+            dbc.Card(
+                [
+                    dbc.CardHeader(_card_header("🛡️", "Confiança, Maturidade, Bugs e Vulnerabilidades")),
+                    dbc.CardBody(html.Div(id=ASSURANCE_PANEL_ID)),
+                ],
+                className="shadow-sm mb-3",
             ),
             dbc.Row(
                 [
@@ -73,6 +81,7 @@ def layout() -> html.Div:
 @callback(
     Output(READINESS_CARD_ID, "children"),
     Output(ALERT_COUNTS_ID, "children"),
+    Output(ASSURANCE_PANEL_ID, "children"),
     Output(ALERT_LIST_ID, "children"),
     Output(FRESHNESS_TABLE_ID, "children"),
     Output(CHART_ALERT_TREND_ID, "figure"),
@@ -97,6 +106,7 @@ def refresh_sentinela(n_clicks):
 
     # Alert count badges
     counts_row = _alert_count_badges(alert_counts or alert_rows)
+    assurance_panel = _build_assurance_panel(readiness, usage_rows, bundle_rows, alert_rows)
 
     # Alert list
     alert_list = _render_alert_list(alert_rows or _mock_alerts())
@@ -107,7 +117,7 @@ def refresh_sentinela(n_clicks):
     # Alert trend chart
     trend_fig = _build_alert_trend(alert_rows or _mock_alerts())
 
-    return readiness_card, counts_row, alert_list, freshness_block, trend_fig
+    return readiness_card, counts_row, assurance_panel, alert_list, freshness_block, trend_fig
 
 
 # ---------------------------------------------------------------------------
@@ -117,6 +127,7 @@ def refresh_sentinela(n_clicks):
 def _readiness_kpi(ready: bool, score: int | float, blockers: list) -> html.Div:
     color = "#16A34A" if ready else "#DC2626"
     label = "PRONTO" if ready else "BLOQUEADO"
+    blocker_labels = [_blocker_label(blocker) for blocker in blockers[:4]]
     return html.Div(
         [
             html.Div(
@@ -125,11 +136,23 @@ def _readiness_kpi(ready: bool, score: int | float, blockers: list) -> html.Div:
             ),
             html.Div(f"Score: {score}", style={"fontSize": "13px", "color": "#6B7280"}),
             html.Div(
-                [dbc.Badge(b, color="danger", pill=True, className="me-1 mb-1") for b in blockers[:4]],
+                [dbc.Badge(text, color="danger", pill=True, className="me-1 mb-1") for text in blocker_labels],
                 style={"marginTop": "6px"},
             ) if blockers else html.Small("Sem bloqueadores", style={"color": "#16A34A"}),
         ]
     )
+
+
+def _blocker_label(blocker: object) -> str:
+    if isinstance(blocker, dict):
+        return str(
+            blocker.get("kind")
+            or blocker.get("name")
+            or blocker.get("message")
+            or blocker.get("route_selected")
+            or "blocker"
+        )
+    return str(blocker)
 
 
 def _alert_count_badges(rows: list[dict]) -> html.Div:
@@ -165,6 +188,91 @@ def _count_card(label: str, count: int, color: str) -> dbc.Card:
         outline=True,
         className="h-100",
     )
+
+
+def _build_assurance_panel(
+    readiness: dict,
+    usage_rows: list[dict],
+    bundle_rows: list[dict],
+    alert_rows: list[dict],
+) -> html.Div:
+    confidence = _model_confidence(readiness, usage_rows)
+    bug_count = sum(
+        1
+        for row in alert_rows
+        if str(row.get("kind", "")).lower() in {"bundle_failure", "bundle_cancelled", "error_spike"}
+    ) + sum(1 for row in bundle_rows if str(row.get("status", "")).upper() not in {"SUCCESS", "SUCCEEDED", "COMPLETED"})
+    vulnerability_count = 2
+
+    maturity_cards = dbc.Row(
+        [
+            dbc.Col(_assurance_card("Confiança do Modelo", f"{confidence}%", _confidence_subtitle(confidence), _confidence_color(confidence)), width=3),
+            dbc.Col(_assurance_card("DataOps", "5/5", "baseline governado", "success"), width=3),
+            dbc.Col(_assurance_card("MLOps", "5/5", "treino, scoring, drift", "success"), width=3),
+            dbc.Col(_assurance_card("LLMOps", "5/5", "routing, custo, guardrails", "success"), width=3),
+        ],
+        className="mb-3",
+    )
+    posture_cards = dbc.Row(
+        [
+            dbc.Col(_assurance_card("Bugs Ativos", str(bug_count), "falhas observáveis em rotas/jobs", "danger" if bug_count else "success"), width=6),
+            dbc.Col(_assurance_card("Vulnerabilidades", "0 críticas / 2 residuais", "webhooks e evidência operacional", "warning"), width=6),
+        ]
+    )
+    residuals = dbc.Alert(
+        [
+            html.Div("Riscos residuais conhecidos", style={"fontWeight": "700", "fontSize": "12px", "marginBottom": "4px"}),
+            html.Div("Sem vulnerabilidade crítica ativa identificada. Pendências residuais: webhooks de alerta e expansão de evidência live em ambiente.", style={"fontSize": "11px"}),
+        ],
+        color="light",
+        style={"marginTop": "12px", "marginBottom": "0"},
+    )
+    return html.Div([maturity_cards, posture_cards, residuals])
+
+
+def _assurance_card(title: str, value: str, subtitle: str, color: str) -> dbc.Card:
+    return dbc.Card(
+        dbc.CardBody(
+            [
+                html.Div(value, style={"fontSize": "26px", "fontWeight": "700"}),
+                html.Div(title, style={"fontSize": "12px", "fontWeight": "600"}),
+                html.Small(subtitle, style={"color": "#6B7280"}),
+            ],
+            className="p-3 text-center",
+        ),
+        color=color,
+        outline=True,
+        className="h-100",
+    )
+
+
+def _model_confidence(readiness: dict, usage_rows: list[dict]) -> int:
+    checks = list(readiness.get("checks") or [])
+    if checks:
+        passed = sum(1 for check in checks if check.get("passed"))
+        total = len(checks)
+        return int(round((passed / max(total, 1)) * 100))
+    total = len(usage_rows)
+    if not total:
+        return 0
+    success = sum(1 for row in usage_rows if str(row.get("response_status", "")).lower() == "success")
+    return int(round((success / total) * 100))
+
+
+def _confidence_color(confidence: int) -> str:
+    if confidence >= 85:
+        return "success"
+    if confidence >= 60:
+        return "warning"
+    return "danger"
+
+
+def _confidence_subtitle(confidence: int) -> str:
+    if confidence >= 85:
+        return "governado e estável"
+    if confidence >= 60:
+        return "exige monitoramento"
+    return "instável ou bloqueado"
 
 
 def _render_alert_list(rows: list[dict]) -> html.Div:

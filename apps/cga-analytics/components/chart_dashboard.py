@@ -19,6 +19,7 @@ CHART_DEFI_ID = "chart-defi"
 CHART_MACRO_ID = "chart-macro"
 CHART_ACTIVE_BADGE_ID = "chart-active-badge"
 CHART_GENIE_RESULT_ID = "chart-genie-result"
+CHART_INTEL_ROW_ID = "chart-intel-row"
 
 
 # ---------------------------------------------------------------------------
@@ -33,6 +34,8 @@ def layout() -> html.Div:
 
             # Genie custom result table (shown when SQL returns non-chart data)
             html.Div(id=CHART_GENIE_RESULT_ID, style={"marginBottom": "12px"}),
+
+            html.Div(id=CHART_INTEL_ROW_ID, style={"marginBottom": "12px"}),
 
             # 2x2 chart grid
             dbc.Row(
@@ -102,6 +105,7 @@ def layout() -> html.Div:
     Output(CHART_MACRO_ID, "figure"),
     Output(CHART_ACTIVE_BADGE_ID, "children"),
     Output(CHART_GENIE_RESULT_ID, "children"),
+    Output(CHART_INTEL_ROW_ID, "children"),
     Input(STORE_GENIE, "data"),
     Input(STORE_ASSETS, "data"),
 )
@@ -144,6 +148,7 @@ def update_charts(genie_state: dict, assets_state: dict):
     movers = sql_service.fetch_top_movers(10) or _mock_movers()
     defi = sql_service.fetch_defi_protocols(10) or _mock_defi()
     macro = sql_service.fetch_macro_regime(8) or _mock_macro()
+    freshness = sql_service.fetch_market_freshness()
 
     # If Genie returned data compatible with rankings schema, override
     if active_sql and genie_status == "completed":
@@ -162,6 +167,7 @@ def update_charts(genie_state: dict, assets_state: dict):
         _build_macro_chart(macro),
         badge,
         genie_result_block,
+        _build_intel_row(rankings, movers, macro, genie_state or {}, selected_assets, freshness),
     )
 
 
@@ -317,6 +323,128 @@ def _build_result_table(rows: list[dict], label: str) -> list:
             ]
         )
     ]
+
+
+def _build_intel_row(
+    rankings: list[dict],
+    movers: list[dict],
+    macro: list[dict],
+    genie_state: dict,
+    selected_assets: list[str],
+    freshness: str | None,
+) -> dbc.Row:
+    return dbc.Row(
+        [
+            dbc.Col(_market_regime_card(macro, freshness), width=4),
+            dbc.Col(_watchlist_card(rankings, movers, selected_assets), width=4),
+            dbc.Col(_answer_context_card(genie_state, selected_assets), width=4),
+        ],
+        className="g-3",
+    )
+
+
+def _market_regime_card(macro: list[dict], freshness: str | None) -> dbc.Card:
+    latest: dict[str, dict] = {}
+    for row in macro:
+        name = str(row.get("series_name", "unknown"))
+        if name not in latest:
+            latest[name] = row
+    fed = latest.get("Fed Funds Rate") or latest.get("fed funds rate") or {}
+    cpi = latest.get("CPI YoY") or latest.get("cpi yoy") or {}
+    m2 = latest.get("M2 Growth") or latest.get("m2 growth") or {}
+
+    fed_value = fed.get("value")
+    cpi_value = cpi.get("value")
+    m2_value = m2.get("value")
+    if fed_value is not None and cpi_value is not None and m2_value is not None:
+        if fed_value <= 4.0 and cpi_value <= 3.0 and m2_value >= 3.0:
+            regime = ("Construtivo para risco", "success")
+        elif fed_value >= 4.5 or cpi_value >= 3.5:
+            regime = ("Restritivo / defensivo", "warning")
+        else:
+            regime = ("Neutro / observação", "secondary")
+    else:
+        regime = ("Sem regime consolidado", "secondary")
+
+    return dbc.Card(
+        dbc.CardBody(
+            [
+                html.Div("🌍 Regime de Mercado", style={"fontSize": "12px", "fontWeight": "700", "marginBottom": "8px"}),
+                dbc.Badge(regime[0], color=regime[1], pill=True, className="mb-2"),
+                html.Div(f"Fed: {fed_value if fed_value is not None else '—'}", style={"fontSize": "11px"}),
+                html.Div(f"CPI: {cpi_value if cpi_value is not None else '—'}", style={"fontSize": "11px"}),
+                html.Div(f"M2: {m2_value if m2_value is not None else '—'}", style={"fontSize": "11px"}),
+                html.Hr(style={"margin": "8px 0"}),
+                html.Small(f"Freshness mercado: {freshness or 'indisponível'}", style={"color": "#6B7280"}),
+            ]
+        ),
+        className="shadow-sm h-100",
+    )
+
+
+def _watchlist_card(rankings: list[dict], movers: list[dict], selected_assets: list[str]) -> dbc.Card:
+    positive = sorted(
+        [row for row in movers if (row.get("price_change_pct_24h") or 0) > 0],
+        key=lambda row: row.get("price_change_pct_24h", 0),
+        reverse=True,
+    )
+    negative = sorted(
+        [row for row in movers if (row.get("price_change_pct_24h") or 0) < 0],
+        key=lambda row: row.get("price_change_pct_24h", 0),
+    )
+    selected = ", ".join(selected_assets) if selected_assets else "mercado amplo"
+    top_cap = rankings[0].get("symbol", "BTC") if rankings else "BTC"
+    return dbc.Card(
+        dbc.CardBody(
+            [
+                html.Div("🎯 Oportunidades & Riscos", style={"fontSize": "12px", "fontWeight": "700", "marginBottom": "8px"}),
+                html.Div(f"Foco atual: {selected}", style={"fontSize": "11px", "marginBottom": "6px"}),
+                html.Div(f"Líder de cap: {top_cap}", style={"fontSize": "11px", "marginBottom": "6px"}),
+                html.Div(
+                    f"Melhor momentum: {positive[0].get('symbol', '—')} ({(positive[0].get('price_change_pct_24h') or 0):.2f}%)"
+                    if positive else "Melhor momentum: —",
+                    style={"fontSize": "11px", "color": "#166534"},
+                ),
+                html.Div(
+                    f"Maior risco 24h: {negative[0].get('symbol', '—')} ({(negative[0].get('price_change_pct_24h') or 0):.2f}%)"
+                    if negative else "Maior risco 24h: —",
+                    style={"fontSize": "11px", "color": "#991B1B", "marginTop": "4px"},
+                ),
+            ]
+        ),
+        className="shadow-sm h-100",
+    )
+
+
+def _answer_context_card(genie_state: dict, selected_assets: list[str]) -> dbc.Card:
+    status = genie_state.get("status", "idle")
+    sql = genie_state.get("sql")
+    answer_text = genie_state.get("answer_text", "")
+    source = "Genie governado" if sql and status == "completed" else "painel padrão"
+    confidence_label = {
+        "completed": ("Alta", "success"),
+        "failed": ("Baixa", "danger"),
+        "unavailable": ("Baixa", "danger"),
+        "idle": ("Média", "secondary"),
+    }.get(status, ("Média", "secondary"))
+    return dbc.Card(
+        dbc.CardBody(
+            [
+                html.Div("🧭 Por que estou vendo isso?", style={"fontSize": "12px", "fontWeight": "700", "marginBottom": "8px"}),
+                dbc.Badge(source, color="primary" if source == "Genie governado" else "secondary", pill=True, className="me-2"),
+                dbc.Badge(f"Confiança: {confidence_label[0]}", color=confidence_label[1], pill=True),
+                html.Div(
+                    f"Ativos selecionados: {', '.join(selected_assets) if selected_assets else 'nenhum filtro explícito'}",
+                    style={"fontSize": "11px", "marginTop": "8px"},
+                ),
+                html.Div(
+                    f"Resumo ativo: {str(answer_text)[:120] + ('…' if len(str(answer_text)) > 120 else '')}" if answer_text else "Sem resposta ativa do Genie.",
+                    style={"fontSize": "11px", "color": "#6B7280", "marginTop": "6px"},
+                ),
+            ]
+        ),
+        className="shadow-sm h-100",
+    )
 
 
 # ---------------------------------------------------------------------------
