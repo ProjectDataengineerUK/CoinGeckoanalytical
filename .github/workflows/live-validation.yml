@@ -1,0 +1,52 @@
+name: live-validation
+
+on:
+  workflow_dispatch:
+    inputs:
+      target:
+        description: Databricks bundle target
+        required: true
+        default: dev
+        type: choice
+        options:
+          - dev
+          - staging
+          - prod
+
+permissions:
+  id-token: write
+  contents: read
+
+jobs:
+  live-sql-validation:
+    runs-on: ubuntu-latest
+    env:
+      DATABRICKS_HOST: ${{ secrets.DATABRICKS_HOST }}
+      DATABRICKS_TOKEN: ${{ secrets.DATABRICKS_TOKEN }}
+      DATABRICKS_CLIENT_ID: ${{ secrets.DATABRICKS_CLIENT_ID }}
+      DATABRICKS_CLIENT_SECRET: ${{ secrets.DATABRICKS_CLIENT_SECRET }}
+      DATABRICKS_SQL_WAREHOUSE_ID: ${{ secrets.DATABRICKS_SQL_WAREHOUSE_ID }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install validation dependencies
+        run: python3 -m pip install --upgrade pip pyyaml
+
+      - name: Validate bundle contract first
+        run: python3 databricks/tools/validate_bundle.py
+
+      - name: Run live SQL validation
+        env:
+          DATABRICKS_BUNDLE_TARGET: ${{ inputs.target }}
+        run: python3 databricks/tools/live_sql_validation.py
+
+      - name: Upload live SQL validation artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: databricks-live-sql-validation-${{ inputs.target }}
+          path: databricks/live_sql_validation_results.json

@@ -8,7 +8,9 @@ Use AgentCodex as the workflow and domain guidance layer for Codex-based develop
 
 Current stack direction:
 
-- external frontend for the public product surface
+- Databricks Apps as the primary product surface
+- `cga-analytics` for the main user-facing experience
+- `cga-admin` for internal operations and governance
 - Databricks for ingestion, ETL, governance, analytics, model lifecycle, and AI
 - Sentinela for multi-agent coordination and observability
 - Portuguese-first UI and responses in V1

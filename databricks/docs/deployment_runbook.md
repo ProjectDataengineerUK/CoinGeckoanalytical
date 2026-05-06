@@ -164,3 +164,4 @@ Treat the `market overview intelligence` data plane as live-validated only when:
 
 - wire the deployment runbook into CI or a release checklist when the workspace and CLI are available
 - in GitHub Actions, add `DATABRICKS_SQL_WAREHOUSE_ID` as a secret to publish the `databricks-live-sql-validation` artifact after deploy
+- use `.github/workflows/live-validation.yml` when a live SQL verification run is needed without a full deploy

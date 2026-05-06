@@ -9,11 +9,17 @@ import urllib.parse
 import urllib.request
 from dataclasses import dataclass
 from typing import Any
+from urllib.parse import urlparse
 
 _TOKEN_CACHE: dict[str, tuple[str, float]] = {}
 _TOKEN_CACHE_LOCK = threading.Lock()
 
 _TERMINAL_STATUSES = {"COMPLETED", "FAILED", "CANCELLED", "QUERY_RESULT_EXPIRED"}
+_ALLOWED_DATABRICKS_HOST_SUFFIXES = (
+    ".azuredatabricks.net",
+    ".gcp.databricks.com",
+    ".databricks.com",
+)
 
 
 @dataclass(frozen=True)
@@ -32,6 +38,9 @@ def load_config_from_env(env: dict[str, str] | None = None) -> GenieConfig | Non
     host = source.get("DATABRICKS_HOST", "").rstrip("/")
     if host and not host.startswith("https://"):
         host = f"https://{host}"
+    hostname = urlparse(host).hostname or ""
+    if host and not any(hostname.endswith(suffix) for suffix in _ALLOWED_DATABRICKS_HOST_SUFFIXES):
+        return None
     space_id = source.get("DATABRICKS_GENIE_SPACE_ID", "")
     if not host or not space_id:
         return None

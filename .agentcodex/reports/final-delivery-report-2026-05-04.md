@@ -1,7 +1,7 @@
 # Final Delivery Report — CoinGeckoAnalytical
 
 **Date:** 2026-05-04  
-**Status:** All 15+ project blocks DONE · 346 tests passing · CI green (lint + contract) · Deploy in progress
+**Status:** All 15+ project blocks DONE · 355 validated tests in the latest repo-local sweep · CI green (lint + contract) · Live baseline online
 
 ---
 
@@ -15,7 +15,7 @@
 | governanca | ✅ DONE | uc_grants_job, unity_catalog_foundation.sql, GRANT automation |
 | lineage | ✅ DONE | unity-catalog-lineage-map.md, UC System Tables |
 | execucao | ✅ DONE | All 22 jobs scheduled in DABs, CI gate |
-| validacao | ✅ DONE | 346 tests, validate_bundle, chain validators, live_sql_validation |
+| validacao | ✅ DONE | 355 validated tests in the latest local sweep, validate_bundle, chain validators, live_sql_validation path |
 | observabilidade | ✅ DONE | Sentinela every 15 min, ops views, cga-admin surface |
 | access control | ✅ DONE | uc_grants_job automates GRANTs; confirm_uc_grants CI trigger |
 | data contracts | ✅ DONE | 7 JSON schema contracts + Gold data contracts + CI step |
@@ -136,7 +136,7 @@
 
 ```
 lint (compileall)
-  └→ contract (346 tests + bundle validation + chain validators)
+  └→ contract (355 validated tests in the latest local sweep + bundle validation + chain validators)
        └→ deploy (bundle deploy + 20 pipeline jobs) [confirm_deploy]
             ├→ deploy_apps (start cga-analytics + cga-admin) [confirm_apps_deploy]
             ├→ uc_grants (bundle deploy + uc_grants_job + rls_migration_job) [confirm_uc_grants]
@@ -158,7 +158,7 @@ These items are **not blocking V1** but would be required for full production ha
 5. **Rate limiting** — No rate limiting on the copilot API surface. The per-tier budget cap is a cost control, not an abuse guard.
 6. **Multi-tenancy** — RLS per user_id is implemented, but tenant-level data isolation beyond the row filter is not defined. Needed if serving multiple organisations.
 7. **API versioning** — The BFF routing endpoints have no version prefix. Breaking changes would affect all callers.
-8. **Integration tests** — 346 tests are unit tests against fakes/stubs. No integration tests run against a real Databricks SQL warehouse in CI (live_sql_validation only runs on deploy, not on PR).
+8. **Integration tests** — The 355 validated tests in the latest local sweep are still predominantly unit tests against fakes/stubs. A non-deploy live validation path now exists via `live-validation.yml`, but PR-time real warehouse validation is still intentionally controlled.
 
 ---
 
@@ -173,10 +173,8 @@ These items are **not blocking V1** but would be required for full production ha
 
 ## Next Steps (Recommended Order)
 
-1. **Fix remaining Serverless deploy errors** (in progress) — score_market_assets MLflow registry + silver_enrichment decimal schema
-2. **Confirm deploy succeeds end-to-end** — all 6 CI jobs green
-3. **Run `confirm_uc_grants`** — execute GRANTs and RLS in the live workspace
-4. **Run `confirm_train`** — train first models after Silver data is populated
-5. **Configure Genie Space** — manual step in Databricks workspace
-6. **Set up notification webhooks** — Sentinela → Slack/PagerDuty
-7. **Promote to staging** — trigger `bundle deploy -t staging` with real API keys
+1. **Add rate limiting** on the copilot surface to complement the existing budget cap
+2. **Set up notification webhooks** — Sentinela → Slack/PagerDuty
+3. **Strengthen DR posture** — Delta backup/recovery runbook + environment evidence
+4. **Promote to staging/prod more safely** — automate promotion flow beyond manual `bundle deploy -t staging`
+5. **Increase live integration depth** — add pre-deploy or non-prod live validation outside the deploy-only path

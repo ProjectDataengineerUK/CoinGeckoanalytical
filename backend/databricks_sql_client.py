@@ -10,9 +10,15 @@ import urllib.parse
 import urllib.request
 from dataclasses import dataclass
 from typing import Any
+from urllib.parse import urlparse
 
 _TOKEN_CACHE: dict[str, tuple[str, float]] = {}
 _TOKEN_CACHE_LOCK = threading.Lock()
+_ALLOWED_DATABRICKS_HOST_SUFFIXES = (
+    ".azuredatabricks.net",
+    ".gcp.databricks.com",
+    ".databricks.com",
+)
 
 # Allowlist for asset_id values supplied by users to prevent SQL injection.
 _SAFE_ASSET_ID_RE = re.compile(r"^[a-z0-9][a-z0-9\-_]{0,63}$")
@@ -40,6 +46,9 @@ def load_config_from_env(env: dict[str, str] | None = None) -> DatabricksSQLConf
     host = source.get("DATABRICKS_HOST", "").rstrip("/")
     if host and not host.startswith("https://"):
         host = f"https://{host}"
+    hostname = urlparse(host).hostname or ""
+    if host and not any(hostname.endswith(suffix) for suffix in _ALLOWED_DATABRICKS_HOST_SUFFIXES):
+        return None
     warehouse_id = source.get("DATABRICKS_SQL_WAREHOUSE_ID", "")
     if not host or not warehouse_id:
         return None

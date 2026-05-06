@@ -12,6 +12,6 @@ This slice provides the first grounded market-answer workflow.
 
 ## Current Limitations
 
-- this is a stub implementation
-- production retrieval and model serving are not wired yet
-- Databricks endpoints and Unity Catalog objects remain design-time placeholders
+- runtime still depends on live Databricks credentials and serving endpoints being present in the target workspace
+- rate limiting and abuse protection are still pending hardening work
+- PR-time integration tests against a live SQL warehouse are still absent; live validation remains deploy/runtime evidence

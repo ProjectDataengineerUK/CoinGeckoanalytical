@@ -48,6 +48,13 @@ class TestLoadConfigFromEnv(unittest.TestCase):
     def test_returns_none_when_both_missing(self) -> None:
         self.assertIsNone(client.load_config_from_env({}))
 
+    def test_returns_none_when_host_is_not_a_databricks_domain(self) -> None:
+        env = {
+            "DATABRICKS_HOST": "https://evil.example.com",
+            "DATABRICKS_SQL_WAREHOUSE_ID": "wh-abc",
+        }
+        self.assertIsNone(client.load_config_from_env(env))
+
     def test_strips_trailing_slash_from_host(self) -> None:
         env = {
             "DATABRICKS_HOST": "https://adb-123.azuredatabricks.net/",

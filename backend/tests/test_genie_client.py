@@ -132,6 +132,11 @@ class TestLoadConfigFromEnv(unittest.TestCase):
     def test_returns_none_when_both_host_and_space_id_missing(self) -> None:
         self.assertIsNone(gc.load_config_from_env({}))
 
+    def test_returns_none_when_host_is_not_a_databricks_domain(self) -> None:
+        env = dict(_BASE_ENV)
+        env["DATABRICKS_HOST"] = "https://evil.example.com"
+        self.assertIsNone(gc.load_config_from_env(env))
+
     def test_strips_trailing_slash_from_host(self) -> None:
         env = dict(_BASE_ENV)
         env["DATABRICKS_HOST"] = "https://adb-123.azuredatabricks.net/"

@@ -75,11 +75,11 @@ Status as of 2026-05-03:
 
 - `contexto` — DONE
 - `arquitetura` — DONE
-- `dados` — DONE (Bronze → Silver → Gold, 20 jobs: market + enrichment + ops + MLOps + governance)
+- `dados` — DONE (Bronze → Silver → Gold, 22 jobs across market, enrichment, ops, MLOps, governance, and compliance)
 - `governanca` — DONE (`uc_grants_job` executes foundation SQL as CI-triggerable Databricks job)
 - `lineage` — DONE (`unity-catalog-lineage-map.md`, automated lineage via UC System Tables optional)
 - `execucao` — DONE (all jobs scheduled in DABs, CI gate)
-- `validacao` — DONE (350+ tests, validate_bundle, validate chains, live_sql_validation)
+- `validacao` — DONE (355 tests, validate_bundle, validate chains, live_sql_validation path, compile validation)
 - `observabilidade` — DONE (`sentinela_evaluation_job` scheduled every 15 min, ops views, cga-admin surfaces)
 - `access control` — DONE (`uc_grants_job` automates GRANT execution; triggered via `confirm_uc_grants` workflow_dispatch)
 - `data contracts` — DONE (7 JSON schema contracts + Gold data contracts doc + contract CI step)
@@ -91,10 +91,10 @@ Status as of 2026-05-03:
 
 ## Current Repository State
 
-All build sequences complete. CI green. Zero manual steps remaining.
+Live baseline online. CI green. Future Databricks and Terraform mutations still require explicit approval and workflow_dispatch execution.
 
 **Data Pipeline**
-- Bronze → Silver → Gold medallion, 20 jobs (market + enrichment + ops + MLOps + governance + compliance)
+- Bronze → Silver → Gold medallion, 22 jobs (market + enrichment + ops + MLOps + governance + compliance)
 - `ops_readiness_refresh_job` creates Gold views and Genie metric views on schedule
 
 **Backend**
@@ -117,7 +117,7 @@ All build sequences complete. CI green. Zero manual steps remaining.
 
 ## Workspace Activation (runtime only — requires live credentials)
 
-Three `workflow_dispatch` triggers to activate the workspace in order:
+Three `workflow_dispatch` triggers remain the controlled path for future workspace mutations:
 
 1. `confirm_deploy=true` — deploys bundle + runs full data pipeline (Bronze→Silver→Gold→MLOps)
 2. `confirm_uc_grants=true` — runs `uc_grants_job` (GRANT statements) + `rls_migration_job` (RLS/masking)

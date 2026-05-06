@@ -7,38 +7,40 @@ Provide one durable manifest for the AgentCodex Project Standard blocks required
 ## Current Workflow Position
 
 - project: `CoinGeckoAnalytical`
-- workflow_phase: `build`
-- phase_group: `Phase 2 Enrichment`
-- status_date: `2026-05-02`
-- last_update: `2026-05-02 sessão 3 — Phase 2 enrichment pipeline construído (DefiLlama + GitHub + FRED), 138 testes passando, commit 0009024`
+- workflow_phase: `ship`
+- phase_group: `Live Databricks Apps Baseline`
+- status_date: `2026-05-05`
+- last_update: `2026-05-05 reconciliacao final do estado live-online + auditoria geral`
 
 ## Status Matrix
 
-| Block | Status | Primary Evidence | Remaining Gap |
+| Block | Status | Primary Evidence | Residual Hardening Gap |
 |---|---|---|---|
-| `contexto` | `implemented` | `README.md`, `.agentcodex/history/CONTEXT-HISTORY.md`, `BRAINSTORM_`, `DEFINE_` | keep the manifest current as the build evolves |
-| `arquitetura` | `implemented` | `docs/architecture.md`, `DESIGN_coingeckoanalytical.md` | none for Phase 1 |
-| `dados` | `implemented` | Phase 1: Bronze→Silver→Gold pipeline com 3 rows live. Phase 2: `defillama_ingestion_job`, `github_activity_ingestion_job`, `fred_macro_ingestion_job`, `silver_enrichment_pipeline_job` — cadeia enrichment Bronze→Silver→Gold completa com 3+3 Gold views + 3 ai_serving metric views | bind live Phase 2 Databricks execution evidence |
-| `governanca` | `implemented` | `.agentcodex/ops/governance-and-ownership.md`, `databricks/unity-catalog-foundation.md`, `databricks/terraform/main.tf` | live workspace grants and owners still need evidence |
-| `lineage` | `implemented` | `databricks/unity-catalog-lineage-map.md`, `databricks/gold-data-contracts.md` | add live Catalog Explorer validation evidence |
-| `execucao` | `implemented` | `backend/databricks_sql_client.py` (OAuth M2M, SQL Statements API, polling), `backend/genie_client.py` (ask_genie, polling, GenieAnswer), `backend/mosaic_copilot_client.py` (Model Serving, MosaicAnswer com token telemetry). BFF encadeia live→demo fallback para DBSQL e live→stub fallback para Genie/Mosaic | live warehouse + endpoint evidence pendente |
-| `validacao` | `partial` | backend tests, repo tests, `validate_bundle.py`, helper tests | missing live workspace validation and end-to-end acceptance report |
-| `observabilidade` | `implemented` | `backend/sentinela.py`, `telemetry-observability.sql`, `ops_readiness_dashboard.sql` | live ingestion and rendered dashboard evidence still pending |
-| `access control` | `implemented` | `.agentcodex/ops/access-control-model.md`, `databricks/unity_catalog_foundation.sql`, `databricks/terraform/main.tf` | live principal binding evidence still pending |
-| `data contracts` | `implemented` | `contracts/*.schema.json`, `databricks/gold-data-contracts.md`, `databricks/bronze-silver-market-foundation.md` | contract lifecycle evidence can be strengthened later |
-| `operacao` | `partial` | `.agentcodex/ops/sentinela-baseline.md`, `notification_policy.md`, `deployment_runbook.md`, `terraform-plan-apply-promotion.md` | missing incident runbook set and live operator evidence |
-| `deploy` | `implemented` | `databricks.yml` (multi-env dev/staging/prod), CI/CD migrado de PAT para OAuth M2M (ARM_CLIENT_ID/SECRET), Silver job registrado no bundle, notebooks incluídos no sync | secrets DATABRICKS_SP_CLIENT_ID, DATABRICKS_SP_CLIENT_SECRET, AZURE_TENANT_ID precisam ser configurados no GitHub |
-| `custo` | `implemented` | `.agentcodex/ops/cost-controls-policy.md`, `backend/sentinela.py`, `ops_readiness_dashboard.md` | live usage evidence still pending |
-| `compliance` | `implemented` | `.agentcodex/ops/compliance-posture.md`, `.agentcodex/ops/retention-audit-policy.md`, `databricks/unity-catalog-foundation.md` | control validation in real workspace still pending |
+| `contexto` | `implemented` | `README.md`, `.agentcodex/history/CONTEXT-HISTORY.md`, `BRAINSTORM_`, `DEFINE_` | keep status artifacts reconciled as the runtime evolves |
+| `arquitetura` | `implemented` | `docs/architecture.md`, `DESIGN_coingeckoanalytical.md`, `CLAUDE.md` | maintain the Databricks Apps primary-surface decision consistently |
+| `dados` | `implemented` | Bronze→Silver→Gold + enrichment chain + 22 jobs + live baseline evidence in reports | future source expansion beyond current 4 sources |
+| `governanca` | `implemented` | `.agentcodex/ops/governance-and-ownership.md`, `databricks/unity-catalog-foundation.md`, `databricks/terraform/main.tf`, `uc_grants_job` | keep workspace principals aligned across environments |
+| `lineage` | `implemented` | `databricks/unity-catalog-lineage-map.md`, `databricks/docs/gold-data-contracts.md`, UC/System Tables posture | add richer automated lineage evidence when promoted to staging/prod |
+| `execucao` | `implemented` | `backend/databricks_sql_client.py`, `backend/genie_client.py`, `backend/mosaic_copilot_client.py`, `backend/routing_bff.py`, BFF + apps + scheduled jobs | maintain evidence growth across environments |
+| `validacao` | `implemented` | compile validation + `validate_bundle.py` + chain validators + `355` local tests + live validation path | strengthen PR-time live integration coverage |
+| `observabilidade` | `implemented` | `backend/sentinela.py`, `telemetry-observability.sql`, `ops_readiness_dashboard.sql`, `cga-admin` | outbound notification delivery still pending |
+| `access control` | `implemented` | `.agentcodex/ops/access-control-model.md`, UC grants flow, `rls_migration_job`, masking SQL | tenant isolation beyond current RLS remains open |
+| `data contracts` | `implemented` | `contracts/*.schema.json`, Gold data contracts, chain validators | evolve versioning policy as external consumers grow |
+| `operacao` | `implemented` | `sentinela_evaluation_job`, `ops_readiness_refresh_job`, runbooks, approval policy, `cga-admin` | incident escalation/webhook automation still pending |
+| `deploy` | `implemented` | `databricks.yml`, CI gates, apps deploy path, serialized workflow dependencies | staging/prod promotion still manual |
+| `custo` | `implemented` | tier routing, telemetry schema, `cga-admin` cost monitor, cost controls policy | enforce runtime rate limiting in addition to budget caps |
+| `compliance` | `implemented` | `.agentcodex/ops/compliance-posture.md`, retention/audit policy, `rls_migration_job`, masking | add DR evidence and environment-by-environment control attestations |
 
-## Phase 1 Exit Rule
+## Live Baseline Note
 
-Phase 1 is not complete until:
+The project-standard baseline is considered implemented for the current live-online Databricks Apps scenario.
 
-- `validacao`, `operacao`, and `deploy` move from `partial` to `implemented`
-- the implemented blocks have live Databricks evidence where applicable
-- the repo no longer depends on demo-only paths for Phase 1 infrastructure claims
+This does not mean hardening is finished. Remaining work is now primarily:
+
+- promotion automation
+- cross-environment evidence growth
+- notification automation
 
 ## Update Rule
 
-Update this manifest whenever one of the 14 blocks changes status or receives live evidence.
+Update this manifest whenever one of the 14 blocks changes status or receives materially stronger live evidence.

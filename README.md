@@ -1,6 +1,9 @@
 # CoinGeckoAnalytical
 
-Plataforma de crypto market intelligence com frontend externo, Databricks como plano de dados e IA, e um sentinela multiagente para orquestração e observabilidade.
+Plataforma de crypto market intelligence operando nativamente em Databricks, com duas superfícies principais:
+
+- `cga-analytics` Databricks App para a experiência do usuário final
+- `cga-admin` Databricks App para operações, governança, custo e auditoria
 
 ## Arquitetura
 
@@ -8,13 +11,13 @@ Plataforma de crypto market intelligence com frontend externo, Databricks como p
 
 ## Estrutura Atual
 
-- `frontend externo` para a experiência pública
+- `Databricks Apps` como superfície primária do produto
 - `Databricks` para ingestão, ETL, governança, serving analítico e IA
 - `Genie` para perguntas estruturadas sobre dados Gold
 - `Mosaic AI Agent Framework` para o copilot de mercado
 - `Sentinela` para coordenação multiagente e observabilidade
-- `Databricks Apps` apenas para admin e operação interna
-- `frontend/` com shell real para dashboard e chat, preparado para BFF
+- `cga-analytics/` com painel Genie, charts dinâmicos, freshness bar e copilot
+- `cga-admin/` com Sentinela, health, cost, access e audit review
 
 ## Documentação
 
@@ -41,8 +44,8 @@ Plataforma de crypto market intelligence com frontend externo, Databricks como p
 ## Direcao Atual
 
 - fonte principal inicial: `CoinGecko API`
-- arquitetura alvo: `external frontend + Databricks data/AI plane + sentinela ops plane`
+- arquitetura alvo: `Databricks Apps primary surface + Databricks data/AI plane + sentinela ops plane`
 - observabilidade: tokens, custo, freshness, qualidade e trilha de auditoria
-- fase ativa: `build reset`
-- postura atual: `o repo tem scaffolding tecnico forte, mas ainda nao fechou um slice real de produto`
-- proximo passo: `implementar um V1 real ponta a ponta antes de retomar deploy ou ship`
+- fase ativa: `ship`
+- postura atual: `baseline final validado e online, com runtime governado, CI verde e deploy gates manuais para futuras mutacoes`
+- proximo passo: `hardening de producao residual: rate limiting, webhooks de notificacao, DR, promocao staging/prod e integracao live fora do caminho de deploy`

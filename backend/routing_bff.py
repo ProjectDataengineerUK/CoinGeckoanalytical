@@ -2,7 +2,12 @@ from __future__ import annotations
 
 import datetime as dt
 import importlib.util
+import os
+import re
 import sys
+import threading
+import time
+from collections import deque
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
@@ -28,6 +33,45 @@ genie_client = _load_module("genie_client", "genie_client.py")
 
 ALLOWED_CHANNELS = {"web_dashboard", "web_chat", "api"}
 ALLOWED_REQUEST_HINTS = {"analytics_nlq", "copilot", "dashboard_query", "auto"}
+SUPPORTED_API_VERSIONS = {"v1"}
+DEFAULT_API_VERSION = "v1"
+_SAFE_RUNTIME_ID_RE = re.compile(r"^[A-Za-z0-9][A-Za-z0-9_.:-]{0,127}$")
+_SAFE_ASSET_ID_RE = re.compile(r"^[a-z0-9][a-z0-9\-_]{0,63}$")
+_MAX_MESSAGE_CHARS = 2000
+_MAX_SELECTED_ASSETS = 25
+_RATE_LIMIT_REQUESTS = int(os.environ.get("CGA_AI_RATE_LIMIT_REQUESTS", "12"))
+_RATE_LIMIT_WINDOW_SECONDS = int(os.environ.get("CGA_AI_RATE_LIMIT_WINDOW_SECONDS", "60"))
+
+
+class _SlidingWindowRateLimiter:
+    def __init__(self, limit: int, window_seconds: int) -> None:
+        self._limit = limit
+        self._window_seconds = window_seconds
+        self._buckets: dict[str, deque[float]] = {}
+        self._lock = threading.Lock()
+
+    def allow(self, key: str, now: float | None = None) -> tuple[bool, int]:
+        current = now if now is not None else time.monotonic()
+        with self._lock:
+            bucket = self._buckets.setdefault(key, deque())
+            cutoff = current - self._window_seconds
+            while bucket and bucket[0] <= cutoff:
+                bucket.popleft()
+            if len(bucket) >= self._limit:
+                retry_after = max(1, int(self._window_seconds - (current - bucket[0])))
+                return False, retry_after
+            bucket.append(current)
+            return True, 0
+
+    def reset(self) -> None:
+        with self._lock:
+            self._buckets.clear()
+
+
+_AI_RATE_LIMITER = _SlidingWindowRateLimiter(
+    limit=_RATE_LIMIT_REQUESTS,
+    window_seconds=_RATE_LIMIT_WINDOW_SECONDS,
+)
 
 
 @dataclass(frozen=True)
@@ -43,6 +87,7 @@ class FrontendRoutingRequest:
     selected_assets: list[str] = field(default_factory=list)
     time_range: dict[str, str] | None = None
     ui_context: dict[str, Any] | None = None
+    api_version: str = DEFAULT_API_VERSION
 
 
 def validate_frontend_request(payload: dict[str, Any]) -> FrontendRoutingRequest:
@@ -59,21 +104,46 @@ def validate_frontend_request(payload: dict[str, Any]) -> FrontendRoutingRequest
     if missing:
         raise ValueError(f"Missing required request fields: {', '.join(missing)}")
 
+    api_version = str(payload.get("api_version") or DEFAULT_API_VERSION)
+    if api_version not in SUPPORTED_API_VERSIONS:
+        raise ValueError(f"Unsupported api_version: {api_version}")
     if payload["channel"] not in ALLOWED_CHANNELS:
         raise ValueError(f"Unsupported channel: {payload['channel']}")
     if payload["request_type_hint"] not in ALLOWED_REQUEST_HINTS:
         raise ValueError(f"Unsupported request_type_hint: {payload['request_type_hint']}")
+    if len(str(payload["message_text"])) > _MAX_MESSAGE_CHARS:
+        raise ValueError(f"message_text exceeds {_MAX_MESSAGE_CHARS} characters")
+
+    identifiers = {
+        "tenant_id": str(payload["tenant_id"]),
+        "session_id": str(payload["session_id"]),
+        "request_id": str(payload["request_id"]),
+    }
+    user_id = payload.get("user_id")
+    if user_id:
+        identifiers["user_id"] = str(user_id)
+    for label, value in identifiers.items():
+        if not _SAFE_RUNTIME_ID_RE.match(value):
+            raise ValueError(f"Invalid {label}: only safe runtime identifier characters are allowed")
+
+    selected_assets = list(payload.get("selected_assets") or [])
+    if len(selected_assets) > _MAX_SELECTED_ASSETS:
+        raise ValueError(f"selected_assets exceeds {_MAX_SELECTED_ASSETS} items")
+    invalid_assets = [asset for asset in selected_assets if not _SAFE_ASSET_ID_RE.match(str(asset))]
+    if invalid_assets:
+        raise ValueError("selected_assets contains invalid asset identifiers")
 
     return FrontendRoutingRequest(
+        api_version=api_version,
         tenant_id=str(payload["tenant_id"]),
-        user_id=payload.get("user_id"),
+        user_id=str(user_id) if user_id else None,
         session_id=str(payload["session_id"]),
         request_id=str(payload["request_id"]),
         locale=str(payload["locale"]),
         channel=str(payload["channel"]),
         request_type_hint=str(payload["request_type_hint"]),
         message_text=str(payload["message_text"]),
-        selected_assets=list(payload.get("selected_assets") or []),
+        selected_assets=selected_assets,
         time_range=dict(payload["time_range"]) if payload.get("time_range") else None,
         ui_context=dict(payload["ui_context"]) if payload.get("ui_context") else None,
     )
@@ -219,7 +289,7 @@ def _build_dashboard_response(request: FrontendRoutingRequest) -> dict[str, Any]
     if warnings_extra:
         response.setdefault("warnings", [])
         response["warnings"] = list(response["warnings"]) + warnings_extra
-    return response
+    return _stamp_response_metadata(response, request)
 
 
 def _load_genie_config() -> Any:
@@ -237,13 +307,18 @@ def _build_narrative_copilot_response(request: FrontendRoutingRequest) -> dict[s
         retrieval_scope="market_overview_intelligence",
         selected_assets=request.selected_assets,
         time_range=request.time_range,
-        policy_context={"locale": request.locale, "channel": request.channel},
+        policy_context={
+            "locale": request.locale,
+            "channel": request.channel,
+            "api_version": request.api_version,
+            "tenant_id": request.tenant_id,
+        },
         locale=request.locale,
     )
     response = copilot_mvp.build_copilot_response(copilot_request)
     response["routing"]["channel"] = request.channel
     response["routing"]["request_type_hint"] = request.request_type_hint
-    return response
+    return _stamp_response_metadata(response, request)
 
 
 def _build_genie_stub_fallback(request: FrontendRoutingRequest) -> dict[str, Any]:
@@ -257,7 +332,12 @@ def _build_genie_stub_fallback(request: FrontendRoutingRequest) -> dict[str, Any
         retrieval_scope="market_overview_intelligence",
         selected_assets=request.selected_assets,
         time_range=request.time_range,
-        policy_context={"locale": request.locale, "channel": request.channel},
+        policy_context={
+            "locale": request.locale,
+            "channel": request.channel,
+            "api_version": request.api_version,
+            "tenant_id": request.tenant_id,
+        },
         locale=request.locale,
     )
     response = copilot_mvp.build_copilot_response(copilot_request)
@@ -266,7 +346,7 @@ def _build_genie_stub_fallback(request: FrontendRoutingRequest) -> dict[str, Any
     response["routing"]["request_type_hint"] = request.request_type_hint
     response.setdefault("warnings", [])
     response["warnings"] = list(response["warnings"]) + [_GENIE_STUB_WARNING]
-    return response
+    return _stamp_response_metadata(response, request)
 
 
 def _build_genie_response(request: FrontendRoutingRequest) -> dict[str, Any]:
@@ -299,7 +379,7 @@ def _build_genie_response(request: FrontendRoutingRequest) -> dict[str, Any]:
                         "request_type_hint": request.request_type_hint,
                     },
                 )
-                return copilot_mvp.serialize_response_envelope(envelope)
+                return _stamp_response_metadata(copilot_mvp.serialize_response_envelope(envelope), request)
 
             envelope = copilot_mvp.ResponseEnvelope(
                 request_id=request.request_id,
@@ -321,11 +401,49 @@ def _build_genie_response(request: FrontendRoutingRequest) -> dict[str, Any]:
                     "request_type_hint": request.request_type_hint,
                 },
             )
-            return copilot_mvp.serialize_response_envelope(envelope)
+            return _stamp_response_metadata(copilot_mvp.serialize_response_envelope(envelope), request)
         except Exception:
             pass
 
     return _build_genie_stub_fallback(request)
+
+
+def _stamp_response_metadata(response: dict[str, Any], request: FrontendRoutingRequest) -> dict[str, Any]:
+    response["api_version"] = request.api_version
+    response.setdefault("routing", {})
+    response["routing"]["api_version"] = request.api_version
+    response["routing"]["tenant_id"] = request.tenant_id
+    return response
+
+
+def _enforce_ai_rate_limit(request: FrontendRoutingRequest) -> dict[str, Any] | None:
+    key = f"{request.tenant_id}:{request.user_id or 'anonymous'}:{request.channel}"
+    allowed, retry_after = _AI_RATE_LIMITER.allow(key)
+    if allowed:
+        return None
+    envelope = copilot_mvp.ResponseEnvelope(
+        request_id=request.request_id,
+        surface_type="policy_error",
+        title="Limite temporário atingido",
+        body="Muitas requisições de IA em sequência para este tenant/usuário. Tente novamente em instantes.",
+        citations=[],
+        freshness={"watermark": None, "status": "policy_limited"},
+        confidence={"label": "policy_enforced", "score": 1.0},
+        actions=["retry_later"],
+        warnings=["rate_limited"],
+        routing={
+            "surface": "policy",
+            "reason": "rate_limit_exceeded",
+            "retry_after_seconds": retry_after,
+            "channel": request.channel,
+            "request_type_hint": request.request_type_hint,
+        },
+    )
+    return _stamp_response_metadata(copilot_mvp.serialize_response_envelope(envelope), request)
+
+
+def reset_runtime_controls() -> None:
+    _AI_RATE_LIMITER.reset()
 
 
 def _build_copilot_or_genie_response(request: FrontendRoutingRequest) -> dict[str, Any]:
@@ -345,6 +463,9 @@ def route_frontend_request(payload: dict[str, Any]) -> dict[str, Any]:
     if request.request_type_hint == "dashboard_query":
         return _build_dashboard_response(request)
     if request.request_type_hint in {"analytics_nlq", "copilot"}:
+        rate_limited = _enforce_ai_rate_limit(request)
+        if rate_limited is not None:
+            return rate_limited
         return _build_copilot_or_genie_response(request)
 
     if request.channel == "web_dashboard" and request.message_text.lower().strip() in {
@@ -353,4 +474,7 @@ def route_frontend_request(payload: dict[str, Any]) -> dict[str, Any]:
     }:
         return _build_dashboard_response(request)
 
+    rate_limited = _enforce_ai_rate_limit(request)
+    if rate_limited is not None:
+        return rate_limited
     return _build_copilot_or_genie_response(request)

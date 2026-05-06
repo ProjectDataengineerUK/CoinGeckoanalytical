@@ -1,8 +1,8 @@
 # Backend
 
-Backend-for-frontend and governed serving placeholder.
+Backend-for-frontend and governed serving layer for the live Databricks Apps experience.
 
-This layer should route requests to structured analytics via `Genie` and to the coded copilot via `Mosaic AI Agent Framework`.
+This layer routes structured analytics to `Genie`, narrative requests to the coded `Mosaic AI Agent Framework` path, and emits operational telemetry consumed by the Databricks ops plane.
 
 ## Build Slice 3 Scope
 

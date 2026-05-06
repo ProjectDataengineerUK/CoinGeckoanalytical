@@ -16,7 +16,7 @@ GitHub Actions deploys use `DATABRICKS_HOST` and `DATABRICKS_TOKEN`. If `DATABRI
 - freshness and quality baseline checks
 - telemetry observability and release-readiness views
 - Unity Catalog governance for data and models
-- Databricks Apps only for admin and internal operations
+- Databricks Apps as the primary product surface (`cga-analytics`) plus internal ops/admin surface (`cga-admin`)
 - thin Databricks notebooks for workspace execution, validation, and operations review
 
 ## Concrete Assets
