@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import importlib.util
+import logging
 import sys
 from pathlib import Path
 from typing import Any
@@ -10,6 +11,7 @@ if str(_REPO_ROOT) not in sys.path:
     sys.path.insert(0, str(_REPO_ROOT))
 
 _sentinela: Any = None
+_LOG = logging.getLogger(__name__)
 
 
 def _load() -> Any:
@@ -25,7 +27,7 @@ def _load() -> Any:
         spec.loader.exec_module(mod)  # type: ignore[union-attr]
         _sentinela = mod
     except Exception:
-        pass
+        _LOG.error("Failed to load sentinela backend", exc_info=True)
     return _sentinela
 
 
@@ -49,8 +51,15 @@ def evaluate_readiness(
 ) -> dict[str, Any]:
     mod = _load()
     if not mod:
-        return {"ready": False, "blockers": [], "score": 0}
+        return {"ready": False, "blockers": ["sentinela_backend_unavailable"], "score": 0}
     try:
-        return mod.evaluate_release_readiness(usage_events, bundle_events)
+        result = mod.evaluate_release_readiness(usage_events, bundle_runs=bundle_events)
+        checks = list(result.get("checks") or [])
+        passed = sum(1 for check in checks if check.get("passed"))
+        total = len(checks)
+        score = int(round((passed / total) * 100)) if total else 0
+        result["score"] = score
+        return result
     except Exception:
+        _LOG.error("Sentinela readiness evaluation failed", exc_info=True)
         return {"ready": False, "blockers": ["sentinela_error"], "score": 0}
