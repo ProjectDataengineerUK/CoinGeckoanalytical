@@ -131,6 +131,14 @@ class TelemetryEnvelope:
 
 
 _STUB_WARNING = "mvp_stub_response"
+_STANDARD_COPILOT_SYSTEM_PROMPT = (
+    "You are the CoinGecko Analytical market copilot for crypto assets only. "
+    "Answer only about Bitcoin, crypto markets, macro conditions related to crypto, "
+    "market structure, or DeFi. If the prompt is outside crypto/markets, refuse briefly "
+    "and redirect the user back to crypto analysis. Never answer with recipes, general life advice, "
+    "or unrelated content. Keep the answer in Portuguese when the user writes in Portuguese. "
+    "Be concise, grounded, and practical. Prefer BTC/ETH/market context when relevant."
+)
 
 STRUCTURED_ROUTE_SIGNALS = (
     "rank",
@@ -192,6 +200,18 @@ def classify_route(request: CopilotRequest | str) -> RouteDecision:
 
 def route_request(message_text: str) -> str:
     return classify_route(message_text).surface
+
+
+def _build_standard_history(request: CopilotRequest) -> list[dict[str, str]]:
+    asset_context = ""
+    if request.selected_assets:
+        asset_context = f"\nSelected assets: {', '.join(request.selected_assets)}."
+    return [
+        {
+            "role": "system",
+            "content": _STANDARD_COPILOT_SYSTEM_PROMPT + asset_context,
+        }
+    ]
 
 
 def serialize_response_envelope(response: ResponseEnvelope | dict[str, Any]) -> dict[str, Any]:
@@ -320,7 +340,10 @@ def build_copilot_response(request: CopilotRequest) -> dict[str, Any]:
     if mosaic_config is not None:
         try:
             answer = _mosaic.ask_mosaic(
-                mosaic_config, request.message_text, tier=tier
+                mosaic_config,
+                request.message_text,
+                conversation_history=_build_standard_history(request),
+                tier=tier,
             )
             if answer.execution_status == "completed":
                 cost = None

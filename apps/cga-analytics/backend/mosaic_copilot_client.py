@@ -26,6 +26,9 @@ class MosaicConfig:
     # Per-tier endpoint overrides. Falls back to endpoint_name when empty.
     endpoint_name_light: str = ""
     endpoint_name_complex: str = ""
+    temperature: float = 0.15
+    top_p: float = 0.20
+    max_output_tokens: int = 700
 
 
 # Unity AI Gateway FMAPI endpoints available in every Databricks workspace by default.
@@ -50,6 +53,9 @@ def load_config_from_env(env: dict[str, str] | None = None) -> MosaicConfig | No
         client_secret=source.get("DATABRICKS_CLIENT_SECRET", ""),
         endpoint_name_light=source.get("DATABRICKS_MOSAIC_ENDPOINT_LIGHT", _DEFAULT_ENDPOINT_LIGHT),
         endpoint_name_complex=source.get("DATABRICKS_MOSAIC_ENDPOINT_COMPLEX", _DEFAULT_ENDPOINT_COMPLEX),
+        temperature=float(source.get("DATABRICKS_MOSAIC_TEMPERATURE", "0.15")),
+        top_p=float(source.get("DATABRICKS_MOSAIC_TOP_P", "0.20")),
+        max_output_tokens=int(source.get("DATABRICKS_MOSAIC_MAX_OUTPUT_TOKENS", "700")),
     )
 
 
@@ -179,7 +185,14 @@ def ask_mosaic(
 
     endpoint = _resolve_endpoint(config, tier)
     url = f"{config.host}/serving-endpoints/{endpoint}/invocations"
-    payload = json.dumps({"messages": messages}).encode()
+    payload = json.dumps(
+        {
+            "messages": messages,
+            "temperature": config.temperature,
+            "top_p": config.top_p,
+            "max_tokens": config.max_output_tokens,
+        }
+    ).encode()
     req = urllib.request.Request(
         url,
         data=payload,

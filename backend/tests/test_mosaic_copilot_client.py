@@ -26,10 +26,26 @@ class TestLoadConfigFromEnv(unittest.TestCase):
         config = client.load_config_from_env(env)
         self.assertIsNotNone(config)
         self.assertEqual(config.host, "https://adb-123.azuredatabricks.net")
+        self.assertEqual(config.temperature, 0.15)
+        self.assertEqual(config.top_p, 0.20)
+        self.assertEqual(config.max_output_tokens, 700)
 
     def test_returns_none_for_untrusted_host(self) -> None:
         env = {"DATABRICKS_HOST": "https://evil.example.com"}
         self.assertIsNone(client.load_config_from_env(env))
+
+    def test_reads_generation_controls_from_env(self) -> None:
+        env = {
+            "DATABRICKS_HOST": "https://adb-123.azuredatabricks.net",
+            "DATABRICKS_MOSAIC_TEMPERATURE": "0.05",
+            "DATABRICKS_MOSAIC_TOP_P": "0.10",
+            "DATABRICKS_MOSAIC_MAX_OUTPUT_TOKENS": "320",
+        }
+        config = client.load_config_from_env(env)
+        self.assertIsNotNone(config)
+        self.assertEqual(config.temperature, 0.05)
+        self.assertEqual(config.top_p, 0.10)
+        self.assertEqual(config.max_output_tokens, 320)
 
 
 class TestResponseParsing(unittest.TestCase):

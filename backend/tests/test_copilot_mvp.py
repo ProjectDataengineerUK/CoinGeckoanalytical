@@ -4,6 +4,7 @@ import importlib.util
 import sys
 from pathlib import Path
 import unittest
+from unittest.mock import MagicMock
 
 
 MODULE_PATH = Path(__file__).resolve().parent.parent / "copilot_mvp.py"
@@ -128,6 +129,47 @@ class CopilotMvpTests(unittest.TestCase):
         self.assertEqual(row["route_selected"], "genie")
         self.assertEqual(row["prompt_tokens"], 21)
         self.assertEqual(row["response_status"], "success")
+
+    def test_standard_copilot_path_passes_market_system_prompt(self) -> None:
+        request = copilot_mvp.CopilotRequest(
+            request_id="req-4",
+            tenant_id="tenant-1",
+            user_id=None,
+            conversation_id="conv-1",
+            message_text="Posso comprar BTC agora?",
+            conversation_summary=None,
+            retrieval_scope="gold_market_views",
+            selected_assets=["btc"],
+            time_range=None,
+            policy_context={"locale": "pt-BR"},
+            locale="pt-BR",
+        )
+        mosaic = MagicMock()
+        mosaic.load_config_from_env.return_value = object()
+        mosaic._resolve_endpoint.return_value = "databricks-gpt-oss-120b"
+        mosaic.ask_mosaic.return_value = MagicMock(
+            execution_status="completed",
+            answer_text="Resposta de mercado.",
+            token_count_hint=120,
+            latency_ms=180,
+            model_id="databricks-gpt-oss-120b",
+        )
+        original_load = copilot_mvp._load_mosaic_client
+        original_router = copilot_mvp._load_tier_router
+        try:
+            copilot_mvp._load_mosaic_client = lambda: mosaic
+            copilot_mvp._load_tier_router = lambda: None
+            response = copilot_mvp.build_copilot_response(request)
+        finally:
+            copilot_mvp._load_mosaic_client = original_load
+            copilot_mvp._load_tier_router = original_router
+
+        self.assertEqual(response["body"], "Resposta de mercado.")
+        _, kwargs = mosaic.ask_mosaic.call_args
+        history = kwargs["conversation_history"]
+        self.assertEqual(history[0]["role"], "system")
+        self.assertIn("crypto assets only", history[0]["content"])
+        self.assertIn("Selected assets: btc.", history[0]["content"])
 
 
 if __name__ == "__main__":
