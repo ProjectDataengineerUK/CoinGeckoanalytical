@@ -273,6 +273,20 @@ class TestExtractAnswerText(unittest.TestCase):
         attachments = [{"query": {"query": "SELECT 1"}}]
         self.assertIsNone(gc._extract_answer_text(attachments))
 
+    def test_extracts_content_from_message_attachment(self) -> None:
+        attachments = [{"message": {"content": "BTC lidera o mercado."}}]
+        self.assertEqual(gc._extract_answer_text(attachments), "BTC lidera o mercado.")
+
+    def test_extracts_text_from_stringified_blocks(self) -> None:
+        attachments = [
+            {
+                "text": {
+                    "content": "[{'type': 'text', 'text': 'Resposta final do Genie'}]"
+                }
+            }
+        ]
+        self.assertEqual(gc._extract_answer_text(attachments), "Resposta final do Genie")
+
 
 # ---------------------------------------------------------------------------
 # TestExtractGeneratedQuery
@@ -304,6 +318,13 @@ class TestExtractGeneratedQuery(unittest.TestCase):
     def test_returns_none_when_query_key_absent(self) -> None:
         attachments = [_text_attachment("some text")]
         self.assertIsNone(gc._extract_generated_query(attachments))
+
+    def test_extracts_sql_from_statement_attachment(self) -> None:
+        attachments = [{"statement": {"query": "SELECT market_cap_rank FROM gold_market_rankings"}}]
+        self.assertEqual(
+            gc._extract_generated_query(attachments),
+            "SELECT market_cap_rank FROM gold_market_rankings",
+        )
 
 
 # ---------------------------------------------------------------------------
@@ -374,7 +395,7 @@ class TestAskGenie(unittest.TestCase):
             _genie_start_response("QUERY_RESULT_EXPIRED"),
         ]
         answer = self._run_ask_genie(responses)
-        self.assertEqual(answer.execution_status, "failed")
+        self.assertEqual(answer.execution_status, "query_result_expired")
         self.assertEqual(answer.answer_text, "")
         self.assertIsNone(answer.generated_query)
 
@@ -424,14 +445,14 @@ class TestAskGenie(unittest.TestCase):
         answer = self._run_ask_genie(responses)
         self.assertEqual(answer.execution_status, "failed")
 
-    def test_query_result_expired_during_polling_returns_failed(self) -> None:
+    def test_query_result_expired_during_polling_returns_expired_status(self) -> None:
         responses = [
             _token_response(),
             _genie_start_response("PENDING"),
             _genie_poll_response("QUERY_RESULT_EXPIRED"),
         ]
         answer = self._run_ask_genie(responses)
-        self.assertEqual(answer.execution_status, "failed")
+        self.assertEqual(answer.execution_status, "query_result_expired")
 
     # --- no_answer path ---
 

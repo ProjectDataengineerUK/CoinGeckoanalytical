@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import ast
 import json
 import os
 import threading
@@ -109,17 +110,68 @@ def _get_json(url: str, token: str, timeout: int = 30) -> dict[str, Any]:
 
 def _extract_answer_text(attachments: list[dict[str, Any]]) -> str | None:
     for attachment in attachments:
-        content = attachment.get("text", {}).get("content", "")
-        if content:
-            return content
+        for path in (
+            ("text", "content"),
+            ("text", "value"),
+            ("message", "content"),
+            ("response", "text"),
+        ):
+            content: Any = attachment
+            for key in path:
+                if not isinstance(content, dict):
+                    content = None
+                    break
+                content = content.get(key)
+            extracted = _normalize_text_content(content)
+            if extracted:
+                return extracted
     return None
 
 
 def _extract_generated_query(attachments: list[dict[str, Any]]) -> str | None:
     for attachment in attachments:
-        sql = attachment.get("query", {}).get("query", "")
-        if sql:
-            return sql
+        for path in (
+            ("query", "query"),
+            ("query", "content"),
+            ("statement", "query"),
+            ("sql",),
+        ):
+            sql: Any = attachment
+            for key in path:
+                if not isinstance(sql, dict):
+                    sql = None
+                    break
+                sql = sql.get(key)
+            normalized = _normalize_text_content(sql)
+            if normalized:
+                return normalized
+    return None
+
+
+def _normalize_text_content(content: Any) -> str | None:
+    if isinstance(content, str):
+        stripped = content.strip()
+        if not stripped:
+            return None
+        if stripped.startswith("[") or stripped.startswith("{"):
+            for parser in (json.loads, ast.literal_eval):
+                try:
+                    parsed = parser(stripped)
+                    extracted = _normalize_text_content(parsed)
+                    if extracted:
+                        return extracted
+                except Exception:
+                    continue
+        return stripped
+    if isinstance(content, dict):
+        for key in ("text", "content", "value"):
+            extracted = _normalize_text_content(content.get(key))
+            if extracted:
+                return extracted
+        return None
+    if isinstance(content, list):
+        parts = [part for item in content if (part := _normalize_text_content(item))]
+        return "\n\n".join(parts).strip() or None
     return None
 
 
@@ -170,7 +222,7 @@ def ask_genie(config: GenieConfig, question: str) -> GenieAnswer:
         return GenieAnswer(
             answer_text="",
             generated_query=None,
-            execution_status="failed",
+            execution_status="query_result_expired",
             latency_ms=latency_ms,
         )
 
