@@ -82,17 +82,25 @@ def _extract_text_from_content(content: Any) -> str:
                         return extracted
                 except Exception:
                     continue
+        lower = stripped.lower()
+        for marker in ("\nclaro!", "\ncom certeza!", "\nresumo rápido", "\n**resumo"):
+            idx = lower.find(marker)
+            if idx >= 0:
+                return stripped[idx + 1 :].strip()
+        if lower.startswith("the user writes") and "claro!" in lower:
+            idx = lower.find("claro!")
+            return stripped[idx:].strip()
         return stripped
 
     if isinstance(content, dict):
-        for key in ("text", "output_text", "content"):
+        if content.get("type") == "reasoning":
+            return ""
+        if content.get("type") == "text":
+            return _extract_text_from_content(content.get("text"))
+        for key in ("output_text", "text", "content"):
             extracted = _extract_text_from_content(content.get(key))
             if extracted:
                 return extracted
-        summary = content.get("summary")
-        extracted = _extract_text_from_content(summary)
-        if extracted:
-            return extracted
         return ""
 
     if isinstance(content, list):

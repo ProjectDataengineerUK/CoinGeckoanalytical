@@ -51,7 +51,7 @@ class TestResponseParsing(unittest.TestCase):
 
         self.assertEqual(
             client._extract_answer_text(payload),
-            "reasoning text\n\nOi! Como posso ajudar você hoje?",
+            "Oi! Como posso ajudar você hoje?",
         )
 
     def test_extracts_text_from_stringified_block_list(self) -> None:
@@ -70,7 +70,27 @@ class TestResponseParsing(unittest.TestCase):
 
         self.assertEqual(
             client._extract_answer_text(payload),
-            "resumo interno\n\nResposta final",
+            "Resposta final",
+        )
+
+    def test_strips_meta_wrapper_and_keeps_user_facing_answer(self) -> None:
+        payload = {
+            "choices": [
+                {
+                    "message": {
+                        "content": (
+                            "The user writes in Portuguese: \"posso compra btc\". "
+                            "Likely they ask guidance.\n"
+                            "Claro! Comprar Bitcoin (BTC) e relativamente simples hoje em dia."
+                        )
+                    }
+                }
+            ]
+        }
+
+        self.assertEqual(
+            client._extract_answer_text(payload),
+            "Claro! Comprar Bitcoin (BTC) e relativamente simples hoje em dia.",
         )
 
 
