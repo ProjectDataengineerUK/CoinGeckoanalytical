@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import importlib.util
 import sys
+import types
 import unittest
 from pathlib import Path
 
@@ -12,6 +13,59 @@ APP_ROOT = (
 )
 if str(APP_ROOT) not in sys.path:
     sys.path.insert(0, str(APP_ROOT))
+
+
+class _StubCallable:
+    def __call__(self, *args, **kwargs):
+        return {"args": args, "kwargs": kwargs}
+
+
+def _identity_callback(*args, **kwargs):
+    def decorator(fn):
+        return fn
+    return decorator
+
+
+if "dash_bootstrap_components" not in sys.modules:
+    dbc = types.ModuleType("dash_bootstrap_components")
+    for name in (
+        "Row",
+        "Col",
+        "Card",
+        "CardHeader",
+        "CardBody",
+        "Alert",
+        "Badge",
+        "Table",
+    ):
+        setattr(dbc, name, _StubCallable())
+    sys.modules["dash_bootstrap_components"] = dbc
+
+if "dash" not in sys.modules:
+    dash = types.ModuleType("dash")
+    dash.Input = _StubCallable()
+    dash.Output = _StubCallable()
+    dash.callback = _identity_callback
+    dash.dcc = types.SimpleNamespace(Graph=_StubCallable())
+    dash.html = types.SimpleNamespace(
+        Div=_StubCallable(),
+        Strong=_StubCallable(),
+        Small=_StubCallable(),
+        Thead=_StubCallable(),
+        Tbody=_StubCallable(),
+        Tr=_StubCallable(),
+        Th=_StubCallable(),
+        Td=_StubCallable(),
+    )
+    sys.modules["dash"] = dash
+
+if "plotly" not in sys.modules:
+    plotly = types.ModuleType("plotly")
+    graph_objects = types.ModuleType("plotly.graph_objects")
+    graph_objects.Figure = _StubCallable()
+    graph_objects.Bar = _StubCallable()
+    sys.modules["plotly"] = plotly
+    sys.modules["plotly.graph_objects"] = graph_objects
 
 MODULE_PATH = (
     Path(__file__).resolve().parents[1]
